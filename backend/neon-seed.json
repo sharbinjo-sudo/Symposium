@@ -1,0 +1,152 @@
+[
+{
+  "model": "events.event",
+  "pk": 1,
+  "fields": {
+    "event_code": "PP",
+    "event_name": "Paper Presentation",
+    "minimum_team_size": 1,
+    "maximum_team_size": 1,
+    "registration_fee_type": "per_participant",
+    "registration_fee": "250.00",
+    "registration_limit": null,
+    "is_registration_open": true,
+    "created_at": "2026-07-19T16:13:14.586Z",
+    "updated_at": "2026-07-19T16:13:14.586Z"
+  }
+},
+{
+  "model": "events.event",
+  "pk": 2,
+  "fields": {
+    "event_code": "CB",
+    "event_name": "Code Busters",
+    "minimum_team_size": 1,
+    "maximum_team_size": 2,
+    "registration_fee_type": "per_participant",
+    "registration_fee": "250.00",
+    "registration_limit": null,
+    "is_registration_open": true,
+    "created_at": "2026-07-19T16:13:14.595Z",
+    "updated_at": "2026-07-19T16:13:14.595Z"
+  }
+},
+{
+  "model": "events.event",
+  "pk": 3,
+  "fields": {
+    "event_code": "WC",
+    "event_name": "Web Craft",
+    "minimum_team_size": 1,
+    "maximum_team_size": 2,
+    "registration_fee_type": "per_team",
+    "registration_fee": "250.00",
+    "registration_limit": null,
+    "is_registration_open": true,
+    "created_at": "2026-07-19T16:13:14.600Z",
+    "updated_at": "2026-07-19T16:13:14.600Z"
+  }
+},
+{
+  "model": "events.event",
+  "pk": 4,
+  "fields": {
+    "event_code": "VS",
+    "event_name": "Visualytics",
+    "minimum_team_size": 1,
+    "maximum_team_size": 2,
+    "registration_fee_type": "per_team",
+    "registration_fee": "250.00",
+    "registration_limit": null,
+    "is_registration_open": true,
+    "created_at": "2026-07-19T16:13:14.604Z",
+    "updated_at": "2026-07-19T16:13:14.604Z"
+  }
+},
+{
+  "model": "registrations.registration",
+  "pk": 1,
+  "fields": {
+    "registration_code": "CP26-PP-0001",
+    "event": 1,
+    "team_name": null,
+    "team_size": 1,
+    "total_amount": "250.00",
+    "transaction_id": "123456",
+    "payment_provider": "manual",
+    "payment_order_id": "",
+    "payment_signature": "",
+    "payment_date": "2026-07-20",
+    "payment_screenshot_path": "payments/dc7719b407de4bb7a4ac2b9a12015cfc.png",
+    "payment_status": "pending_verification",
+    "admin_note": null,
+    "registration_status": "submitted",
+    "email_status": "failed",
+    "idempotency_key": "5295f5dd-ee64-4514-affd-c9ed57c00ab5",
+    "consent_given": true,
+    "attendance_marked": false,
+    "created_at": "2026-07-19T20:58:41.231Z",
+    "updated_at": "2026-07-19T20:58:41.240Z"
+  }
+},
+{
+  "model": "registrations.registration",
+  "pk": 2,
+  "fields": {
+    "registration_code": "CP26-PP-0002",
+    "event": 1,
+    "team_name": null,
+    "team_size": 1,
+    "total_amount": "250.00",
+    "transaction_id": "1234567",
+    "payment_provider": "manual",
+    "payment_order_id": "",
+    "payment_signature": "",
+    "payment_date": "2026-07-20",
+    "payment_screenshot_path": "payments/e1196f80570e4df8a1830c9db8726eed.png",
+    "payment_status": "pending_verification",
+    "admin_note": null,
+    "registration_status": "submitted",
+    "email_status": "failed",
+    "idempotency_key": "a66e3db9-f69e-432e-ae73-8183c74ad4f9",
+    "consent_given": true,
+    "attendance_marked": false,
+    "created_at": "2026-07-19T21:11:35.810Z",
+    "updated_at": "2026-07-19T21:11:35.815Z"
+  }
+},
+{
+  "model": "registrations.participant",
+  "pk": 1,
+  "fields": {
+    "registration": 1,
+    "participant_number": 1,
+    "full_name": "asd",
+    "college_name": "asd",
+    "roll_number": "123",
+    "mobile_number": "+919488317329",
+    "email": "asd@gmail.com",
+    "department": "asd",
+    "year_of_study": "2",
+    "is_team_leader": true,
+    "created_at": "2026-07-19T20:58:41.236Z"
+  }
+},
+{
+  "model": "registrations.participant",
+  "pk": 2,
+  "fields": {
+    "registration": 2,
+    "participant_number": 1,
+    "full_name": "asd",
+    "college_name": "asd",
+    "roll_number": "1233",
+    "mobile_number": "+919488317234",
+    "email": "asdf@gmail.com",
+    "department": "asd",
+    "year_of_study": "2",
+    "is_team_leader": true,
+    "created_at": "2026-07-19T21:11:35.811Z"
+  }
+}
+]

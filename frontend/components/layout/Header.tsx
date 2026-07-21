@@ -13,6 +13,7 @@ const navItems = [
   { href: "/non-technical-events", label: "Campus" },
   { href: "/prizes", label: "Prizes" },
   { href: "/registration", label: "Register" },
+  { href: "/status", label: "Status" },
   { href: "/contact", label: "Contact" }
 ];
 

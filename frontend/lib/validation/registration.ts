@@ -72,7 +72,7 @@ export function createRegistrationSchema(event: EventConfig | undefined) {
     razorpayPaymentId: z.string().trim().min(1, "Razorpay payment ID is required."),
     razorpaySignature: z.string().trim().min(1, "Razorpay signature is required."),
     consentGiven: z.literal(true, {
-      errorMap: () => ({ message: "You must confirm the privacy notice." })
+      errorMap: () => ({ message: "Please confirm the privacy note to continue." })
     }),
     participants: z
       .array(participantSchema)

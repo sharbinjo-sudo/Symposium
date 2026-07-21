@@ -97,6 +97,32 @@ export type RegistrationResponse = {
   paymentProvider: string;
 };
 
+export type RegistrationStatusLookupPayload = {
+  registrationCode: string;
+  email: string;
+};
+
+export type RegistrationStatusResponse = {
+  registrationCode: string;
+  eventCode: string;
+  eventName: string;
+  teamName: string;
+  teamSize: number;
+  participantNames: string[];
+  leadParticipantName: string;
+  participantEmail: string;
+  amountPaid: string;
+  paymentStatus: string;
+  registrationStatus: string;
+  emailStatus: string;
+  paymentReference: string;
+  paymentProvider: string;
+  paymentDate: string;
+  attendanceMarked: boolean;
+  submittedAt: string;
+  updatedAt: string;
+};
+
 export type DashboardSummary = {
   totalRegistrations: number;
   pendingPayments: number;
@@ -114,11 +140,47 @@ export type DashboardSummary = {
 };
 
 export type AdminRegistrationRow = {
+  participantNames: string[];
+  leadParticipantName: string;
+  leadParticipantEmail: string;
   registrationCode: string;
   eventName: string;
   teamName: string;
+  teamSize: number;
+  transactionId: string;
   paymentStatus: string;
+  paymentProvider: string;
+  paymentDate: string;
   registrationStatus: string;
   emailStatus: string;
+  adminNote: string | null;
+  attendanceMarked: boolean;
+  screenshotAvailable: boolean;
   createdAt: string;
+};
+
+export type AdminRegistrationFilters = {
+  search?: string;
+  eventCode?: string;
+  paymentStatus?: string;
+};
+
+export type AdminRegistrationActionPayload = {
+  paymentStatus?: string;
+  adminNote?: string;
+  attendanceMarked?: boolean;
+};
+
+export type AdminRegistrationCreatePayload = {
+  eventCode: string;
+  teamName: string;
+  teamSize: number;
+  transactionId: string;
+  paymentProvider: string;
+  paymentStatus: string;
+  paymentDate: string;
+  adminNote?: string;
+  attendanceMarked?: boolean;
+  sendEmail?: boolean;
+  participants: ParticipantInput[];
 };

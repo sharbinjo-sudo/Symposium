@@ -18,6 +18,10 @@ class ScreenshotUploadView(APIView):
     if uploaded_file is None:
       return apply_no_store(Response({"detail": "Missing file."}, status=status.HTTP_400_BAD_REQUEST))
 
+    allowed_types = {"image/jpeg", "image/png", "image/webp"}
+    if uploaded_file.content_type not in allowed_types:
+      return apply_no_store(Response({"detail": "Only JPEG, PNG, and WebP images are allowed."}, status=status.HTTP_400_BAD_REQUEST))
+
     if uploaded_file.size > 5 * 1024 * 1024:
       return apply_no_store(Response({"detail": "Maximum file size is 5 MB."}, status=status.HTTP_400_BAD_REQUEST))
 

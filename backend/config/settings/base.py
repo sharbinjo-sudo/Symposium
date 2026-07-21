@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 from config.env import load_local_env
 
@@ -9,8 +10,16 @@ load_local_env()
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
+
+def normalize_origin(value: str) -> str:
+  return value.strip().rstrip("/")
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
+DJANGO_SETTINGS_MODULE = os.getenv("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+if DJANGO_SETTINGS_MODULE.endswith(".prod") and (SECRET_KEY == "change-me" or len(SECRET_KEY) < 32):
+  raise ImproperlyConfigured("Set a strong DJANGO_SECRET_KEY before running in production.")
+
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if host.strip()]
 render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
@@ -39,7 +48,8 @@ MIDDLEWARE = [
   "django.middleware.common.CommonMiddleware",
   "django.middleware.csrf.CsrfViewMiddleware",
   "django.contrib.auth.middleware.AuthenticationMiddleware",
-  "django.contrib.messages.middleware.MessageMiddleware"
+  "django.contrib.messages.middleware.MessageMiddleware",
+  "django.middleware.clickjacking.XFrameOptionsMiddleware"
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -91,16 +101,16 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
-  origin.strip()
+  normalize_origin(origin)
   for origin in os.getenv(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
   ).split(",")
-  if origin.strip()
+  if normalize_origin(origin)
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 if render_external_hostname:
   render_origin = f"https://{render_external_hostname}"
   if render_origin not in CSRF_TRUSTED_ORIGINS:
@@ -116,8 +126,10 @@ X_FRAME_OPTIONS = "DENY"
 REST_FRAMEWORK = {
   "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
   "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+  "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
   "DEFAULT_THROTTLE_RATES": {
     "registration_submit": "12/hour",
+    "status_lookup": "30/hour",
     "upload_submit": "24/hour",
     "admin_login": "20/hour",
     "admin_action": "120/hour"
@@ -130,6 +142,9 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_NAME = "cp26_admin_session"
 SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_SAVE_EVERY_REQUEST = True
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
 
 EMAILJS_SERVICE_ID = os.getenv("EMAILJS_SERVICE_ID", "")
 EMAILJS_TEMPLATE_ID = os.getenv("EMAILJS_TEMPLATE_ID", "")

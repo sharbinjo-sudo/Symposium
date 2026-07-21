@@ -5,24 +5,49 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
-import { adminLogin } from "@/lib/api";
+import { ApiError, adminLogin } from "@/lib/api";
+
+const adminEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
+
+  function validateFields() {
+    const nextErrors: { email?: string; password?: string } = {};
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      nextErrors.email = "Email address is required.";
+    } else if (!adminEmailPattern.test(trimmedEmail)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (!password.trim()) {
+      nextErrors.password = "Password is required.";
+    }
+
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
     setError("");
+    if (!validateFields()) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const result = await adminLogin(email, password);
+      const result = await adminLogin(email.trim(), password);
       if (!result.ok) {
-        setError("Invalid admin credentials.");
+        setError("Email or password is incorrect.");
         return;
       }
 
@@ -35,8 +60,13 @@ export default function AdminLoginPage() {
       }
 
       router.push("/admin/dashboard");
-    } catch {
-      setError("Unable to reach the admin API right now.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message);
+        return;
+      }
+
+      setError("Unable to sign in right now. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +88,17 @@ export default function AdminLoginPage() {
           <GlassPanel className="wizard-card admin-login-panel" tone="strong">
             <div className="field">
               <label htmlFor="email">Email</label>
-              <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                aria-invalid={fieldErrors.email ? "true" : "false"}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setFieldErrors((current) => ({ ...current, email: undefined }));
+                }}
+              />
+              {fieldErrors.email ? <div className="error">{fieldErrors.email}</div> : null}
             </div>
             <div className="field">
               <label htmlFor="password">Password</label>
@@ -66,8 +106,13 @@ export default function AdminLoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                aria-invalid={fieldErrors.password ? "true" : "false"}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setFieldErrors((current) => ({ ...current, password: undefined }));
+                }}
               />
+              {fieldErrors.password ? <div className="error">{fieldErrors.password}</div> : null}
             </div>
             {error ? <div className="error">{error}</div> : null}
             <div className="step-actions">

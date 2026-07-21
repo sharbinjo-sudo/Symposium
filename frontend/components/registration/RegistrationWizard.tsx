@@ -84,6 +84,44 @@ declare global {
 
 let razorpayScriptPromise: Promise<void> | null = null;
 
+function getReadableUiError(error: unknown, fallbackMessage: string) {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  if (!(error instanceof Error)) {
+    return fallbackMessage;
+  }
+
+  const message = error.message.trim();
+
+  if (!message || message === "Failed to fetch" || /network/i.test(message)) {
+    return "Unable to connect right now. Please check your internet connection and try again.";
+  }
+
+  if (message === "Razorpay checkout is only available in the browser.") {
+    return "Payment can only be completed in a browser window.";
+  }
+
+  if (message === "Unable to load Razorpay checkout." || message === "Razorpay checkout is not available right now.") {
+    return "Unable to open secure payment right now. Please try again.";
+  }
+
+  if (message === "Razorpay checkout was closed before payment completed.") {
+    return "Payment was not completed. You can try again.";
+  }
+
+  if (message === "Complete the Razorpay payment before submitting.") {
+    return "Complete the payment before submitting your registration.";
+  }
+
+  if (message === "Razorpay could not complete the payment.") {
+    return "Payment could not be completed. Please try again.";
+  }
+
+  return message;
+}
+
 function loadRazorpayScript() {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Razorpay checkout is only available in the browser."));
@@ -486,7 +524,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
         nextErrors.payment = "Complete the Razorpay payment to continue.";
       }
       if (!consentGiven) {
-        nextErrors.consentGiven = "You must accept the privacy note.";
+        nextErrors.consentGiven = "Please confirm the privacy note to continue.";
       }
     }
 
@@ -528,7 +566,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   function handleStartPayment() {
     const nextErrors: Record<string, string> = {};
     if (!consentGiven) {
-      nextErrors.consentGiven = "You must accept the privacy note.";
+      nextErrors.consentGiven = "Please confirm the privacy note to continue.";
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -553,7 +591,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
           });
           const nextCheckoutState = await openRazorpayCheckout(order);
           setCheckoutState(nextCheckoutState);
-          setPaymentMessage("Payment completed successfully through Razorpay. Continue to review the registration.");
+          setPaymentMessage("Payment received. Review your details and submit the registration.");
           setErrors((current) => {
             const next = { ...current };
             delete next.payment;
@@ -563,11 +601,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
         } catch (error) {
           if (error instanceof ApiError) {
             setErrors((current) => ({ ...current, ...error.fieldErrors }));
-            setSubmitError(error.message);
-          } else if (error instanceof Error) {
-            setSubmitError(error.message);
+            setSubmitError(getReadableUiError(error, "Unable to start secure payment right now. Please try again."));
           } else {
-            setSubmitError("We couldn't start the Razorpay checkout right now. Please try again.");
+            setSubmitError(getReadableUiError(error, "Unable to start secure payment right now. Please try again."));
           }
         } finally {
           setPaymentProcessing(false);
@@ -606,11 +642,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
         } catch (error) {
           if (error instanceof ApiError) {
             setErrors((current) => ({ ...current, ...error.fieldErrors }));
-            setSubmitError(error.message);
-          } else if (error instanceof Error) {
-            setSubmitError(error.message);
+            setSubmitError(getReadableUiError(error, "We couldn't submit your registration right now. Please try again."));
           } else {
-            setSubmitError("We couldn't submit the registration right now. Please review the form and try again.");
+            setSubmitError(getReadableUiError(error, "We couldn't submit your registration right now. Please try again."));
           }
         } finally {
           setSubmitting(false);
@@ -1062,6 +1096,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                     <div className="cta-actions confirmation-actions">
                       <Button variant="primary" onClick={handleDownloadPdf}>
                         Download PDF
+                      </Button>
+                      <Button variant="secondary" onClick={() => window.location.assign("/status")}>
+                        Check status
                       </Button>
                       <Button variant="accent" onClick={() => window.print()}>
                         Print acknowledgement

@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
+from django.utils import timezone
 from rest_framework import serializers
 import re
 
@@ -181,6 +182,54 @@ class RegistrationSubmitSerializer(RegistrationBaseSerializer):
     return attrs
 
 
+class RegistrationStatusLookupSerializer(serializers.Serializer):
+  registrationCode = serializers.CharField(max_length=20)
+  email = serializers.EmailField(max_length=254)
+
+  def validate_registrationCode(self, value: str) -> str:
+    normalized_value = value.strip().upper()
+
+    if not normalized_value:
+      raise serializers.ValidationError("Registration code is required.")
+
+    if not re.fullmatch(r"[A-Z0-9-]+", normalized_value):
+      raise serializers.ValidationError("Enter a valid registration code.")
+
+    return normalized_value
+
+  def validate_email(self, value: str) -> str:
+    return value.strip().lower()
+
+
+class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
+  transactionId = serializers.CharField(max_length=100)
+  paymentProvider = serializers.ChoiceField(
+    choices=Registration.PAYMENT_PROVIDER_CHOICES,
+    required=False,
+    default=Registration.PAYMENT_PROVIDER_RAZORPAY
+  )
+  paymentStatus = serializers.ChoiceField(
+    choices=Registration.PAYMENT_STATUS_CHOICES,
+    required=False,
+    default=Registration.PAYMENT_VERIFIED
+  )
+  paymentDate = serializers.DateField()
+  adminNote = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+  attendanceMarked = serializers.BooleanField(required=False, default=False)
+  sendEmail = serializers.BooleanField(required=False, default=True)
+
+  def validate_transactionId(self, value: str) -> str:
+    trimmed_value = value.strip()
+    if not trimmed_value:
+      raise serializers.ValidationError("Payment reference is required.")
+    return trimmed_value
+
+  def validate_paymentDate(self, value):
+    if value > timezone.localdate():
+      raise serializers.ValidationError("Payment date cannot be in the future.")
+    return value
+
+
 class RegistrationResponseSerializer(serializers.ModelSerializer):
   registrationCode = serializers.CharField(source="registration_code")
   paymentStatus = serializers.CharField(source="payment_status")
@@ -201,29 +250,129 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
     ]
 
 
-class AdminRegistrationSerializer(serializers.ModelSerializer):
+class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   registrationCode = serializers.CharField(source="registration_code")
+  eventCode = serializers.CharField(source="event.event_code")
   eventName = serializers.CharField(source="event.event_name")
-  teamName = serializers.CharField(source="team_name", allow_null=True, required=False)
+  teamName = serializers.SerializerMethodField()
+  teamSize = serializers.IntegerField(source="team_size")
+  participantNames = serializers.SerializerMethodField()
+  leadParticipantName = serializers.SerializerMethodField()
+  participantEmail = serializers.SerializerMethodField()
+  amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
   paymentStatus = serializers.CharField(source="payment_status")
   registrationStatus = serializers.CharField(source="registration_status")
   emailStatus = serializers.CharField(source="email_status")
-  createdAt = serializers.DateTimeField(source="created_at", format="%Y-%m-%d %H:%M")
+  paymentReference = serializers.CharField(source="transaction_id")
+  paymentProvider = serializers.CharField(source="payment_provider")
+  paymentDate = serializers.DateField(source="payment_date")
+  attendanceMarked = serializers.BooleanField(source="attendance_marked")
+  submittedAt = serializers.DateTimeField(source="created_at")
+  updatedAt = serializers.DateTimeField(source="updated_at")
+
+  def _lead_participant(self, obj):
+    participants = list(obj.participants.all())
+    return participants[0] if participants else None
+
+  def get_teamName(self, obj):
+    return obj.team_name or "Solo entry"
+
+  def get_participantNames(self, obj):
+    return [participant.full_name for participant in obj.participants.all()]
+
+  def get_leadParticipantName(self, obj):
+    lead_participant = self._lead_participant(obj)
+    return lead_participant.full_name if lead_participant else ""
+
+  def get_participantEmail(self, obj):
+    lead_participant = self._lead_participant(obj)
+    return lead_participant.email if lead_participant else ""
 
   class Meta:
     model = Registration
     fields = [
       "registrationCode",
+      "eventCode",
       "eventName",
       "teamName",
+      "teamSize",
+      "participantNames",
+      "leadParticipantName",
+      "participantEmail",
+      "amountPaid",
       "paymentStatus",
       "registrationStatus",
       "emailStatus",
+      "paymentReference",
+      "paymentProvider",
+      "paymentDate",
+      "attendanceMarked",
+      "submittedAt",
+      "updatedAt"
+    ]
+
+
+class AdminRegistrationSerializer(serializers.ModelSerializer):
+  participantNames = serializers.SerializerMethodField()
+  leadParticipantName = serializers.SerializerMethodField()
+  leadParticipantEmail = serializers.SerializerMethodField()
+  registrationCode = serializers.CharField(source="registration_code")
+  eventName = serializers.CharField(source="event.event_name")
+  teamName = serializers.CharField(source="team_name", allow_null=True, required=False)
+  teamSize = serializers.IntegerField(source="team_size")
+  transactionId = serializers.CharField(source="transaction_id")
+  paymentStatus = serializers.CharField(source="payment_status")
+  paymentProvider = serializers.CharField(source="payment_provider")
+  paymentDate = serializers.DateField(source="payment_date", format="%Y-%m-%d")
+  registrationStatus = serializers.CharField(source="registration_status")
+  emailStatus = serializers.CharField(source="email_status")
+  adminNote = serializers.CharField(source="admin_note", allow_blank=True, allow_null=True, required=False)
+  attendanceMarked = serializers.BooleanField(source="attendance_marked")
+  screenshotAvailable = serializers.SerializerMethodField()
+  createdAt = serializers.DateTimeField(source="created_at", format="%Y-%m-%d %H:%M")
+
+  def _lead_participant(self, obj):
+    participants = list(obj.participants.all())
+    return participants[0] if participants else None
+
+  def get_participantNames(self, obj):
+    return [participant.full_name for participant in obj.participants.all()]
+
+  def get_leadParticipantName(self, obj):
+    lead_participant = self._lead_participant(obj)
+    return lead_participant.full_name if lead_participant else ""
+
+  def get_leadParticipantEmail(self, obj):
+    lead_participant = self._lead_participant(obj)
+    return lead_participant.email if lead_participant else ""
+
+  def get_screenshotAvailable(self, obj):
+    return bool(obj.payment_screenshot_path)
+
+  class Meta:
+    model = Registration
+    fields = [
+      "participantNames",
+      "leadParticipantName",
+      "leadParticipantEmail",
+      "registrationCode",
+      "eventName",
+      "teamName",
+      "teamSize",
+      "transactionId",
+      "paymentStatus",
+      "paymentProvider",
+      "paymentDate",
+      "registrationStatus",
+      "emailStatus",
+      "adminNote",
+      "attendanceMarked",
+      "screenshotAvailable",
       "createdAt"
     ]
 
 
 class RegistrationActionSerializer(serializers.Serializer):
   paymentStatus = serializers.ChoiceField(choices=Registration.PAYMENT_STATUS_CHOICES, required=False)
-  adminNote = serializers.CharField(required=False, allow_blank=True)
+  adminNote = serializers.CharField(required=False, allow_blank=True, max_length=1000)
   attendanceMarked = serializers.BooleanField(required=False)

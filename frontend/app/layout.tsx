@@ -19,7 +19,12 @@ const bodyFont = Inter({
 
 export const metadata: Metadata = {
   title: "CYBERPUNK'26",
-  description: "Department of Artificial Intelligence and Data Science symposium platform."
+  description: "Department of Artificial Intelligence and Data Science symposium platform.",
+  icons: {
+    icon: "/vvcoe-logo.jpg",
+    shortcut: "/vvcoe-logo.jpg",
+    apple: "/vvcoe-logo.jpg"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

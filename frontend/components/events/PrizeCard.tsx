@@ -6,12 +6,11 @@ type PrizeCardProps = {
   title: string;
   prizes: string[];
   details: string;
-  featured?: boolean;
 };
 
-export function PrizeCard({ title, prizes, details, featured = false }: PrizeCardProps) {
+export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
   return (
-    <WaterRippleCard className={`prize-card${featured ? " prize-card-featured" : ""}`}>
+    <WaterRippleCard className="prize-card">
       <div className="prize-card-header">
         <span className="section-eyebrow">Podium format</span>
         <h4>{title}</h4>

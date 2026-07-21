@@ -10,6 +10,8 @@ from .models import Registration
 from .serializers import (
   RegistrationPaymentOrderSerializer,
   RegistrationResponseSerializer,
+  RegistrationStatusLookupSerializer,
+  RegistrationStatusResponseSerializer,
   RegistrationSubmitSerializer
 )
 from .services import (
@@ -84,3 +86,34 @@ class RegistrationCreateView(APIView):
 
     response_serializer = RegistrationResponseSerializer(registration)
     return apply_no_store(Response(response_serializer.data, status=status.HTTP_201_CREATED))
+
+
+class RegistrationStatusLookupView(APIView):
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "status_lookup"
+
+  def post(self, request):
+    serializer = RegistrationStatusLookupSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    registration = (
+      Registration.objects.select_related("event")
+      .prefetch_related("participants")
+      .filter(
+        registration_code__iexact=serializer.validated_data["registrationCode"],
+        participants__email__iexact=serializer.validated_data["email"]
+      )
+      .distinct()
+      .first()
+    )
+
+    if registration is None:
+      return apply_no_store(
+        Response(
+          {"detail": "We couldn't find a registration with that code and email address."},
+          status=status.HTTP_404_NOT_FOUND
+        )
+      )
+
+    response_serializer = RegistrationStatusResponseSerializer(registration)
+    return apply_no_store(Response(response_serializer.data, status=status.HTTP_200_OK))

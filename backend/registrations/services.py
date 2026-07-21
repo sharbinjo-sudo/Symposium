@@ -188,6 +188,15 @@ def resolve_verified_payment(validated_data: dict) -> dict:
   if payment.get("currency") != "INR":
     raise PaymentVerificationError("Razorpay currency does not match the registration currency.")
 
+  payment_notes = payment.get("notes") or {}
+  note_event_code = str(payment_notes.get("event_code") or "").strip().upper()
+  note_team_size = str(payment_notes.get("team_size") or "").strip()
+
+  if note_event_code and note_event_code != validated_data["event"].event_code:
+    raise PaymentVerificationError("Razorpay payment notes do not match the selected event.")
+  if note_team_size and note_team_size != str(validated_data["teamSize"]):
+    raise PaymentVerificationError("Razorpay payment notes do not match the submitted team size.")
+
   payment_status = payment.get("status")
   if payment_status not in {"authorized", "captured"}:
     raise PaymentVerificationError("Razorpay has not confirmed this payment yet.")
@@ -257,7 +266,12 @@ def create_registration(validated_data: dict) -> Registration:
     return existing_registration
 
   event = Event.objects.select_for_update().get(pk=validated_data["event"].pk)
-  ensure_duplicate_rules(event, validated_data["participants"], validated_data["normalized_transaction_id"])
+  ensure_duplicate_rules(
+    event,
+    validated_data["participants"],
+    validated_data["normalized_transaction_id"],
+    validated_data.get("payment_order_id")
+  )
 
   latest = Registration.objects.select_for_update().filter(event=event).order_by("-id").first()
   next_number = 1

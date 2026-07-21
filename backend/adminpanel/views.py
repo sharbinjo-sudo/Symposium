@@ -1,6 +1,8 @@
 import csv
 from urllib.parse import quote
+from uuid import uuid4
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.files.storage import default_storage
 from django.http import FileResponse, HttpResponse
 from django.db.models import Q
@@ -13,12 +15,44 @@ from rest_framework.views import APIView
 from config.security import apply_no_store
 from notifications.emailjs import send_registration_notifications
 from registrations.models import Registration
-from registrations.serializers import AdminRegistrationSerializer, RegistrationActionSerializer
+from registrations.serializers import (
+  AdminRegistrationCreateSerializer,
+  AdminRegistrationSerializer,
+  RegistrationActionSerializer
+)
+from registrations.services import DuplicateRegistrationError, create_registration, normalize_transaction_id
 
 from .audit import log_admin_action
 from .auth import SESSION_ADMIN_KEY, get_authenticated_admin
 from .models import AdminUser
 from .permissions import IsAuthenticatedAdmin
+
+DUMMY_PASSWORD_HASH = make_password("cyberpunk26-admin-dummy")
+
+
+def get_admin_registration_queryset(request):
+  queryset = Registration.objects.select_related("event").prefetch_related("participants").all()
+
+  event_code = (request.query_params.get("event") or "").strip()
+  payment_status = (request.query_params.get("payment_status") or "").strip()
+  search = (request.query_params.get("search") or "").strip()
+
+  if event_code:
+    queryset = queryset.filter(event__event_code=event_code)
+  if payment_status:
+    queryset = queryset.filter(payment_status=payment_status)
+  if search:
+    queryset = queryset.filter(
+      Q(registration_code__icontains=search)
+      | Q(team_name__icontains=search)
+      | Q(transaction_id__icontains=search)
+      | Q(participants__full_name__icontains=search)
+      | Q(participants__email__icontains=search)
+      | Q(participants__roll_number__icontains=search)
+      | Q(participants__mobile_number__icontains=search)
+    )
+
+  return queryset.distinct()
 
 
 class AdminLoginView(APIView):
@@ -30,12 +64,27 @@ class AdminLoginView(APIView):
     email = (request.data.get("email") or "").strip().lower()
     password = request.data.get("password") or ""
 
-    try:
-      admin = AdminUser.objects.get(email=email, is_active=True)
-    except AdminUser.DoesNotExist:
+    admin = AdminUser.objects.filter(email=email, is_active=True).first()
+    if admin is None:
+      check_password(password, DUMMY_PASSWORD_HASH)
+      if email:
+        log_admin_action(
+          admin=None,
+          action="login_failed",
+          entity_type="admin_user",
+          entity_id=email,
+          metadata={"reason": "invalid_credentials"}
+        )
       return apply_no_store(Response({"ok": False}, status=status.HTTP_401_UNAUTHORIZED))
 
     if not admin.verify_password(password):
+      log_admin_action(
+        admin=None,
+        action="login_failed",
+        entity_type="admin_user",
+        entity_id=email,
+        metadata={"reason": "invalid_credentials"}
+      )
       return apply_no_store(Response({"ok": False}, status=status.HTTP_401_UNAUTHORIZED))
 
     request.session.cycle_key()
@@ -60,7 +109,9 @@ class AdminDashboardSummaryView(APIView):
   permission_classes = [IsAuthenticatedAdmin]
 
   def get(self, request):
-    latest_registration = Registration.objects.select_related("event").prefetch_related("participants").first()
+    latest_registration = (
+      Registration.objects.select_related("event").prefetch_related("participants").order_by("-created_at").first()
+    )
     latest_payload = None
 
     if latest_registration:
@@ -90,19 +141,7 @@ class AdminRegistrationListView(APIView):
   permission_classes = [IsAuthenticatedAdmin]
 
   def get(self, request):
-    queryset = Registration.objects.select_related("event").prefetch_related("participants").all()
-
-    event_code = request.query_params.get("event")
-    payment_status = request.query_params.get("payment_status")
-    search = request.query_params.get("search")
-
-    if event_code:
-      queryset = queryset.filter(event__event_code=event_code)
-    if payment_status:
-      queryset = queryset.filter(payment_status=payment_status)
-    if search:
-      queryset = queryset.filter(Q(registration_code__icontains=search) | Q(team_name__icontains=search))
-
+    queryset = get_admin_registration_queryset(request)
     serializer = AdminRegistrationSerializer(queryset[:200], many=True)
     return apply_no_store(Response(serializer.data))
 
@@ -148,6 +187,123 @@ class AdminRegistrationActionView(APIView):
     return apply_no_store(Response({"ok": True}))
 
 
+class AdminRegistrationCreateView(APIView):
+  permission_classes = [IsAuthenticatedAdmin]
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "admin_action"
+
+  def post(self, request):
+    admin = get_authenticated_admin(request)
+    serializer = AdminRegistrationCreateSerializer(
+      data={
+        **request.data,
+        "idempotencyKey": uuid4().hex
+      }
+    )
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    try:
+      registration = create_registration(
+        {
+          **data,
+          "normalized_transaction_id": normalize_transaction_id(data["transactionId"]),
+          "payment_provider": data.get("paymentProvider", Registration.PAYMENT_PROVIDER_RAZORPAY),
+          "payment_order_id": "",
+          "payment_signature": "",
+          "payment_date": data["paymentDate"],
+          "payment_screenshot_path": "",
+          "payment_status": data.get("paymentStatus", Registration.PAYMENT_VERIFIED),
+          "consentGiven": True
+        }
+      )
+    except DuplicateRegistrationError as exc:
+      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
+
+    registration.admin_note = data.get("adminNote", "").strip() or None
+    registration.attendance_marked = data.get("attendanceMarked", False)
+    if data.get("sendEmail", True):
+      registration.email_status = Registration.EMAIL_SENT if send_registration_notifications(registration) else Registration.EMAIL_FAILED
+    registration.save(update_fields=["admin_note", "attendance_marked", "email_status", "updated_at"])
+
+    log_admin_action(
+      admin=admin,
+      action="create_registration",
+      entity_type="registration",
+      entity_id=registration.registration_code,
+      metadata={
+        "eventCode": data["eventCode"],
+        "teamSize": data["teamSize"],
+        "paymentStatus": data.get("paymentStatus", Registration.PAYMENT_VERIFIED)
+      }
+    )
+
+    response_serializer = AdminRegistrationSerializer(registration)
+    return apply_no_store(Response(response_serializer.data, status=status.HTTP_201_CREATED))
+
+
+class AdminRegistrationDeleteView(APIView):
+  permission_classes = [IsAuthenticatedAdmin]
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "admin_action"
+
+  def delete(self, request, registration_code: str):
+    admin = get_authenticated_admin(request)
+
+    try:
+      registration = Registration.objects.get(registration_code=registration_code)
+    except Registration.DoesNotExist:
+      return apply_no_store(Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND))
+
+    screenshot_path = registration.payment_screenshot_path
+    registration.delete()
+
+    if screenshot_path:
+      try:
+        if default_storage.exists(screenshot_path):
+          default_storage.delete(screenshot_path)
+      except Exception:
+        pass
+
+    log_admin_action(
+      admin=admin,
+      action="delete_registration",
+      entity_type="registration",
+      entity_id=registration_code
+    )
+    return apply_no_store(Response({"ok": True}))
+
+
+class AdminRegistrationClearView(APIView):
+  permission_classes = [IsAuthenticatedAdmin]
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "admin_action"
+
+  def post(self, request):
+    admin = get_authenticated_admin(request)
+    registrations = list(Registration.objects.all())
+    deleted_count = len(registrations)
+    screenshot_paths = [registration.payment_screenshot_path for registration in registrations if registration.payment_screenshot_path]
+
+    Registration.objects.all().delete()
+
+    for screenshot_path in screenshot_paths:
+      try:
+        if default_storage.exists(screenshot_path):
+          default_storage.delete(screenshot_path)
+      except Exception:
+        continue
+
+    log_admin_action(
+      admin=admin,
+      action="clear_registrations",
+      entity_type="registration",
+      entity_id="all",
+      metadata={"deleted": deleted_count}
+    )
+    return apply_no_store(Response({"ok": True, "deleted": deleted_count}))
+
+
 class AdminResendEmailView(APIView):
   permission_classes = [IsAuthenticatedAdmin]
   throttle_classes = [ScopedRateThrottle]
@@ -183,15 +339,31 @@ class AdminRegistrationExportView(APIView):
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f"attachment; filename={quote('cyberpunk26-registrations.csv')}"
     writer = csv.writer(response)
-    writer.writerow(["Registration Code", "Event", "Team", "Payment Status", "Email Status", "Created At"])
+    writer.writerow([
+      "Registration Code",
+      "Event",
+      "Team",
+      "Lead Participant",
+      "Lead Email",
+      "Transaction ID",
+      "Payment Status",
+      "Attendance Marked",
+      "Email Status",
+      "Created At"
+    ])
 
-    for registration in Registration.objects.select_related("event").all():
+    for registration in get_admin_registration_queryset(request):
+      lead_participant = registration.participants.order_by("participant_number").first()
       writer.writerow(
         [
           registration.registration_code,
           registration.event.event_name,
           registration.team_name or "",
+          lead_participant.full_name if lead_participant else "",
+          lead_participant.email if lead_participant else "",
+          registration.transaction_id,
           registration.payment_status,
+          "Yes" if registration.attendance_marked else "No",
           registration.email_status,
           registration.created_at.isoformat()
         ]
@@ -208,6 +380,9 @@ class AdminScreenshotView(APIView):
       registration = Registration.objects.get(registration_code=registration_code)
     except Registration.DoesNotExist:
       return apply_no_store(Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND))
+
+    if not registration.payment_screenshot_path:
+      return apply_no_store(Response({"detail": "Screenshot not found."}, status=status.HTTP_404_NOT_FOUND))
 
     if not default_storage.exists(registration.payment_screenshot_path):
       return apply_no_store(Response({"detail": "Screenshot not found."}, status=status.HTTP_404_NOT_FOUND))

@@ -1,12 +1,17 @@
 import { siteConfig } from "@/lib/config/site";
 import type {
+  AdminRegistrationActionPayload,
+  AdminRegistrationCreatePayload,
+  AdminRegistrationFilters,
   AdminRegistrationRow,
   DashboardSummary,
   EventConfig,
   RegistrationPaymentOrder,
   RegistrationPaymentOrderPayload,
   RegistrationPayload,
-  RegistrationResponse
+  RegistrationResponse,
+  RegistrationStatusLookupPayload,
+  RegistrationStatusResponse
 } from "@/lib/types";
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
@@ -42,12 +47,12 @@ function fallbackId() {
 }
 
 function resolveApiBase() {
-  if (EXPLICIT_API_BASE) {
-    return EXPLICIT_API_BASE.replace(/\/$/, "");
-  }
-
   if (typeof window !== "undefined") {
     return "";
+  }
+
+  if (EXPLICIT_API_BASE) {
+    return EXPLICIT_API_BASE.replace(/\/$/, "");
   }
 
   return DEFAULT_API_BASE;
@@ -59,6 +64,46 @@ function createApiUrl(path: string) {
 
 function isUnsafeMethod(method?: string) {
   return UNSAFE_METHODS.has((method ?? "GET").toUpperCase());
+}
+
+function defaultApiMessageForStatus(status: number) {
+  if (status === 400) {
+    return "Please review the highlighted details and try again.";
+  }
+
+  if (status === 401) {
+    return "Your sign-in details were not accepted.";
+  }
+
+  if (status === 403) {
+    return "Your session could not be verified. Please refresh and try again.";
+  }
+
+  if (status === 404) {
+    return "The requested service is not available right now.";
+  }
+
+  if (status === 409) {
+    return "This request has already been completed.";
+  }
+
+  if (status === 413) {
+    return "The selected file is too large. Please choose a smaller file.";
+  }
+
+  if (status === 415) {
+    return "This file type is not supported. Please upload a valid image file.";
+  }
+
+  if (status === 429) {
+    return "Too many attempts were made. Please wait a moment and try again.";
+  }
+
+  if (status >= 500) {
+    return "The service is temporarily unavailable. Please try again in a moment.";
+  }
+
+  return "Unable to complete the request right now. Please try again.";
 }
 
 async function ensureCsrfToken(forceRefresh = false): Promise<string> {
@@ -77,7 +122,7 @@ async function ensureCsrfToken(forceRefresh = false): Promise<string> {
   })
     .then(async (response) => {
       if (!response.ok) {
-        throw new Error(`CSRF bootstrap failed with status ${response.status}`);
+        throw new Error("Unable to verify your session. Please refresh the page and try again.");
       }
 
       const payload = (await response.json()) as CsrfResponse;
@@ -137,11 +182,6 @@ function collectApiErrors(
       fieldErrors[path] = value;
     }
 
-    if (path && path !== "detail") {
-      messages.push(`${formatErrorFieldLabel(path)}: ${value}`);
-      return { fieldErrors, messages };
-    }
-
     messages.push(value);
     return { fieldErrors, messages };
   }
@@ -154,9 +194,7 @@ function collectApiErrors(
         fieldErrors[path] = message;
       }
 
-      if (path && path !== "detail") {
-        messages.push(`${formatErrorFieldLabel(path)}: ${message}`);
-      } else if (message) {
+      if (message) {
         messages.push(message);
       }
 
@@ -190,7 +228,7 @@ async function createApiError(response: Response, fallbackMessage: string) {
   }
 
   const { fieldErrors, messages } = collectApiErrors(payload);
-  const message = messages.find(Boolean) ?? fallbackMessage;
+  const message = messages.find(Boolean) ?? fallbackMessage ?? defaultApiMessageForStatus(response.status);
 
   return new ApiError(message, response.status, fieldErrors);
 }
@@ -203,10 +241,47 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw await createApiError(response, `Request failed with status ${response.status}.`);
+    throw await createApiError(response, defaultApiMessageForStatus(response.status));
   }
 
   return (await response.json()) as T;
+}
+
+async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+  let response = await performRequest(path, init);
+
+  if (response.status === 403 && isUnsafeMethod(init?.method)) {
+    response = await performRequest(path, init, true);
+  }
+
+  if (!response.ok) {
+    throw await createApiError(response, defaultApiMessageForStatus(response.status));
+  }
+
+  return response.blob();
+}
+
+function createObjectUrlFromBlob(blob: Blob) {
+  return URL.createObjectURL(blob);
+}
+
+function buildAdminRegistrationQuery(filters?: AdminRegistrationFilters) {
+  const params = new URLSearchParams();
+
+  if (filters?.search?.trim()) {
+    params.set("search", filters.search.trim());
+  }
+
+  if (filters?.eventCode && filters.eventCode !== "all") {
+    params.set("event", filters.eventCode);
+  }
+
+  if (filters?.paymentStatus && filters.paymentStatus !== "all") {
+    params.set("payment_status", filters.paymentStatus);
+  }
+
+  const query = params.toString();
+  return query ? `/api/admin/registrations?${query}` : "/api/admin/registrations";
 }
 
 function normalizeFeeAmount(value: EventConfig["feeAmount"] | `${number}` | string | number | undefined, fallback: number) {
@@ -309,6 +384,15 @@ export async function createRegistrationPaymentOrder(
   });
 }
 
+export async function checkRegistrationStatus(
+  payload: RegistrationStatusLookupPayload
+): Promise<RegistrationStatusResponse> {
+  return requestJson<RegistrationStatusResponse>("/api/registrations/status-check", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function uploadScreenshot(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -326,7 +410,7 @@ export async function uploadScreenshot(file: File): Promise<string> {
   }
 
   if (!response.ok) {
-    throw await createApiError(response, `Upload failed with status ${response.status}.`);
+    throw await createApiError(response, "We couldn't upload that file. Please try a clear image and try again.");
   }
 
   const payload = (await response.json()) as { uploadToken: string };
@@ -334,18 +418,92 @@ export async function uploadScreenshot(file: File): Promise<string> {
 }
 
 export async function adminLogin(email: string, password: string) {
-  return requestJson<{ ok: boolean }>("/api/admin/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password })
-  });
+  try {
+    return await requestJson<{ ok: boolean }>("/api/admin/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      throw new ApiError("Email or password is incorrect.", error.status, error.fieldErrors);
+    }
+
+    throw error;
+  }
 }
 
 export async function getAdminSummary(): Promise<DashboardSummary> {
   return requestJson<DashboardSummary>("/api/admin/dashboard/summary");
 }
 
-export async function getAdminRegistrations(): Promise<AdminRegistrationRow[]> {
-  return requestJson<AdminRegistrationRow[]>("/api/admin/registrations");
+export async function getAdminRegistrations(filters?: AdminRegistrationFilters): Promise<AdminRegistrationRow[]> {
+  return requestJson<AdminRegistrationRow[]>(buildAdminRegistrationQuery(filters));
+}
+
+export async function updateAdminRegistration(
+  registrationCode: string,
+  payload: AdminRegistrationActionPayload
+): Promise<{ ok: boolean }> {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/action`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function createAdminRegistration(payload: AdminRegistrationCreatePayload): Promise<AdminRegistrationRow> {
+  return requestJson<AdminRegistrationRow>("/api/admin/registrations/create", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function resendAdminRegistrationEmail(registrationCode: string): Promise<{ ok: boolean }> {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/resend-email`, {
+    method: "POST"
+  });
+}
+
+export async function adminLogout(): Promise<{ ok: boolean }> {
+  return requestJson<{ ok: boolean }>("/api/admin/auth/logout", {
+    method: "POST"
+  });
+}
+
+export async function downloadAdminRegistrationsCsv(filters?: AdminRegistrationFilters) {
+  const params = new URLSearchParams();
+
+  if (filters?.search?.trim()) {
+    params.set("search", filters.search.trim());
+  }
+
+  if (filters?.eventCode && filters.eventCode !== "all") {
+    params.set("event", filters.eventCode);
+  }
+
+  if (filters?.paymentStatus && filters.paymentStatus !== "all") {
+    params.set("payment_status", filters.paymentStatus);
+  }
+
+  const query = params.toString();
+  const blob = await requestBlob(query ? `/api/admin/registrations/export?${query}` : "/api/admin/registrations/export");
+  return createObjectUrlFromBlob(blob);
+}
+
+export async function openAdminRegistrationScreenshot(registrationCode: string) {
+  const blob = await requestBlob(`/api/admin/registrations/${registrationCode}/screenshot`);
+  return createObjectUrlFromBlob(blob);
+}
+
+export async function deleteAdminRegistration(registrationCode: string): Promise<{ ok: boolean }> {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}`, {
+    method: "DELETE"
+  });
+}
+
+export async function clearAdminRegistrations(): Promise<{ ok: boolean; deleted: number }> {
+  return requestJson<{ ok: boolean; deleted: number }>("/api/admin/registrations/clear", {
+    method: "POST"
+  });
 }
 
 export function createIdempotencyKey() {

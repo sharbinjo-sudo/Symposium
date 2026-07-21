@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from urllib.parse import urlparse
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -13,6 +14,15 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 def normalize_origin(value: str) -> str:
   return value.strip().rstrip("/")
+
+
+def origin_hostname(value: str) -> str:
+  normalized_value = normalize_origin(value)
+  if not normalized_value:
+    return ""
+
+  parsed_value = urlparse(normalized_value)
+  return (parsed_value.hostname or "").strip()
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
@@ -109,6 +119,11 @@ CORS_ALLOWED_ORIGINS = [
   if normalize_origin(origin)
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+for origin in CORS_ALLOWED_ORIGINS:
+  hostname = origin_hostname(origin)
+  if hostname and hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(hostname)
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 if render_external_hostname:

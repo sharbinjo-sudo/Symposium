@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
   return (
     <div className="admin-shell">
       <div className="container admin-login-layout">
-        <GlassPanel className="admin-login-copy" tone="strong">
+        <div className="admin-login-copy">
           <div className="admin-login-copy-content">
             <div className="section-eyebrow">Admin Auth</div>
             <h2>Organizer dashboard access</h2>
@@ -83,15 +83,16 @@ export default function AdminLoginPage() {
               Sign in to review registrations, verify payments, and manage symposium operations.
             </p>
           </div>
-        </GlassPanel>
+        </div>
         <form className="admin-login-card" onSubmit={handleSubmit}>
-          <GlassPanel className="wizard-card admin-login-panel" tone="strong">
+          <GlassPanel className="admin-login-panel">
             <div className="field">
               <label htmlFor="email">Email</label>
               <input
                 id="email"
                 type="email"
                 value={email}
+                placeholder="organizer@example.edu"
                 aria-invalid={fieldErrors.email ? "true" : "false"}
                 onChange={(event) => {
                   setEmail(event.target.value);
@@ -106,6 +107,7 @@ export default function AdminLoginPage() {
                 id="password"
                 type="password"
                 value={password}
+                placeholder="Enter your admin password"
                 aria-invalid={fieldErrors.password ? "true" : "false"}
                 onChange={(event) => {
                   setPassword(event.target.value);

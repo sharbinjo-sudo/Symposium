@@ -118,12 +118,17 @@ export function Header() {
         <div className="mobile-nav-backdrop" onClick={() => setOpen(false)} />
         <div id="mobile-nav-panel" className="mobile-nav-panel">
           <div className="mobile-nav-header">
-            <div>
-              <div className="section-eyebrow">Menu</div>
+            <div className="mobile-nav-brand">
               <strong>CYBERPUNK&apos;26</strong>
+              <span>AI &amp; Data Science Symposium</span>
             </div>
-            <button type="button" className="mobile-nav-close" onClick={() => setOpen(false)}>
-              Close
+            <button
+              type="button"
+              className="mobile-nav-close"
+              aria-label="Close menu"
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true">×</span>
             </button>
           </div>
           <div className="mobile-nav-links">

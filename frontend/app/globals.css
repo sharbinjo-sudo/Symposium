@@ -798,14 +798,53 @@ input[type="radio"]:focus {
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 0.75rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(19, 42, 49, 0.08);
+}
+
+.mobile-nav-brand {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.mobile-nav-brand strong {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 1.18rem;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+}
+
+.mobile-nav-brand span {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
 }
 
 .mobile-nav-close {
-  border: 0;
-  background: transparent;
-  color: var(--ink-soft);
-  min-height: 44px;
-  padding: 0 0.2rem;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-strong);
+  padding: 0;
+  box-shadow: 0 10px 24px rgba(44, 17, 21, 0.08);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.mobile-nav-close span {
+  display: block;
+  font-size: 1.8rem;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.mobile-nav-close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--primary-rgb), 0.24);
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .mobile-nav-link {
@@ -1846,6 +1885,11 @@ input[type="radio"]:focus {
   color: rgba(255, 255, 255, 0.86);
 }
 
+.prize-podium-slot-second {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.14), rgba(255, 255, 255, 0.96));
+  border-color: rgba(var(--accent-rgb), 0.26);
+}
+
 .wizard-shell {
   padding: clamp(3rem, 7vw, 5rem) 0;
 }
@@ -2530,7 +2574,6 @@ input[type="radio"]:focus {
   gap: clamp(1rem, 2vw, 1.4rem);
 }
 
-.status-check-intro-card,
 .status-check-form-card,
 .status-check-result-card {
   display: grid;
@@ -2538,8 +2581,11 @@ input[type="radio"]:focus {
   padding: clamp(1.35rem, 2.4vw, 2rem);
 }
 
-.status-check-intro-card {
+.status-check-intro-block {
+  display: grid;
   gap: 1.2rem;
+  align-content: start;
+  padding: clamp(0.1rem, 0.5vw, 0.35rem) 0 0;
 }
 
 .status-check-form-card,
@@ -2556,7 +2602,7 @@ input[type="radio"]:focus {
   max-width: 10ch;
 }
 
-.status-check-intro-card .card-copy,
+.status-check-intro-block .card-copy,
 .status-check-empty .card-copy,
 .status-check-result-copy {
   max-width: 60ch;
@@ -2729,10 +2775,13 @@ input[type="radio"]:focus {
     grid-template-columns: 1fr;
   }
 
-  .status-check-intro-card,
   .status-check-form-card,
   .status-check-result-card {
     padding: 1.15rem;
+  }
+
+  .status-check-intro-block {
+    padding: 0.2rem 0 0;
   }
 
   .status-check-title {
@@ -3008,24 +3057,35 @@ th {
   align-items: start;
 }
 
-.admin-login-copy,
 .admin-login-card {
   min-height: 100%;
 }
 
+.admin-login-panel {
+  background: #ffffff;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  box-shadow: var(--shadow-card);
+  padding: 1.4rem;
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  height: 100%;
+}
+
 .admin-login-copy {
   max-width: none;
+  display: grid;
   align-content: center;
   justify-items: start;
   min-height: 100%;
-  padding: clamp(1.8rem, 3vw, 2.6rem);
+  padding: clamp(0.35rem, 1vw, 0.9rem) 0;
 }
 
 .admin-login-copy-content {
   display: grid;
-  gap: 0.9rem;
-  width: min(100%, 27rem);
-  padding-inline-end: clamp(0.2rem, 0.8vw, 0.75rem);
+  gap: 1rem;
+  width: min(100%, 29rem);
+  padding-inline-end: clamp(0.4rem, 1vw, 1rem);
 }
 
 .admin-login-copy .section-eyebrow {
@@ -3052,6 +3112,13 @@ th {
 
 .admin-login-panel {
   margin-top: 0;
+}
+
+.admin-login-panel input:not([type="checkbox"]):not([type="radio"]) {
+  background: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px rgba(44, 17, 21, 0.035);
 }
 
 .site-footer {
@@ -3125,6 +3192,12 @@ th {
   .wizard-two-column,
   .admin-dashboard-layout {
     grid-template-columns: 1fr;
+  }
+
+  .hero-copy,
+  .hero-visual-column {
+    max-width: none;
+    width: 100%;
   }
 
   .site-header-inner {
@@ -3562,16 +3635,27 @@ th {
   }
 
   .mobile-nav-header {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
   }
 
   .mobile-nav-close {
-    justify-self: start;
+    justify-self: end;
   }
 
   .progress-stepper {
     grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .progress-step {
+    display: none;
+  }
+
+  .progress-step-active {
+    display: grid;
+    min-height: 84px;
+    width: 100%;
   }
 }
 

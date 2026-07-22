@@ -17,13 +17,13 @@ export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
         <p className="card-copy">{details}</p>
       </div>
       <div className="prize-podium">
-        <div className="prize-podium-slot">
-          <span>Second</span>
-          <strong>Rs. 500</strong>
-        </div>
         <div className="prize-podium-slot prize-podium-slot-main">
           <span>First</span>
           <strong>Rs. 1,000</strong>
+        </div>
+        <div className="prize-podium-slot prize-podium-slot-second">
+          <span>Second</span>
+          <strong>Rs. 500</strong>
         </div>
         <div className="prize-podium-slot">
           <span>Third</span>

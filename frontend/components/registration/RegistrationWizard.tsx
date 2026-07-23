@@ -9,6 +9,7 @@ import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { ApiError, createIdempotencyKey, createRegistrationPaymentOrder, submitRegistration } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
+import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
 import type { EventConfig, ParticipantInput, RegistrationPaymentOrder, RegistrationResponse } from "@/lib/types";
 
@@ -1097,13 +1098,13 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       <Button variant="primary" onClick={handleDownloadPdf}>
                         Download PDF
                       </Button>
-                      <Button variant="secondary" onClick={() => window.location.assign("/status")}>
+                      <Button variant="secondary" onClick={() => assignWithLoading("/status")}>
                         Check status
                       </Button>
                       <Button variant="accent" onClick={() => window.print()}>
                         Print acknowledgement
                       </Button>
-                      <Button variant="secondary" onClick={() => window.location.assign("/")}>
+                      <Button variant="secondary" onClick={() => assignWithLoading("/")}>
                         Back to home
                       </Button>
                       <Button variant="secondary" onClick={() => window.location.reload()}>
@@ -1139,3 +1140,4 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
     </div>
   );
 }
+

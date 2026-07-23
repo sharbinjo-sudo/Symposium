@@ -28,6 +28,7 @@ import type {
   ParticipantInput
 } from "@/lib/types"
 import { participantSchema } from "@/lib/validation/registration"
+import { navigateWithLoading } from "@/lib/navigation-transition"
 
 type ChipTone = "pending" | "verified" | "rejected" | "clarify" | "neutral"
 
@@ -308,7 +309,7 @@ export default function AdminDashboardPage() {
         }
 
         if (loadError instanceof ApiError && (loadError.status === 401 || loadError.status === 403)) {
-          router.replace("/admin/login")
+          navigateWithLoading(router, "/admin/login", "replace")
           return
         }
 
@@ -367,7 +368,7 @@ export default function AdminDashboardPage() {
       )
     } catch (refreshError) {
       if (refreshError instanceof ApiError && (refreshError.status === 401 || refreshError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -477,7 +478,7 @@ export default function AdminDashboardPage() {
       setActionMessage("New registration was created successfully.")
     } catch (createError) {
       if (createError instanceof ApiError && (createError.status === 401 || createError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -509,7 +510,7 @@ export default function AdminDashboardPage() {
       setActionMessage("Registration details were updated successfully.")
     } catch (saveError) {
       if (saveError instanceof ApiError && (saveError.status === 401 || saveError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -536,7 +537,7 @@ export default function AdminDashboardPage() {
       )
     } catch (resendError) {
       if (resendError instanceof ApiError && (resendError.status === 401 || resendError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -568,7 +569,7 @@ export default function AdminDashboardPage() {
       setActionMessage("Registration was deleted successfully.")
     } catch (deleteError) {
       if (deleteError instanceof ApiError && (deleteError.status === 401 || deleteError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -596,7 +597,7 @@ export default function AdminDashboardPage() {
       setActionMessage(`${result.deleted} registration record${result.deleted === 1 ? "" : "s"} deleted.`)
     } catch (clearError) {
       if (clearError instanceof ApiError && (clearError.status === 401 || clearError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -623,7 +624,7 @@ export default function AdminDashboardPage() {
       URL.revokeObjectURL(objectUrl)
     } catch (exportError) {
       if (exportError instanceof ApiError && (exportError.status === 401 || exportError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -649,7 +650,7 @@ export default function AdminDashboardPage() {
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
     } catch (screenshotError) {
       if (screenshotError instanceof ApiError && (screenshotError.status === 401 || screenshotError.status === 403)) {
-        router.replace("/admin/login")
+        navigateWithLoading(router, "/admin/login", "replace")
         return
       }
 
@@ -663,7 +664,7 @@ export default function AdminDashboardPage() {
 
     try {
       await adminLogout()
-      router.replace("/admin/login")
+      navigateWithLoading(router, "/admin/login", "replace")
     } catch (logoutError) {
       setError(getReadableAdminError(logoutError, "We couldn't sign you out right now."))
       setLoggingOut(false)
@@ -1370,3 +1371,4 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+

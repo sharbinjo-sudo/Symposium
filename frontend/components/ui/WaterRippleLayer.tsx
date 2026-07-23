@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
@@ -16,7 +16,7 @@ export function WaterRippleLayer({ ripples, className, variant = "surface" }: Wa
       {ripples.map((ripple) => (
         <span
           key={ripple.id}
-          className={cn("water-ripple", `water-ripple-${ripple.variant}`)}
+          className={cn("water-ripple", `water-ripple-${ripple.variant}`, `water-ripple-kind-${ripple.kind}`)}
           style={
             {
               "--ripple-x": `${ripple.x}px`,

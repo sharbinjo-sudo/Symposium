@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, TouchEvent as ReactTouchEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
 export type WaterRippleVariant = "button" | "card" | "surface" | "global";
+export type WaterRippleKind = "impact" | "drift";
 
 export type WaterRipple = {
   id: number;
@@ -16,6 +17,7 @@ export type WaterRipple = {
   strength: number;
   rings: number;
   variant: WaterRippleVariant;
+  kind: WaterRippleKind;
 };
 
 type WaterRippleOptions = {
@@ -63,6 +65,7 @@ export function useWaterRipple({
 }: WaterRippleOptions = {}) {
   const reducedMotion = useReducedMotion();
   const frameRef = useRef<number | null>(null);
+  const rippleIdRef = useRef(0);
   const latestRipplesRef = useRef<WaterRipple[]>([]);
   const [ripples, setRipples] = useState<WaterRipple[]>([]);
 
@@ -111,7 +114,7 @@ export function useWaterRipple({
   const spawnRipple = useCallback(
     (x: number, y: number, custom?: Partial<Omit<WaterRipple, "id" | "x" | "y" | "createdAt">>) => {
       const nextRipple: WaterRipple = {
-        id: Date.now() + Math.round(Math.random() * 10_000),
+        id: (rippleIdRef.current += 1),
         x,
         y,
         createdAt: performance.now(),
@@ -119,7 +122,8 @@ export function useWaterRipple({
         size: custom?.size ?? size,
         strength: reducedMotion ? 0.5 : custom?.strength ?? strength,
         rings: reducedMotion ? 1 : custom?.rings ?? rings,
-        variant: custom?.variant ?? variant
+        variant: custom?.variant ?? variant,
+        kind: custom?.kind ?? "impact"
       };
 
       const nextRipples = [...latestRipplesRef.current, nextRipple].slice(-maxRipples);
@@ -152,3 +156,5 @@ export function useWaterRipple({
     spawnRippleFromEvent
   };
 }
+
+

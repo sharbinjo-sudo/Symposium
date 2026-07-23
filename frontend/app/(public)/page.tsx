@@ -1,4 +1,4 @@
-import { EventCard } from "@/components/events/EventCard";
+﻿import { EventCard } from "@/components/events/EventCard";
 import { AnimatedHeading } from "@/components/ui/AnimatedHeading";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -79,6 +79,22 @@ export default async function HomePage() {
           <div className="section-lead">
             <span className="section-number">01</span>
             <AnimatedHeading
+              eyebrow="Countdown"
+              title="One reliable timeline for event day"
+              copy="The countdown remains functional while the surrounding presentation becomes calmer and more conference-like."
+            />
+          </div>
+          <GlassPanel className="countdown-panel" tone="strong">
+            <Countdown eventDate={siteConfig.eventDate} />
+          </GlassPanel>
+        </div>
+      </section>
+
+      <section className="section section-tone-plain">
+        <div className="container editorial-split">
+          <div className="section-lead">
+            <span className="section-number">02</span>
+            <AnimatedHeading
               eyebrow="About the symposium"
               title="A professional student symposium with a calmer, more trustworthy digital experience"
               copy={siteConfig.about}
@@ -103,7 +119,7 @@ export default async function HomePage() {
       <section className="section section-tone-mist">
         <div className="container">
           <div className="section-lead">
-            <span className="section-number">02</span>
+            <span className="section-number">03</span>
             <AnimatedHeading
               eyebrow="Technical event introduction"
               title="Four distinct event worlds shaped inside one consistent registration system"
@@ -123,7 +139,7 @@ export default async function HomePage() {
       <section className="section section-tone-plain">
         <div className="container feature-band">
           <div className="section-lead">
-            <span className="section-number">03</span>
+            <span className="section-number">04</span>
             <AnimatedHeading
               eyebrow="Prize section"
               title="Clear rewards, consistent communication"
@@ -157,7 +173,7 @@ export default async function HomePage() {
       <section className="section section-tone-aqua">
         <div className="container editorial-split">
           <div className="section-lead">
-            <span className="section-number">04</span>
+            <span className="section-number">05</span>
             <AnimatedHeading
               eyebrow="Facilities and participant benefits"
               title="Built for participants, organizers, and college management"
@@ -178,7 +194,7 @@ export default async function HomePage() {
       <section className="section section-tone-plain">
         <div className="container editorial-split">
           <div className="section-lead">
-            <span className="section-number">05</span>
+            <span className="section-number">06</span>
             <AnimatedHeading
               eyebrow="Non-technical events"
               title="Campus engagement events beyond the technical track"
@@ -205,7 +221,7 @@ export default async function HomePage() {
       <section className="section section-tone-mist">
         <div className="container editorial-split">
           <div className="section-lead">
-            <span className="section-number">06</span>
+            <span className="section-number">07</span>
             <AnimatedHeading
               eyebrow="Registration process"
               title="A guided submission flow that stays readable on mobile and desktop"
@@ -220,22 +236,6 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="section section-tone-plain">
-        <div className="container editorial-split">
-          <div className="section-lead">
-            <span className="section-number">07</span>
-            <AnimatedHeading
-              eyebrow="Countdown"
-              title="One reliable timeline for event day"
-              copy="The countdown remains functional while the surrounding presentation becomes calmer and more conference-like."
-            />
-          </div>
-          <GlassPanel className="countdown-panel" tone="strong">
-            <Countdown eventDate={siteConfig.eventDate} />
-          </GlassPanel>
         </div>
       </section>
 

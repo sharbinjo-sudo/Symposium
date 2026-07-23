@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { ApiError, adminLogin } from "@/lib/api";
+import { navigateWithLoading } from "@/lib/navigation-transition";
 
 const adminEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -59,7 +60,7 @@ export default function AdminLoginPage() {
         }
       }
 
-      router.push("/admin/dashboard");
+      navigateWithLoading(router, "/admin/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message);
@@ -128,3 +129,4 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+

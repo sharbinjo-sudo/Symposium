@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { GlobalWaterRippleLayer } from "@/components/ui/GlobalWaterRippleLayer";
+import { PageTransitionOverlay } from "@/components/ui/PageTransitionOverlay";
 import "./globals.css";
 
 const headingFont = Sora({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className={`${headingFont.variable} ${bodyFont.variable}`}>
         <AuroraBackground />
         <GlobalWaterRippleLayer />
+        <PageTransitionOverlay />
         <div className="page-shell">
           <Header />
           <main className="page-content">{children}</main>
@@ -42,3 +44,4 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     </html>
   );
 }
+

@@ -45,7 +45,17 @@ export function AnimatedHeading({ eyebrow, title, copy, align = "left", as = "h2
         ))}
       </div>
 
-      {copy ? <p className="section-copy">{copy}</p> : null}
+      {copy ? (
+        <motion.p
+          className="section-copy"
+          initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.48, delay: lines.length * 0.08 + 0.06, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {copy}
+        </motion.p>
+      ) : null}
     </div>
   );
 }

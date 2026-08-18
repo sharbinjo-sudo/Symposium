@@ -147,9 +147,12 @@ export type AdminRegistrationRow = {
   eventName: string;
   teamName: string;
   teamSize: number;
+  amountPaid: string;
   transactionId: string;
+  paymentOrderId: string;
   paymentStatus: string;
   paymentProvider: string;
+  gatewayVerified: boolean;
   paymentDate: string;
   registrationStatus: string;
   emailStatus: string;

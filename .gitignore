@@ -6,6 +6,7 @@ Thumbs.db
 
 *.log
 *.tmp
+*.tsbuildinfo
 
 .env
 .env.*

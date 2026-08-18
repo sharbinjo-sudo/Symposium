@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { PAGE_TRANSITION_EVENT } from "@/lib/navigation-transition"
 
@@ -44,11 +44,13 @@ function PageTransitionVisual() {
         <div className="page-transition-orbit" aria-hidden="true">
           <span className="page-transition-ring page-transition-ring-outer" />
           <span className="page-transition-ring page-transition-ring-middle" />
-          <span className="page-transition-core" />
+          <span className="page-transition-core">
+            <img src="/vvm.jpg" alt="" />
+          </span>
         </div>
         <div className="page-transition-copy">
-          <strong>Switching pages</strong>
-          <span>Loading the next view for you.</span>
+          <strong>Loading page</strong>
+          <span>Preparing CYBERPUNK&apos;26 screen.</span>
         </div>
         <div className="page-transition-progress" aria-hidden="true">
           <span className="page-transition-progress-bar" />
@@ -73,9 +75,11 @@ export function PageTransitionFallback() {
 
 export function PageTransitionOverlay() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const routeKey = `${pathname}?${searchParams.toString()}`
   const reducedMotion = useReducedMotion()
   const [visible, setVisible] = useState(false)
-  const previousRouteRef = useRef(pathname)
+  const previousRouteRef = useRef(routeKey)
   const shownAtRef = useRef(0)
   const hideTimerRef = useRef<number | null>(null)
   const safetyTimerRef = useRef<number | null>(null)
@@ -96,7 +100,14 @@ export function PageTransitionOverlay() {
       const currentUrl = new URL(window.location.href)
 
       if (href) {
-        const nextUrl = new URL(href, currentUrl.href)
+        let nextUrl: URL
+
+        try {
+          nextUrl = new URL(href, currentUrl.href)
+        } catch {
+          return
+        }
+
         if (nextUrl.origin !== currentUrl.origin || sameDestination(currentUrl, nextUrl)) {
           return
         }
@@ -139,21 +150,27 @@ export function PageTransitionOverlay() {
       openOverlay(detail?.href)
     }
 
+    const handlePageShow = () => {
+      setVisible(false)
+    }
+
     document.addEventListener("click", handlePointerNavigation, true)
+    window.addEventListener("pageshow", handlePageShow)
     window.addEventListener(PAGE_TRANSITION_EVENT, handleTransitionEvent as EventListener)
 
     return () => {
       document.removeEventListener("click", handlePointerNavigation, true)
+      window.removeEventListener("pageshow", handlePageShow)
       window.removeEventListener(PAGE_TRANSITION_EVENT, handleTransitionEvent as EventListener)
     }
   }, [])
 
   useEffect(() => {
-    if (previousRouteRef.current === pathname) {
+    if (previousRouteRef.current === routeKey) {
       return
     }
 
-    previousRouteRef.current = pathname
+    previousRouteRef.current = routeKey
 
     if (!visible) {
       return
@@ -173,7 +190,7 @@ export function PageTransitionOverlay() {
     hideTimerRef.current = window.setTimeout(() => {
       setVisible(false)
     }, remaining)
-  }, [pathname, visible])
+  }, [routeKey, visible])
 
   return (
     <AnimatePresence>

@@ -102,6 +102,7 @@ export function RegistrationStatusLookup() {
   const [result, setResult] = useState<RegistrationStatusResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const organizerContact = siteConfig.contacts.find((item) => item.label === "Mail ID")?.value ?? "Contact the organizers.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,77 +162,65 @@ export function RegistrationStatusLookup() {
   return (
     <section className="section section-tone-plain status-check-section">
       <div className="container status-check-layout">
-        <div className="status-check-stack">
-          <Reveal delay={0.04} y={24}>
-            <div className="status-check-intro-block">
+        <Reveal className="status-check-intro-reveal" delay={0.04} y={24}>
+          <div className="status-check-intro-block">
+            <div className="status-check-intro-heading">
               <div className="section-eyebrow">Status lookup</div>
               <h1 className="status-check-title">Track a submitted registration in one place</h1>
-              <p className="card-copy">
-                Enter the registration code from the acknowledgement PDF or email along with the participant email address.
-                The result comes from the same live registration records used by the organizer dashboard.
-              </p>
+            </div>
+            <p className="card-copy status-check-intro-copy">
+              Enter your registration code and participant email to view the latest organizer update.
+            </p>
+          </div>
+        </Reveal>
 
-              <div className="status-check-hints">
-                <div className="status-check-hint-card">
-                  <span>Need your code?</span>
-                  <strong>Use the code shown after submission, like CP12-XX-XXX0.</strong>
-                </div>
-                <div className="status-check-hint-card">
-                  <span>Need help?</span>
-                  <strong>{siteConfig.contacts.find((item) => item.label === "Email")?.value ?? "Contact the organizers."}</strong>
-                </div>
+        <Reveal className="status-check-form-reveal" delay={0.1} y={28}>
+          <GlassPanel as="form" className="status-check-form-card" tone="soft" onSubmit={handleSubmit}>
+            <div className="status-check-form-head">
+              <div>
+                <div className="section-eyebrow">Lookup form</div>
+                <h2>Check your latest status</h2>
               </div>
             </div>
-          </Reveal>
 
-          <Reveal delay={0.1} y={28}>
-            <GlassPanel as="form" className="status-check-form-card" tone="soft" onSubmit={handleSubmit}>
-              <div className="status-check-form-head">
-                <div>
-                  <div className="section-eyebrow">Lookup form</div>
-                  <h2>Check your latest status</h2>
-                </div>
-              </div>
+            <div className="status-check-form-grid">
+              <label className="status-check-field">
+                <span>Registration code</span>
+                <input
+                  type="text"
+                  value={registrationCode}
+                  onChange={(event) => setRegistrationCode(event.target.value.toUpperCase())}
+                  placeholder="CP12-XX-XXX0"
+                  autoComplete="off"
+                />
+                {fieldErrors.registrationCode ? <div className="error">{fieldErrors.registrationCode}</div> : null}
+              </label>
 
-              <div className="status-check-form-grid">
-                <label className="status-check-field">
-                  <span>Registration code</span>
-                  <input
-                    type="text"
-                    value={registrationCode}
-                    onChange={(event) => setRegistrationCode(event.target.value.toUpperCase())}
-                    placeholder="CP12-XX-XXX0"
-                    autoComplete="off"
-                  />
-                  {fieldErrors.registrationCode ? <div className="error">{fieldErrors.registrationCode}</div> : null}
-                </label>
+              <label className="status-check-field">
+                <span>Participant email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="participant@example.com"
+                  autoComplete="email"
+                />
+                {fieldErrors.email ? <div className="error">{fieldErrors.email}</div> : null}
+              </label>
+            </div>
 
-                <label className="status-check-field">
-                  <span>Participant email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="participant@example.com"
-                    autoComplete="email"
-                  />
-                  {fieldErrors.email ? <div className="error">{fieldErrors.email}</div> : null}
-                </label>
-              </div>
+            {fieldErrors.form ? <div className="error">{fieldErrors.form}</div> : null}
+            {successMessage ? <div className="status-check-success">{successMessage}</div> : null}
 
-              {fieldErrors.form ? <div className="error">{fieldErrors.form}</div> : null}
-              {successMessage ? <div className="status-check-success">{successMessage}</div> : null}
+            <div className="status-check-submit-row">
+              <Button type="submit" variant="primary" magnetic disabled={loading}>
+                {loading ? "Checking..." : "Check status"}
+              </Button>
+            </div>
+          </GlassPanel>
+        </Reveal>
 
-              <div className="status-check-submit-row">
-                <Button type="submit" variant="primary" magnetic disabled={loading}>
-                  {loading ? "Checking..." : "Check status"}
-                </Button>
-              </div>
-            </GlassPanel>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.16} y={30}>
+        <Reveal className="status-check-result-reveal" delay={0.16} y={30}>
           <GlassPanel className="status-check-result-card" tone="soft">
             <AnimatePresence mode="wait" initial={false}>
               {result ? (
@@ -336,9 +325,19 @@ export function RegistrationStatusLookup() {
                   <div className="section-eyebrow">Waiting for a lookup</div>
                   <h2>No registration loaded yet</h2>
                   <p className="card-copy">
-                    Once you submit the form, this panel will show the payment state, email delivery state, event details,
-                    and the latest update time from the organizer database.
+                    Enter the code and email from your acknowledgement. Payment, email, event details, and the latest
+                    organizer update will appear here.
                   </p>
+                  <div className="status-check-support-grid">
+                    <div className="status-check-hint-card">
+                      <span>Need your code?</span>
+                      <strong>Find it on the acknowledgement PDF, like CP12-XX-XXX0.</strong>
+                    </div>
+                    <div className="status-check-hint-card">
+                      <span>Need help?</span>
+                      <strong>{organizerContact}</strong>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

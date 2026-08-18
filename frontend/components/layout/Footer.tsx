@@ -18,7 +18,7 @@ export function Footer() {
           <div className="footer-column">
             <strong>Contact</strong>
             {siteConfig.contacts.map((item) => (
-              <span key={item.label}>
+              <span key={`${item.label}-${item.value}`}>
                 {item.label}: {item.value}
               </span>
             ))}

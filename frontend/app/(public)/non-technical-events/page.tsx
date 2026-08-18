@@ -9,15 +9,15 @@ export default function NonTechnicalEventsPage() {
       <div className="container">
         <AnimatedHeading
           eyebrow="Non-Technical Events"
-          title="Campus engagement events that complement the technical track"
-          copy="These activities support the symposium atmosphere with stage participation, audience energy, and creative involvement on event day."
+          title="Guess the Lyrics, Bioscope, and Word Battle"
+          copy="The non-technical track adds lighter stage energy to the symposium with music, cinema-inspired clues, and word-play challenges."
         />
-        <div className="placeholder-grid">
+        <div className="placeholder-grid non-tech-event-grid">
           {siteConfig.nonTechnicalEvents.map((event, index) => (
             <Reveal key={event.name} delay={index * 0.08}>
               <GlassPanel className="placeholder-card">
                 <div className="tag-row">
-                  <span className="tag">Campus event</span>
+                  <span className="tag">Non-Tech event</span>
                   <span className="tag">Live schedule</span>
                 </div>
                 <h4>{event.name}</h4>

@@ -11,6 +11,19 @@ def apply_no_store(response):
   return response
 
 
+class AdminApiNoStoreMiddleware:
+  def __init__(self, get_response):
+    self.get_response = get_response
+
+  def __call__(self, request):
+    response = self.get_response(request)
+
+    if request.path.startswith("/api/admin/") or request.path.startswith("/api/security/csrf"):
+      apply_no_store(response)
+
+    return response
+
+
 @never_cache
 @ensure_csrf_cookie
 def csrf_token_view(request):

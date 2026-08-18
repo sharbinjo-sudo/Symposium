@@ -25,7 +25,7 @@ EVENTS = [
     "event_name": "Web Craft",
     "minimum_team_size": 1,
     "maximum_team_size": 2,
-    "registration_fee_type": Event.FEE_TYPE_PER_TEAM,
+    "registration_fee_type": Event.FEE_TYPE_PER_PARTICIPANT,
     "registration_fee": 250.00
   },
   {
@@ -33,7 +33,7 @@ EVENTS = [
     "event_name": "Visualytics",
     "minimum_team_size": 1,
     "maximum_team_size": 2,
-    "registration_fee_type": Event.FEE_TYPE_PER_TEAM,
+    "registration_fee_type": Event.FEE_TYPE_PER_PARTICIPANT,
     "registration_fee": 250.00
   }
 ]

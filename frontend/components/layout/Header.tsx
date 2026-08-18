@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/technical-events", label: "Technical" },
-  { href: "/non-technical-events", label: "Campus" },
+  { href: "/non-technical-events", label: "Non-Tech" },
   { href: "/prizes", label: "Prizes" },
   { href: "/registration", label: "Register" },
   { href: "/status", label: "Status" },
@@ -81,9 +81,6 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
-            <Link href="/admin/login" className={cn("site-nav-link", pathname.startsWith("/admin") && "is-active")}>
-              Admin
-            </Link>
           </nav>
         </div>
 
@@ -146,9 +143,6 @@ export function Header() {
           <div className="mobile-nav-actions">
             <ButtonLink href="/registration" className="mobile-nav-action-button" variant="primary">
               Register Now
-            </ButtonLink>
-            <ButtonLink href="/admin/login" className="mobile-nav-action-button" variant="secondary">
-              Admin Access
             </ButtonLink>
           </div>
         </div>

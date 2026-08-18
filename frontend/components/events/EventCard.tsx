@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { WaterRippleCard } from "@/components/ui/WaterRippleCard";
 import { cn } from "@/lib/cn";
+import { formatTeamRange } from "@/lib/format";
 import type { EventConfig } from "@/lib/types";
 
 type EventCardProps = {
@@ -96,9 +97,7 @@ export function EventCard({ event }: EventCardProps) {
         <div className="event-card-meta">
           <div className="event-metric">
             <span>Team size</span>
-            <strong>
-              {event.minTeamSize}-{event.maxTeamSize}
-            </strong>
+            <strong>{formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
           </div>
           <div className="event-metric">
             <span>Prize</span>
@@ -107,7 +106,7 @@ export function EventCard({ event }: EventCardProps) {
           <div className="event-metric">
             <span>Fee</span>
             <strong>
-              Rs. {event.feeAmount} · {feeLabel}
+              Rs. {event.feeAmount} / {feeLabel}
             </strong>
           </div>
         </div>

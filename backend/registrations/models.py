@@ -71,6 +71,37 @@ class Registration(models.Model):
     return self.registration_code
 
 
+class PaymentAttempt(models.Model):
+  STATUS_CREATED = "created"
+  STATUS_AUTHORIZED = "authorized"
+  STATUS_CAPTURED = "captured"
+  STATUS_FAILED = "failed"
+  STATUS_CHOICES = [
+    (STATUS_CREATED, "Created"),
+    (STATUS_AUTHORIZED, "Authorized"),
+    (STATUS_CAPTURED, "Captured"),
+    (STATUS_FAILED, "Failed")
+  ]
+
+  order_id = models.CharField(max_length=100, unique=True, db_index=True)
+  event = models.ForeignKey(Event, on_delete=models.PROTECT, related_name="payment_attempts")
+  idempotency_key = models.CharField(max_length=64, db_index=True)
+  receipt = models.CharField(max_length=40, db_index=True)
+  payload_hash = models.CharField(max_length=64, db_index=True)
+  amount = models.PositiveIntegerField()
+  currency = models.CharField(max_length=3, default="INR")
+  payment_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
+  status = models.CharField(max_length=24, choices=STATUS_CHOICES, default=STATUS_CREATED, db_index=True)
+  created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+  updated_at = models.DateTimeField(auto_now=True)
+
+  class Meta:
+    ordering = ["-created_at"]
+
+  def __str__(self) -> str:
+    return self.order_id
+
+
 class Participant(models.Model):
   registration = models.ForeignKey(Registration, on_delete=models.CASCADE, related_name="participants")
   participant_number = models.PositiveSmallIntegerField()

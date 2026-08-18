@@ -12,8 +12,10 @@ export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
   return (
     <WaterRippleCard className="prize-card">
       <div className="prize-card-header">
-        <span className="section-eyebrow">Podium format</span>
-        <h4>{title}</h4>
+        <div>
+          <span className="section-eyebrow">Podium format</span>
+          <h4>{title}</h4>
+        </div>
         <p className="card-copy">{details}</p>
       </div>
       <div className="prize-podium">

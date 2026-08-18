@@ -11,6 +11,9 @@ from .services import compute_total_amount
 
 FULL_NAME_ERROR = "Enter a valid name without numbers, phone numbers, or email addresses."
 INDIAN_MOBILE_ERROR = "Enter a valid Indian mobile number, like +91XXXXXXXXXX."
+RAZORPAY_ORDER_ID_PATTERN = re.compile(r"^order_[A-Za-z0-9]+$")
+RAZORPAY_PAYMENT_ID_PATTERN = re.compile(r"^pay_[A-Za-z0-9]+$")
+RAZORPAY_SIGNATURE_PATTERN = re.compile(r"^[A-Fa-f0-9]{64}$")
 
 
 class ParticipantInputSerializer(serializers.Serializer):
@@ -159,18 +162,24 @@ class RegistrationSubmitSerializer(RegistrationBaseSerializer):
     trimmed_value = value.strip()
     if not trimmed_value:
       raise serializers.ValidationError("Razorpay order ID is required.")
+    if not RAZORPAY_ORDER_ID_PATTERN.fullmatch(trimmed_value):
+      raise serializers.ValidationError("Enter a valid Razorpay order ID.")
     return trimmed_value
 
   def validate_razorpayPaymentId(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
       raise serializers.ValidationError("Razorpay payment ID is required.")
+    if not RAZORPAY_PAYMENT_ID_PATTERN.fullmatch(trimmed_value):
+      raise serializers.ValidationError("Enter a valid Razorpay payment ID.")
     return trimmed_value
 
   def validate_razorpaySignature(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
       raise serializers.ValidationError("Razorpay signature is required.")
+    if not RAZORPAY_SIGNATURE_PATTERN.fullmatch(trimmed_value):
+      raise serializers.ValidationError("Enter a valid Razorpay signature.")
     return trimmed_value
 
   def validate(self, attrs):
@@ -206,7 +215,7 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
   paymentProvider = serializers.ChoiceField(
     choices=Registration.PAYMENT_PROVIDER_CHOICES,
     required=False,
-    default=Registration.PAYMENT_PROVIDER_RAZORPAY
+    default=Registration.PAYMENT_PROVIDER_MANUAL
   )
   paymentStatus = serializers.ChoiceField(
     choices=Registration.PAYMENT_STATUS_CHOICES,
@@ -223,6 +232,11 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
     if not trimmed_value:
       raise serializers.ValidationError("Payment reference is required.")
     return trimmed_value
+
+  def validate_paymentProvider(self, value: str) -> str:
+    if value == Registration.PAYMENT_PROVIDER_RAZORPAY:
+      raise serializers.ValidationError("Razorpay records must be created through checkout verification.")
+    return value
 
   def validate_paymentDate(self, value):
     if value > timezone.localdate():
@@ -316,11 +330,14 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   participantNames = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
   leadParticipantEmail = serializers.SerializerMethodField()
+  gatewayVerified = serializers.SerializerMethodField()
   registrationCode = serializers.CharField(source="registration_code")
   eventName = serializers.CharField(source="event.event_name")
   teamName = serializers.CharField(source="team_name", allow_null=True, required=False)
   teamSize = serializers.IntegerField(source="team_size")
+  amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
   transactionId = serializers.CharField(source="transaction_id")
+  paymentOrderId = serializers.CharField(source="payment_order_id")
   paymentStatus = serializers.CharField(source="payment_status")
   paymentProvider = serializers.CharField(source="payment_provider")
   paymentDate = serializers.DateField(source="payment_date", format="%Y-%m-%d")
@@ -349,6 +366,14 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   def get_screenshotAvailable(self, obj):
     return bool(obj.payment_screenshot_path)
 
+  def get_gatewayVerified(self, obj):
+    return bool(
+      obj.payment_provider == Registration.PAYMENT_PROVIDER_RAZORPAY
+      and obj.payment_order_id
+      and obj.payment_signature
+      and obj.transaction_id
+    )
+
   class Meta:
     model = Registration
     fields = [
@@ -359,9 +384,12 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
       "eventName",
       "teamName",
       "teamSize",
+      "amountPaid",
       "transactionId",
+      "paymentOrderId",
       "paymentStatus",
       "paymentProvider",
+      "gatewayVerified",
       "paymentDate",
       "registrationStatus",
       "emailStatus",

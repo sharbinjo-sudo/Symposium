@@ -23,10 +23,18 @@ export function navigateWithLoading(
   method: "push" | "replace" = "push"
 ) {
   startPageTransition(href)
-  router[method](href)
+  try {
+    router[method](href)
+  } catch {
+    assignWithLoading(href)
+  }
 }
 
 export function assignWithLoading(href: string) {
+  if (typeof window === "undefined") {
+    return
+  }
+
   startPageTransition(href)
   window.location.assign(href)
 }

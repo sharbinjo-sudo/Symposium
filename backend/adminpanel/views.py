@@ -208,7 +208,7 @@ class AdminRegistrationCreateView(APIView):
         {
           **data,
           "normalized_transaction_id": normalize_transaction_id(data["transactionId"]),
-          "payment_provider": data.get("paymentProvider", Registration.PAYMENT_PROVIDER_RAZORPAY),
+          "payment_provider": data.get("paymentProvider", Registration.PAYMENT_PROVIDER_MANUAL),
           "payment_order_id": "",
           "payment_signature": "",
           "payment_date": data["paymentDate"],
@@ -345,7 +345,11 @@ class AdminRegistrationExportView(APIView):
       "Team",
       "Lead Participant",
       "Lead Email",
+      "Amount",
       "Transaction ID",
+      "Payment Provider",
+      "Razorpay Order ID",
+      "Gateway Verified",
       "Payment Status",
       "Attendance Marked",
       "Email Status",
@@ -361,7 +365,15 @@ class AdminRegistrationExportView(APIView):
           registration.team_name or "",
           lead_participant.full_name if lead_participant else "",
           lead_participant.email if lead_participant else "",
+          registration.total_amount,
           registration.transaction_id,
+          registration.payment_provider,
+          registration.payment_order_id,
+          "Yes" if (
+            registration.payment_provider == Registration.PAYMENT_PROVIDER_RAZORPAY
+            and registration.payment_order_id
+            and registration.payment_signature
+          ) else "No",
           registration.payment_status,
           "Yes" if registration.attendance_marked else "No",
           registration.email_status,

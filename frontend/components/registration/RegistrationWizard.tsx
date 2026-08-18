@@ -9,6 +9,7 @@ import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { ApiError, createIdempotencyKey, createRegistrationPaymentOrder, submitRegistration } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
+import { formatMemberCount, formatTeamRange } from "@/lib/format";
 import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
 import type { EventConfig, ParticipantInput, RegistrationPaymentOrder, RegistrationResponse } from "@/lib/types";
@@ -120,6 +121,10 @@ function getReadableUiError(error: unknown, fallbackMessage: string) {
     return "Payment could not be completed. Please try again.";
   }
 
+  if (message === "Razorpay returned an incomplete payment response.") {
+    return "Payment response was incomplete. Please try again.";
+  }
+
   return message;
 }
 
@@ -135,13 +140,49 @@ function loadRazorpayScript() {
   if (!razorpayScriptPromise) {
     razorpayScriptPromise = new Promise<void>((resolve, reject) => {
       const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-      if (existingScript) {
-        if (window.Razorpay || existingScript.dataset.loaded === "true") {
+      const rejectAndAllowRetry = () => {
+        razorpayScriptPromise = null;
+        reject(new Error("Unable to load Razorpay checkout."));
+      };
+      const resolveIfReady = (scriptToRemove?: HTMLScriptElement) => {
+        if (window.Razorpay) {
           resolve();
           return;
         }
-        existingScript.addEventListener("load", () => resolve(), { once: true });
-        existingScript.addEventListener("error", () => reject(new Error("Unable to load Razorpay checkout.")), { once: true });
+        scriptToRemove?.remove();
+        rejectAndAllowRetry();
+      };
+
+      if (existingScript) {
+        if (window.Razorpay) {
+          resolve();
+          return;
+        }
+        if (existingScript.dataset.loaded === "true") {
+          existingScript.remove();
+        } else {
+          existingScript.addEventListener(
+            "load",
+            () => {
+              existingScript.dataset.loaded = "true";
+              resolveIfReady(existingScript);
+            },
+            { once: true }
+          );
+          existingScript.addEventListener(
+            "error",
+            () => {
+              existingScript.remove();
+              rejectAndAllowRetry();
+            },
+            { once: true }
+          );
+          return;
+        }
+      }
+
+      if (window.Razorpay) {
+        resolve();
         return;
       }
 
@@ -150,9 +191,12 @@ function loadRazorpayScript() {
       script.async = true;
       script.onload = () => {
         script.dataset.loaded = "true";
-        resolve();
+        resolveIfReady(script);
       };
-      script.onerror = () => reject(new Error("Unable to load Razorpay checkout."));
+      script.onerror = () => {
+        script.remove();
+        rejectAndAllowRetry();
+      };
       document.body.appendChild(script);
     });
   }
@@ -325,20 +369,29 @@ function openRazorpayCheckout(order: RegistrationPaymentOrder): Promise<Razorpay
       modal: {
         ondismiss: () => finishReject(new Error("Razorpay checkout was closed before payment completed."))
       },
-      handler: (response) =>
+      handler: (response) => {
+        if (!response.razorpay_order_id || !response.razorpay_payment_id || !response.razorpay_signature) {
+          finishReject(new Error("Razorpay returned an incomplete payment response."));
+          return;
+        }
         finishResolve({
           orderId: response.razorpay_order_id,
           paymentId: response.razorpay_payment_id,
           signature: response.razorpay_signature,
           paidAt: new Date().toISOString()
-        })
+        });
+      }
     });
 
     instance.on("payment.failed", (response) => {
       finishReject(new Error(response.error?.description ?? "Razorpay could not complete the payment."));
     });
 
-    instance.open();
+    try {
+      instance.open();
+    } catch (error) {
+      finishReject(error instanceof Error ? error : new Error("Razorpay checkout is not available right now."));
+    }
   });
 }
 
@@ -370,7 +423,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
 
   const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
   const participantNames = participants.map((participant) => participant.fullName || "Participant").join(", ");
-  const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Email")?.value ?? "Organizer email";
+  const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Mail ID")?.value ?? "Organizer email";
+  const paymentLocked = Boolean(checkoutState);
+  const paymentLockedMessage =
+    "Payment is already received. Submit this registration, or start another registration if you need to change details.";
 
   function handleDownloadPdf() {
     const registrationCode = confirmation?.registrationCode ?? "CP26-PENDING";
@@ -426,6 +482,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   function resetPaymentState() {
     setCheckoutState(null);
     setPaymentMessage("");
+    setSubmitError("");
     setErrors((current) => {
       const next = { ...current };
       delete next.payment;
@@ -437,6 +494,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   }
 
   function handleEventChange(nextEventCode: string) {
+    if (paymentLocked) {
+      setSubmitError(paymentLockedMessage);
+      return;
+    }
+
     const nextEvent = availableEvents.find((item) => item.code === nextEventCode);
     if (!nextEvent) {
       return;
@@ -448,6 +510,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   }
 
   function handleParticipantChange(index: number, field: keyof ParticipantInput, value: string | boolean) {
+    if (paymentLocked) {
+      setSubmitError(paymentLockedMessage);
+      return;
+    }
     setParticipants((current) =>
       current.map((participant, participantIndex) =>
         participantIndex === index ? { ...participant, [field]: value } : participant
@@ -561,10 +627,32 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   }
 
   function previousStep() {
-    setStep((current) => Math.max(current - 1, 0));
+    const previous = Math.max(step - 1, 0);
+    if (paymentLocked && previous < 3) {
+      setSubmitError(paymentLockedMessage);
+      return;
+    }
+    setStep(previous);
+  }
+
+  function handleStepClick(nextStepIndex: number) {
+    if (paymentLocked && nextStepIndex < 3) {
+      setSubmitError(paymentLockedMessage);
+      return;
+    }
+    setStep(nextStepIndex);
   }
 
   function handleStartPayment() {
+    if (paymentProcessing) {
+      return;
+    }
+
+    if (checkoutState) {
+      setPaymentMessage("Payment is already received. Continue to review and submit your registration.");
+      return;
+    }
+
     const nextErrors: Record<string, string> = {};
     if (!consentGiven) {
       nextErrors.consentGiven = "Please confirm the privacy note to continue.";
@@ -657,14 +745,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   return (
     <div className="wizard-shell">
       <div className="container">
-        <AnimatedHeading
-          eyebrow="Registration Flow"
-          title="A secure, guided registration experience"
-          copy="Move through event selection, participants, payment, and review in a timeline that stays readable on mobile and desktop."
-        />
+        <div className="wizard-heading-wrap">
+          <AnimatedHeading
+            eyebrow="Registration Flow"
+            title="A secure, guided registration experience"
+            copy="Move through event selection, participants, payment, and review in a readable timeline for mobile and desktop."
+          />
+        </div>
 
         <GlassPanel className="wizard-card wizard-main-card" tone="strong">
-          <ProgressStepper steps={steps} activeStep={step} onStepClick={setStep} />
+          <ProgressStepper steps={steps} activeStep={step} onStepClick={handleStepClick} />
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -675,7 +765,23 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
               transition={{ duration: 0.28 }}
             >
               {step === 0 ? (
-                <section className="wizard-stage">
+                <section className="wizard-stage wizard-event-stage">
+                  <div className="mobile-event-select field">
+                    <label htmlFor="mobileEventCode">Choose event</label>
+                    <select
+                      id="mobileEventCode"
+                      value={eventCode}
+                      onChange={(event) => handleEventChange(event.target.value)}
+                    >
+                      {availableEvents.map((event) => (
+                        <option key={event.code} value={event.code}>
+                          {event.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="helper">{currentEvent.summary}</div>
+                  </div>
+
                   <div className="event-selector-grid">
                     {availableEvents.map((event) => (
                       <button
@@ -702,24 +808,26 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                     </div>
                     <div className="summary-row">
                       <span>Team range</span>
-                      <strong>
-                        {currentEvent.minTeamSize}-{currentEvent.maxTeamSize}
-                      </strong>
+                      <strong>{formatTeamRange(currentEvent.minTeamSize, currentEvent.maxTeamSize)}</strong>
                     </div>
                   </GlassPanel>
                 </section>
               ) : null}
 
               {step === 1 ? (
-                <section className="wizard-stage">
-                  <div className="wizard-two-column">
-                    <GlassPanel className="content-panel" tone="soft">
+                <section className="wizard-stage wizard-participants-stage">
+                  <div className="wizard-two-column wizard-participants-overview">
+                    <GlassPanel className="content-panel wizard-team-size-card" tone="soft">
                       <div className="field">
                         <label htmlFor="teamSize">Team size</label>
                         <select
                           id="teamSize"
                           value={teamSize}
                           onChange={(event) => {
+                            if (paymentLocked) {
+                              setSubmitError(paymentLockedMessage);
+                              return;
+                            }
                             const nextSize = Number(event.target.value);
                             setTeamSize(nextSize);
                             syncParticipants(nextSize);
@@ -731,7 +839,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             (_, index) => currentEvent.minTeamSize + index
                           ).map((size) => (
                             <option key={size} value={size}>
-                              {size}
+                              {formatMemberCount(size)}
                             </option>
                           ))}
                         </select>
@@ -739,7 +847,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       <div className="helper">Participant cards update automatically to match the selected team size.</div>
                     </GlassPanel>
 
-                    <GlassPanel className="summary-panel" tone="soft">
+                    <GlassPanel className="summary-panel wizard-participants-summary" tone="soft">
                       <div className="summary-row">
                         <span>Total payable</span>
                         <strong>Rs. {totalAmount}</strong>
@@ -763,6 +871,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <label htmlFor={`fullName-${index}`}>Full name</label>
                             <input
                               id={`fullName-${index}`}
+                              placeholder="Example: S. Kavin"
                               value={participant.fullName}
                               onChange={(event) => handleParticipantChange(index, "fullName", event.target.value)}
                             />
@@ -774,6 +883,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <label htmlFor={`college-${index}`}>College name</label>
                             <input
                               id={`college-${index}`}
+                              placeholder="Example: V V College of Engineering"
                               value={participant.collegeName}
                               onChange={(event) => handleParticipantChange(index, "collegeName", event.target.value)}
                             />
@@ -785,6 +895,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <label htmlFor={`roll-${index}`}>Roll number</label>
                             <input
                               id={`roll-${index}`}
+                              placeholder="Example: 22AI001"
                               value={participant.rollNumber}
                               onChange={(event) => handleParticipantChange(index, "rollNumber", event.target.value)}
                             />
@@ -797,7 +908,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <input
                               id={`mobile-${index}`}
                               inputMode="tel"
-                              placeholder="+91 XXXXX XXXXX"
+                              placeholder="Example: +91 98XXX XX210"
                               value={participant.mobileNumber}
                               onChange={(event) => handleParticipantChange(index, "mobileNumber", event.target.value)}
                             />
@@ -810,6 +921,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <input
                               id={`email-${index}`}
                               type="email"
+                              placeholder="participant@example.com"
                               value={participant.email}
                               onChange={(event) => handleParticipantChange(index, "email", event.target.value)}
                             />
@@ -821,6 +933,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                             <label htmlFor={`department-${index}`}>Department</label>
                             <input
                               id={`department-${index}`}
+                              placeholder="Example: AI & DS"
                               value={participant.department}
                               onChange={(event) => handleParticipantChange(index, "department", event.target.value)}
                             />
@@ -853,11 +966,22 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
               ) : null}
 
               {step === 2 ? (
-                <section className="wizard-stage wizard-two-column">
-                  <GlassPanel className="content-panel" tone="soft">
+                <section className="wizard-stage wizard-two-column wizard-team-stage">
+                  <GlassPanel className="content-panel wizard-team-name-card" tone="soft">
                     <div className="field">
                       <label htmlFor="teamName">Team name</label>
-                      <input id="teamName" value={teamName} onChange={(event) => setTeamName(event.target.value)} />
+                      <input
+                        id="teamName"
+                        placeholder={currentEvent.maxTeamSize > 1 ? "Example: Neural Ninjas" : "Optional for solo entries"}
+                        value={teamName}
+                        onChange={(event) => {
+                          if (paymentLocked) {
+                            setSubmitError(paymentLockedMessage);
+                            return;
+                          }
+                          setTeamName(event.target.value);
+                        }}
+                      />
                       <div className="helper">Helpful for organizer-side identification, especially for 2-member entries.</div>
                       {errors.teamName ? <div className="error">{errors.teamName}</div> : null}
                     </div>
@@ -881,7 +1005,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
               ) : null}
 
               {step === 3 ? (
-                <section className="wizard-stage wizard-two-column payment-stage">
+                <section className="wizard-stage wizard-two-column payment-stage wizard-payment-stage">
                   <div className="payment-column">
                     <GlassPanel className="payment-qr-card" tone="strong">
                       <div className="section-eyebrow">Payment Gateway</div>
@@ -900,13 +1024,13 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                           type="button"
                           variant="accent"
                           onClick={handleStartPayment}
-                          disabled={paymentProcessing}
+                          disabled={paymentProcessing || paymentLocked}
                           magnetic
                         >
                           {paymentProcessing
                             ? "Preparing Razorpay..."
                             : checkoutState
-                              ? "Pay again with Razorpay"
+                              ? "Payment received"
                               : "Pay with Razorpay"}
                         </Button>
                       </div>
@@ -977,7 +1101,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
               ) : null}
 
               {step === 4 ? (
-                <section className="wizard-stage">
+                <section className="wizard-stage wizard-review-stage">
                   <GlassPanel className="summary-panel summary-panel-review wizard-review-summary" tone="soft">
                     <div className="summary-row">
                       <span>Event</span>
@@ -1018,7 +1142,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
               ) : null}
 
               {step === 5 ? (
-                <section className="confirmation-card">
+                <section className="confirmation-card wizard-confirmation-stage">
                   <GlassPanel className="confirmation-hero-card" tone="soft">
                     <div className="section-eyebrow">Acknowledgement</div>
                     <SuccessAnimation registrationCode={confirmation?.registrationCode ?? "CP26-PENDING"} />
@@ -1120,7 +1244,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
           {step < 5 ? (
             <div className="step-actions">
               {step > 0 ? (
-                <Button type="button" variant="secondary" onClick={previousStep}>
+                <Button type="button" variant="secondary" onClick={previousStep} disabled={paymentLocked && step === 3}>
                   Back
                 </Button>
               ) : null}

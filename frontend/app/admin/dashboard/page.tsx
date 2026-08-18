@@ -8,7 +8,6 @@ import { StatusChip } from "@/components/ui/StatusChip"
 import {
   adminLogout,
   ApiError,
-  clearAdminRegistrations,
   createAdminRegistration,
   deleteAdminRegistration,
   downloadAdminRegistrationsCsv,
@@ -48,7 +47,6 @@ const paymentOptions = [
 ]
 
 const providerOptions = [
-  { value: "razorpay", label: "Razorpay" },
   { value: "manual", label: "Manual" }
 ]
 
@@ -210,7 +208,6 @@ export default function AdminDashboardPage() {
   const [exporting, setExporting] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [clearing, setClearing] = useState(false)
   const [isCreateMode, setIsCreateMode] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
@@ -218,7 +215,7 @@ export default function AdminDashboardPage() {
   const [createTeamSize, setCreateTeamSize] = useState(defaultEvent?.minTeamSize ?? 1)
   const [createTeamName, setCreateTeamName] = useState("")
   const [createTransactionId, setCreateTransactionId] = useState("")
-  const [createPaymentProvider, setCreatePaymentProvider] = useState("razorpay")
+  const [createPaymentProvider, setCreatePaymentProvider] = useState("manual")
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
   const [createPaymentDate, setCreatePaymentDate] = useState(todayDateValue())
   const [createAttendanceMarked, setCreateAttendanceMarked] = useState(false)
@@ -309,7 +306,7 @@ export default function AdminDashboardPage() {
         }
 
         if (loadError instanceof ApiError && (loadError.status === 401 || loadError.status === 403)) {
-          navigateWithLoading(router, "/admin/login", "replace")
+          navigateWithLoading(router, "/aidsadmin", "replace")
           return
         }
 
@@ -340,7 +337,7 @@ export default function AdminDashboardPage() {
     setCreateTeamSize(nextEvent.minTeamSize)
     setCreateTeamName("")
     setCreateTransactionId("")
-    setCreatePaymentProvider("razorpay")
+    setCreatePaymentProvider("manual")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
     setCreateAttendanceMarked(false)
@@ -368,7 +365,7 @@ export default function AdminDashboardPage() {
       )
     } catch (refreshError) {
       if (refreshError instanceof ApiError && (refreshError.status === 401 || refreshError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -478,7 +475,7 @@ export default function AdminDashboardPage() {
       setActionMessage("New registration was created successfully.")
     } catch (createError) {
       if (createError instanceof ApiError && (createError.status === 401 || createError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -510,7 +507,7 @@ export default function AdminDashboardPage() {
       setActionMessage("Registration details were updated successfully.")
     } catch (saveError) {
       if (saveError instanceof ApiError && (saveError.status === 401 || saveError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -537,7 +534,7 @@ export default function AdminDashboardPage() {
       )
     } catch (resendError) {
       if (resendError instanceof ApiError && (resendError.status === 401 || resendError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -569,41 +566,13 @@ export default function AdminDashboardPage() {
       setActionMessage("Registration was deleted successfully.")
     } catch (deleteError) {
       if (deleteError instanceof ApiError && (deleteError.status === 401 || deleteError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
       setActionError(getReadableAdminError(deleteError, "We couldn't delete that registration right now."))
     } finally {
       setDeleting(false)
-    }
-  }
-
-  async function handleClearAll() {
-    const shouldDelete = window.confirm("Delete all existing registration records? This cannot be undone.")
-    if (!shouldDelete) {
-      return
-    }
-
-    setClearing(true)
-    setError("")
-    setActionError("")
-    setActionMessage("")
-
-    try {
-      const result = await clearAdminRegistrations()
-      await refreshDashboard()
-      setSelectedCode(null)
-      setActionMessage(`${result.deleted} registration record${result.deleted === 1 ? "" : "s"} deleted.`)
-    } catch (clearError) {
-      if (clearError instanceof ApiError && (clearError.status === 401 || clearError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
-        return
-      }
-
-      setError(getReadableAdminError(clearError, "We couldn't delete the existing records right now."))
-    } finally {
-      setClearing(false)
     }
   }
 
@@ -624,7 +593,7 @@ export default function AdminDashboardPage() {
       URL.revokeObjectURL(objectUrl)
     } catch (exportError) {
       if (exportError instanceof ApiError && (exportError.status === 401 || exportError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -650,7 +619,7 @@ export default function AdminDashboardPage() {
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
     } catch (screenshotError) {
       if (screenshotError instanceof ApiError && (screenshotError.status === 401 || screenshotError.status === 403)) {
-        navigateWithLoading(router, "/admin/login", "replace")
+        navigateWithLoading(router, "/aidsadmin", "replace")
         return
       }
 
@@ -664,7 +633,7 @@ export default function AdminDashboardPage() {
 
     try {
       await adminLogout()
-      navigateWithLoading(router, "/admin/login", "replace")
+      navigateWithLoading(router, "/aidsadmin", "replace")
     } catch (logoutError) {
       setError(getReadableAdminError(logoutError, "We couldn't sign you out right now."))
       setLoggingOut(false)
@@ -704,12 +673,24 @@ export default function AdminDashboardPage() {
             <strong>{registration.transactionId}</strong>
           </div>
           <div className="admin-detail-item">
+            <span>Amount</span>
+            <strong>Rs. {registration.amountPaid}</strong>
+          </div>
+          <div className="admin-detail-item">
             <span>Payment date</span>
             <strong>{formatAdminDate(registration.paymentDate)}</strong>
           </div>
           <div className="admin-detail-item">
             <span>Gateway</span>
             <strong>{formatStatusLabel(registration.paymentProvider)}</strong>
+          </div>
+          <div className="admin-detail-item">
+            <span>Gateway check</span>
+            <strong>{registration.gatewayVerified ? "Verified by Razorpay" : "Manual admin record"}</strong>
+          </div>
+          <div className="admin-detail-item">
+            <span>Razorpay order</span>
+            <strong>{registration.paymentOrderId || "Not stored"}</strong>
           </div>
         </div>
 
@@ -792,8 +773,8 @@ export default function AdminDashboardPage() {
             <div className="section-eyebrow">Admin Dashboard</div>
             <h2>Verification and operations</h2>
             <p className="card-copy">
-              Manage Razorpay-backed registrations, remove old records, create organizer-side entries, and keep review
-              work fast and clean.
+              Manage Razorpay-backed registrations, create organizer-side entries, export records, and keep review work
+              fast and clean.
             </p>
             <div className="admin-sidebar-links">
               <span>Registrations</span>
@@ -807,9 +788,6 @@ export default function AdminDashboardPage() {
               </Button>
               <Button type="button" variant="secondary" onClick={() => void refreshDashboard(true)}>
                 Refresh data
-              </Button>
-              <Button type="button" variant="accent" onClick={() => void handleClearAll()} disabled={clearing}>
-                {clearing ? "Deleting..." : "Delete all records"}
               </Button>
               <Button type="button" variant="secondary" onClick={() => void handleLogout()} disabled={loggingOut}>
                 {loggingOut ? "Signing out..." : "Sign out"}
@@ -954,6 +932,7 @@ export default function AdminDashboardPage() {
                         id="create-provider"
                         value={createPaymentProvider}
                         onChange={(event) => setCreatePaymentProvider(event.target.value)}
+                        disabled
                       >
                         {providerOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -961,6 +940,7 @@ export default function AdminDashboardPage() {
                           </option>
                         ))}
                       </select>
+                      <div className="helper">Organizer-created records are marked manual. Razorpay records come only from checkout.</div>
                     </div>
 
                     <div className="field">
@@ -1065,7 +1045,7 @@ export default function AdminDashboardPage() {
                             <input
                               id={`create-mobile-${index}`}
                               value={participant.mobileNumber}
-                              placeholder="+91 XXXXX XXXXX"
+                              placeholder="Example: +91 98XXX XX210"
                               onChange={(event) => handleCreateParticipantChange(index, "mobileNumber", event.target.value)}
                             />
                             {createErrors[`participant-${index}-mobileNumber`] ? (
@@ -1166,12 +1146,24 @@ export default function AdminDashboardPage() {
                       <strong>{selectedRegistration.transactionId}</strong>
                     </div>
                     <div className="admin-detail-item">
+                      <span>Amount</span>
+                      <strong>Rs. {selectedRegistration.amountPaid}</strong>
+                    </div>
+                    <div className="admin-detail-item">
                       <span>Payment date</span>
                       <strong>{formatAdminDate(selectedRegistration.paymentDate)}</strong>
                     </div>
                     <div className="admin-detail-item">
                       <span>Gateway</span>
                       <strong>{formatStatusLabel(selectedRegistration.paymentProvider)}</strong>
+                    </div>
+                    <div className="admin-detail-item">
+                      <span>Gateway check</span>
+                      <strong>{selectedRegistration.gatewayVerified ? "Verified by Razorpay" : "Manual admin record"}</strong>
+                    </div>
+                    <div className="admin-detail-item">
+                      <span>Razorpay order</span>
+                      <strong>{selectedRegistration.paymentOrderId || "Not stored"}</strong>
                     </div>
                   </div>
 
@@ -1346,6 +1338,9 @@ export default function AdminDashboardPage() {
                             <StatusChip tone={paymentTone(registration.paymentStatus)}>
                               {formatStatusLabel(registration.paymentStatus)}
                             </StatusChip>
+                            <div className="table-subtext">
+                              {registration.gatewayVerified ? "Razorpay verified" : formatStatusLabel(registration.paymentProvider)}
+                            </div>
                           </td>
                           <td>
                             <StatusChip tone={emailTone(registration.emailStatus)}>

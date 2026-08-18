@@ -5,10 +5,10 @@ from .models import Event
 EVENT_CONTENT = {
   "PP": {
     "track": "Technical",
-    "summary": "Present an original concept, product idea, or research insight with clarity and confidence.",
+    "summary": "Present a technical idea, project, or research concept with clarity and confidence.",
     "description": (
-      "Single-participant presentation round focused on CSE and AI & DS domains. Each participant gets ten "
-      "minutes to present with slides, followed by questions from the panel."
+      "Presentation event for students to explain original ideas, project work, research directions, or technical "
+      "concepts before the panel."
     ),
     "prizes": [
       "First Prize: Rs. 1,000",
@@ -16,18 +16,18 @@ EVENT_CONTENT = {
       "Certificates: 1st, 2nd, and 3rd place"
     ],
     "rules": [
-      "Topics can belong to CSE, AI & DS, or closely related computing domains.",
-      "Only one participant is allowed per entry.",
-      "Presentation time is 10 minutes, followed by a short Q&A round.",
-      "Participants must bring their presentation on a pendrive."
+      "Solo participation is supported.",
+      "Bring a concise slide deck and a focused abstract or topic note.",
+      "Judging weighs originality, delivery, and practical relevance.",
+      "Participants must carry their presentation files on event day."
     ]
   },
   "CB": {
     "track": "Technical",
-    "summary": "Solve logic-heavy coding challenges under pressure without using AI tools.",
+    "summary": "Solve programming, debugging, and logic challenges under event-day pressure.",
     "description": (
-      "Two-member coding event with a written screening round followed by a live implementation round using "
-      "languages such as Python, C, or Java."
+      "Coding challenge for solo participants or teams, focused on problem solving, debugging discipline, and "
+      "implementation clarity."
     ),
     "prizes": [
       "First Prize: Rs. 1,000",
@@ -43,10 +43,10 @@ EVENT_CONTENT = {
   },
   "WC": {
     "track": "Technical",
-    "summary": "Design and build an interactive frontend experience from a surprise brief.",
+    "summary": "Craft a functional web experience with clean interface thinking and responsive execution.",
     "description": (
-      "Frontend development round where teams build a multi-page interface from a random prompt. AI-assisted "
-      "workflows are allowed for this event."
+      "Web development event for solo participants or teams to turn a given idea into a useful, readable, and "
+      "presentable web interface."
     ),
     "prizes": [
       "First Prize: Rs. 1,000",
@@ -62,10 +62,10 @@ EVENT_CONTENT = {
   },
   "VS": {
     "track": "Technical",
-    "summary": "Turn raw company datasets into persuasive insights through visual storytelling.",
+    "summary": "Transform data into visual insight through charts, dashboards, and storytelling.",
     "description": (
-      "Data analysis and visualization event where teams explore random datasets and present the clearest, "
-      "most attractive analytical story using charts and dashboards."
+      "Data visualization and analytics event where participants convert information into clear visual stories and "
+      "explain their decisions."
     ),
     "prizes": [
       "First Prize: Rs. 1,000",

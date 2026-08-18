@@ -36,12 +36,12 @@ The project is config-driven, so dates, event rules, fees, and contact details a
 
 ## Backend on Render
 
-The repo includes a root [render.yaml](./render.yaml) blueprint and a backend build script at [backend/build.sh](./backend/build.sh).
+The backend folder includes [backend/render.yaml](./backend/render.yaml) and [backend/build.sh](./backend/build.sh).
 
 Render service settings:
 
 1. Create a new Render web service from this repository.
-2. Let Render detect the root `render.yaml`, or point the service at `backend/`.
+2. Set the Render root directory to `backend`.
 3. Set these environment variables in Render:
    - `DJANGO_SETTINGS_MODULE=config.settings.prod`
    - `DJANGO_SECRET_KEY=<strong random value>`
@@ -64,7 +64,7 @@ Production Django settings now include:
 
 ## Frontend on Netlify
 
-The repo includes a root [netlify.toml](./netlify.toml) configured for the `frontend/` app.
+The frontend folder includes [frontend/netlify.toml](./frontend/netlify.toml).
 
 Netlify settings:
 
@@ -74,11 +74,11 @@ Netlify settings:
    - build command: `npm run build`
 3. Set these environment variables in Netlify:
    - `NEXT_PUBLIC_API_BASE_URL=https://<your-render-host>.onrender.com`
-   - `NEXT_PUBLIC_EVENT_DATE=2026-09-12T09:00:00+05:30`
+   - `NEXT_PUBLIC_EVENT_DATE=2026-09-11T09:30:00+05:30`
 4. Deploy. The Next.js frontend will keep using local Django automatically when this env var is not set, so local development still works.
 
 ## Notes
 
 - Local backend remains available through `config.settings.dev`.
 - Local frontend still defaults to `http://127.0.0.1:8000`.
-- If you want a first production admin account, create it after deployment with `python manage.py createsuperuser` or your custom admin flow.
+- Create the first production organizer account after deployment with `python manage.py create_admin_user --email <admin-email> --password <strong-password> --name "<name>"`. The app uses the custom `AdminUser` login flow, not Django's default admin login.

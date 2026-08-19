@@ -28,7 +28,7 @@ export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
           <strong>Rs. 500</strong>
         </div>
         <div className="prize-podium-slot">
-          <span>Third</span>
+          <span>All participants</span>
           <strong>Certificate</strong>
         </div>
       </div>

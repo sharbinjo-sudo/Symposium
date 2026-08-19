@@ -13,7 +13,7 @@ export default async function PrizesPage() {
           <AnimatedHeading
             eyebrow="Prize Section"
             title={["Premium podium cards", "for every technical event"]}
-            copy="First place receives Rs. 1,000, second place receives Rs. 500, and first through third place receive certificates."
+            copy="First place receives Rs. 1,000, second place receives Rs. 500, and every registered participant receives a certificate."
           />
         </div>
         <div className="prize-grid">

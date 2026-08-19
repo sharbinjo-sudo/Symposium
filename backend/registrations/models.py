@@ -103,6 +103,13 @@ class PaymentAttempt(models.Model):
 
 
 class Participant(models.Model):
+  FOOD_VEG = "veg"
+  FOOD_NON_VEG = "non_veg"
+  FOOD_PREFERENCE_CHOICES = [
+    (FOOD_VEG, "Veg"),
+    (FOOD_NON_VEG, "Non-Veg")
+  ]
+
   registration = models.ForeignKey(Registration, on_delete=models.CASCADE, related_name="participants")
   participant_number = models.PositiveSmallIntegerField()
   full_name = models.CharField(max_length=150)
@@ -112,6 +119,7 @@ class Participant(models.Model):
   email = models.EmailField(db_index=True)
   department = models.CharField(max_length=100)
   year_of_study = models.CharField(max_length=20)
+  food_preference = models.CharField(max_length=16, choices=FOOD_PREFERENCE_CHOICES, default=FOOD_VEG)
   is_team_leader = models.BooleanField(default=False)
   created_at = models.DateTimeField(auto_now_add=True)
 

@@ -9,3 +9,15 @@ export function formatTeamRange(minTeamSize: number, maxTeamSize: number) {
 
   return `${minTeamSize}-${maxTeamSize} members`;
 }
+
+export function formatFoodPreference(value: string) {
+  if (value === "non_veg") {
+    return "Non-Veg";
+  }
+
+  if (value === "veg") {
+    return "Veg";
+  }
+
+  return value || "Not selected";
+}

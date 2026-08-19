@@ -53,6 +53,9 @@ export const participantSchema = z.object({
     .email("Enter a valid email address."),
   department: requiredText("Department"),
   yearOfStudy: z.string().min(1, "Year of study is required."),
+  foodPreference: z.enum(["veg", "non_veg"], {
+    errorMap: () => ({ message: "Choose Veg or Non-Veg food preference." })
+  }),
   isTeamLeader: z.boolean()
 });
 

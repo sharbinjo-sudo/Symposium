@@ -18,6 +18,7 @@ import {
   updateAdminRegistration
 } from "@/lib/api"
 import { siteConfig } from "@/lib/config/site"
+import { formatFoodPreference } from "@/lib/format"
 import type {
   AdminRegistrationCreatePayload,
   AdminRegistrationFilters,
@@ -55,6 +56,11 @@ const yearOptions = [
   { value: "2", label: "2nd year" },
   { value: "3", label: "3rd year" },
   { value: "4", label: "4th year" }
+]
+
+const foodPreferenceOptions = [
+  { value: "veg", label: "Veg" },
+  { value: "non_veg", label: "Non-Veg" }
 ]
 
 function formatAdminDate(value: string) {
@@ -148,6 +154,7 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
     email: "",
     department: "",
     yearOfStudy: "",
+    foodPreference: "",
     isTeamLeader
   }
 }
@@ -700,6 +707,10 @@ export default function AdminDashboardPage() {
             <strong>{registration.participantNames.join(", ")}</strong>
           </div>
           <div className="summary-row">
+            <span>Food preference</span>
+            <strong>{(registration.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
+          </div>
+          <div className="summary-row">
             <span>Team size</span>
             <strong>{registration.teamSize}</strong>
           </div>
@@ -1093,6 +1104,24 @@ export default function AdminDashboardPage() {
                               <div className="error">{createErrors[`participant-${index}-yearOfStudy`]}</div>
                             ) : null}
                           </div>
+                          <div className="field">
+                            <label htmlFor={`create-food-${index}`}>Food preference</label>
+                            <select
+                              id={`create-food-${index}`}
+                              value={participant.foodPreference}
+                              onChange={(event) => handleCreateParticipantChange(index, "foodPreference", event.target.value)}
+                            >
+                              <option value="">Choose food</option>
+                              {foodPreferenceOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {createErrors[`participant-${index}-foodPreference`] ? (
+                              <div className="error">{createErrors[`participant-${index}-foodPreference`]}</div>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1168,11 +1197,15 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="admin-detail-stack">
-                    <div className="summary-row">
-                      <span>Participants</span>
-                      <strong>{selectedRegistration.participantNames.join(", ")}</strong>
-                    </div>
-                    <div className="summary-row">
+                      <div className="summary-row">
+                        <span>Participants</span>
+                        <strong>{selectedRegistration.participantNames.join(", ")}</strong>
+                      </div>
+                      <div className="summary-row">
+                        <span>Food preference</span>
+                        <strong>{(selectedRegistration.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
+                      </div>
+                      <div className="summary-row">
                       <span>Team size</span>
                       <strong>{selectedRegistration.teamSize}</strong>
                     </div>

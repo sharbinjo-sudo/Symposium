@@ -8,6 +8,7 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { ApiError, checkRegistrationStatus } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
+import { formatFoodPreference } from "@/lib/format";
 import type { RegistrationStatusResponse } from "@/lib/types";
 
 type FieldErrors = {
@@ -294,6 +295,10 @@ export function RegistrationStatusLookup() {
                     <div className="status-check-detail-row">
                       <span>Participants</span>
                       <strong>{result.participantNames.join(", ")}</strong>
+                    </div>
+                    <div className="status-check-detail-row">
+                      <span>Food preference</span>
+                      <strong>{(result.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
                     </div>
                     <div className="status-check-detail-row">
                       <span>Payment provider</span>

@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   title: "CYBERPUNK'26",
   description: "Department of Artificial Intelligence and Data Science symposium platform.",
   icons: {
-    icon: "/vvcoe-logo.jpg",
-    shortcut: "/vvcoe-logo.jpg",
-    apple: "/vvcoe-logo.jpg"
+    icon: "/vvcoe-icon.png",
+    shortcut: "/vvcoe-icon.png",
+    apple: "/vvcoe-icon.png"
   }
 };
 

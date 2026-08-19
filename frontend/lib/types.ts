@@ -1,5 +1,6 @@
 export type FeeType = "per_participant" | "per_team";
 export type EventNoteTone = "info" | "warning" | "prohibited" | "required";
+export type FoodPreference = "veg" | "non_veg";
 
 export type EventConfig = {
   order: number;
@@ -51,6 +52,7 @@ export type ParticipantInput = {
   email: string;
   department: string;
   yearOfStudy: string;
+  foodPreference: FoodPreference | "";
   isTeamLeader: boolean;
 };
 
@@ -109,6 +111,7 @@ export type RegistrationStatusResponse = {
   teamName: string;
   teamSize: number;
   participantNames: string[];
+  participantFoodPreferences: string[];
   leadParticipantName: string;
   participantEmail: string;
   amountPaid: string;
@@ -141,6 +144,7 @@ export type DashboardSummary = {
 
 export type AdminRegistrationRow = {
   participantNames: string[];
+  participantFoodPreferences: string[];
   leadParticipantName: string;
   leadParticipantEmail: string;
   registrationCode: string;

@@ -9,7 +9,7 @@ import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { ApiError, createIdempotencyKey, createRegistrationPaymentOrder, submitRegistration } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
-import { formatMemberCount, formatTeamRange } from "@/lib/format";
+import { formatFoodPreference, formatMemberCount, formatTeamRange } from "@/lib/format";
 import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
 import type { EventConfig, ParticipantInput, RegistrationPaymentOrder, RegistrationResponse } from "@/lib/types";
@@ -213,6 +213,7 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
     email: "",
     department: "",
     yearOfStudy: "",
+    foodPreference: "",
     isTeamLeader
   };
 }
@@ -423,6 +424,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
 
   const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
   const participantNames = participants.map((participant) => participant.fullName || "Participant").join(", ");
+  const participantFoodPreferences = participants
+    .map((participant) => formatFoodPreference(participant.foodPreference))
+    .join(", ");
   const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Mail ID")?.value ?? "Organizer email";
   const paymentLocked = Boolean(checkoutState);
   const paymentLockedMessage =
@@ -442,6 +446,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
       `Track: ${currentEvent.track}`,
       `Team: ${teamName || "Solo entry"}`,
       `Participants: ${participantNames}`,
+      `Food preference: ${participantFoodPreferences}`,
       `Team size: ${teamSize}`,
       `Amount paid: Rs. ${totalAmount}`,
       `Payment date: ${formatDisplayDate(paymentDate)}`,
@@ -544,6 +549,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
         const trimmedYear = participant.yearOfStudy.trim();
         if (!trimmedYear) {
           nextErrors[`participant-${index}-yearOfStudy`] = "Year of study is required.";
+        }
+
+        if (!participant.foodPreference) {
+          nextErrors[`participant-${index}-foodPreference`] = "Choose Veg or Non-Veg food preference.";
         }
 
         const trimmedRollNumber = participant.rollNumber.trim();
@@ -958,6 +967,21 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                               <div className="error">{errors[`participant-${index}-yearOfStudy`]}</div>
                             ) : null}
                           </div>
+                          <div className="field">
+                            <label htmlFor={`food-${index}`}>Food preference</label>
+                            <select
+                              id={`food-${index}`}
+                              value={participant.foodPreference}
+                              onChange={(event) => handleParticipantChange(index, "foodPreference", event.target.value)}
+                            >
+                              <option value="">Choose food</option>
+                              <option value="veg">Veg</option>
+                              <option value="non_veg">Non-Veg</option>
+                            </select>
+                            {errors[`participant-${index}-foodPreference`] ? (
+                              <div className="error">{errors[`participant-${index}-foodPreference`]}</div>
+                            ) : null}
+                          </div>
                         </div>
                       </GlassPanel>
                     ))}
@@ -1116,6 +1140,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       <strong>{participants.map((participant) => participant.fullName || "Participant").join(", ")}</strong>
                     </div>
                     <div className="summary-row">
+                      <span>Food preference</span>
+                      <strong>{participantFoodPreferences}</strong>
+                    </div>
+                    <div className="summary-row">
                       <span>Payment gateway</span>
                       <strong>Razorpay</strong>
                     </div>
@@ -1203,6 +1231,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       <div className="confirmation-detail-row">
                         <span>Participants</span>
                         <strong>{participantNames}</strong>
+                      </div>
+                      <div className="confirmation-detail-row">
+                        <span>Food preference</span>
+                        <strong>{participantFoodPreferences}</strong>
                       </div>
                       <div className="confirmation-detail-row">
                         <span>Amount paid</span>

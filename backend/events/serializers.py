@@ -13,7 +13,7 @@ EVENT_CONTENT = {
     "prizes": [
       "First Prize: Rs. 1,000",
       "Second Prize: Rs. 500",
-      "Certificates: 1st, 2nd, and 3rd place"
+      "Certificates: All registered participants"
     ],
     "rules": [
       "Solo participation is supported.",
@@ -32,7 +32,7 @@ EVENT_CONTENT = {
     "prizes": [
       "First Prize: Rs. 1,000",
       "Second Prize: Rs. 500",
-      "Certificates: 1st, 2nd, and 3rd place"
+      "Certificates: All registered participants"
     ],
     "rules": [
       "Each team can have up to 2 participants.",
@@ -51,7 +51,7 @@ EVENT_CONTENT = {
     "prizes": [
       "First Prize: Rs. 1,000",
       "Second Prize: Rs. 500",
-      "Certificates: 1st, 2nd, and 3rd place"
+      "Certificates: All registered participants"
     ],
     "rules": [
       "Each team can have up to 2 participants.",
@@ -70,7 +70,7 @@ EVENT_CONTENT = {
     "prizes": [
       "First Prize: Rs. 1,000",
       "Second Prize: Rs. 500",
-      "Certificates: 1st, 2nd, and 3rd place"
+      "Certificates: All registered participants"
     ],
     "rules": [
       "Each team can have up to 2 participants.",

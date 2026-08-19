@@ -81,6 +81,7 @@ def build_payment_payload_fingerprint(validated_data: dict) -> str:
         "college_name": participant["collegeName"].strip(),
         "department": participant["department"].strip(),
         "email": normalize_email(participant["email"]),
+        "food_preference": participant["foodPreference"],
         "full_name": participant["fullName"].strip(),
         "is_team_leader": bool(participant["isTeamLeader"]),
         "mobile_number": normalize_mobile(participant["mobileNumber"]),
@@ -474,6 +475,7 @@ def create_registration(validated_data: dict) -> Registration:
         email=normalize_email(participant["email"]),
         department=participant["department"].strip(),
         year_of_study=participant["yearOfStudy"].strip(),
+        food_preference=participant["foodPreference"],
         is_team_leader=participant["isTeamLeader"]
       )
     )

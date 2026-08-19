@@ -69,7 +69,6 @@ function renderGraphic(event: EventConfig) {
 export function EventCard({ event }: EventCardProps) {
   const [open, setOpen] = useState(false);
   const feeLabel = event.feeType === "per_team" ? "Per team" : "Per participant";
-  const primaryPrize = event.prizes[0] ?? "Prize details announced soon";
   const leadNote = event.importantNotes[0];
 
   return (
@@ -98,10 +97,6 @@ export function EventCard({ event }: EventCardProps) {
           <div className="event-metric">
             <span>Team size</span>
             <strong>{formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
-          </div>
-          <div className="event-metric">
-            <span>Prize</span>
-            <strong>{primaryPrize.replace("First Prize: ", "")}</strong>
           </div>
           <div className="event-metric">
             <span>Fee</span>

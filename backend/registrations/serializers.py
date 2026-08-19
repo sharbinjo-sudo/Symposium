@@ -24,6 +24,7 @@ class ParticipantInputSerializer(serializers.Serializer):
   email = serializers.CharField(max_length=254)
   department = serializers.CharField(max_length=100)
   yearOfStudy = serializers.CharField(max_length=20)
+  foodPreference = serializers.ChoiceField(choices=Participant.FOOD_PREFERENCE_CHOICES)
   isTeamLeader = serializers.BooleanField()
 
   def validate_fullName(self, value: str) -> str:
@@ -271,6 +272,7 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   teamName = serializers.SerializerMethodField()
   teamSize = serializers.IntegerField(source="team_size")
   participantNames = serializers.SerializerMethodField()
+  participantFoodPreferences = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
   participantEmail = serializers.SerializerMethodField()
   amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
@@ -294,6 +296,9 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   def get_participantNames(self, obj):
     return [participant.full_name for participant in obj.participants.all()]
 
+  def get_participantFoodPreferences(self, obj):
+    return [participant.food_preference for participant in obj.participants.all()]
+
   def get_leadParticipantName(self, obj):
     lead_participant = self._lead_participant(obj)
     return lead_participant.full_name if lead_participant else ""
@@ -311,6 +316,7 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
       "teamName",
       "teamSize",
       "participantNames",
+      "participantFoodPreferences",
       "leadParticipantName",
       "participantEmail",
       "amountPaid",
@@ -328,6 +334,7 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
 
 class AdminRegistrationSerializer(serializers.ModelSerializer):
   participantNames = serializers.SerializerMethodField()
+  participantFoodPreferences = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
   leadParticipantEmail = serializers.SerializerMethodField()
   gatewayVerified = serializers.SerializerMethodField()
@@ -355,6 +362,9 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   def get_participantNames(self, obj):
     return [participant.full_name for participant in obj.participants.all()]
 
+  def get_participantFoodPreferences(self, obj):
+    return [participant.food_preference for participant in obj.participants.all()]
+
   def get_leadParticipantName(self, obj):
     lead_participant = self._lead_participant(obj)
     return lead_participant.full_name if lead_participant else ""
@@ -378,6 +388,7 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
     model = Registration
     fields = [
       "participantNames",
+      "participantFoodPreferences",
       "leadParticipantName",
       "leadParticipantEmail",
       "registrationCode",

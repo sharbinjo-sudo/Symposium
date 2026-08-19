@@ -20,8 +20,7 @@ export const siteConfig: SiteConfig = {
     { label: "Student Co-ordinator", value: "Vanni Venkatesh. R" },
     { label: "Student Co-ordinator", value: "Chendur Priya. B" },
     { label: "Event Contact", value: "8056591486" },
-    { label: "Mail ID", value: "cyberpunk26aids@gmail.com" },
-    { label: "Website", value: "https://vvcoe-symposium.netlify.app" }
+    { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
   ],
   highlights: [
     "National level symposium hosted by the Department of AI & DS",
@@ -51,7 +50,7 @@ export const siteConfig: SiteConfig = {
       maxTeamSize: 1,
       feeType: "per_participant",
       feeAmount: 250,
-      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: 1st, 2nd, and 3rd place"],
+      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
         "Solo participation is supported.",
         "Bring a concise slide deck and a focused abstract or topic note.",
@@ -85,7 +84,7 @@ export const siteConfig: SiteConfig = {
       maxTeamSize: 2,
       feeType: "per_participant",
       feeAmount: 250,
-      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: 1st, 2nd, and 3rd place"],
+      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
         "Solo entries and 2-member teams are allowed.",
         "Languages and platform instructions are shared on event day.",
@@ -119,7 +118,7 @@ export const siteConfig: SiteConfig = {
       maxTeamSize: 2,
       feeType: "per_participant",
       feeAmount: 250,
-      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: 1st, 2nd, and 3rd place"],
+      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
         "One or two participants per team.",
         "Judging covers UI quality, responsiveness, and completeness.",
@@ -153,7 +152,7 @@ export const siteConfig: SiteConfig = {
       maxTeamSize: 2,
       feeType: "per_participant",
       feeAmount: 250,
-      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: 1st, 2nd, and 3rd place"],
+      prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
         "Use charts intentionally and explain your decisions.",
         "Submission quality matters as much as accuracy.",

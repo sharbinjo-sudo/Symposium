@@ -80,6 +80,7 @@ def send_registration_notifications(registration) -> bool:
 
   admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip()
   participant_email = lead_participant.email.strip().lower()
+  food_preferences = ", ".join(participant.get_food_preference_display() for participant in registration.participants.all())
   participant_template_params = {
     "registration_code": registration.registration_code,
     "event_name": registration.event.event_name,
@@ -87,7 +88,8 @@ def send_registration_notifications(registration) -> bool:
     "payment_status": registration.payment_status,
     "admin_email": admin_email,
     "participant_name": lead_participant.full_name,
-    "participant_email": participant_email
+    "participant_email": participant_email,
+    "participant_food_preferences": food_preferences
   }
 
   participant_sent = _send_emailjs_message(
@@ -104,7 +106,8 @@ def send_registration_notifications(registration) -> bool:
       "team_name": registration.team_name or "Solo entry",
       "payment_status": registration.payment_status,
       "participant_name": lead_participant.full_name,
-      "participant_email": participant_email
+      "participant_email": participant_email,
+      "participant_food_preferences": food_preferences
     }
     _send_emailjs_message(admin_email, admin_template_id, admin_template_params)
 

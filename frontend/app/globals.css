@@ -2258,10 +2258,86 @@ input[type="radio"]:focus {
   overflow: hidden;
   min-height: clamp(11rem, 15vw, 13rem);
   padding: clamp(1.05rem, 1.45vw, 1.2rem);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 241, 244, 0.76)),
+    radial-gradient(circle at 14% 18%, rgba(var(--accent-rgb), 0.12), transparent 34%),
+    radial-gradient(circle at 92% 92%, rgba(var(--primary-rgb), 0.12), transparent 32%);
+  box-shadow: 0 24px 64px rgba(44, 17, 21, 0.09);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
     transform 180ms ease;
+}
+
+.non-tech-note-reveal {
+  margin-top: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.non-tech-note-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(18rem, 1.05fr);
+  align-items: center;
+  gap: clamp(1rem, 2vw, 1.6rem);
+  padding: clamp(1.05rem, 1.9vw, 1.45rem);
+  border-color: rgba(var(--primary-rgb), 0.2);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(255, 238, 243, 0.78)),
+    radial-gradient(circle at 10% 22%, rgba(var(--accent-rgb), 0.2), transparent 34%),
+    radial-gradient(circle at 92% 20%, rgba(var(--primary-rgb), 0.16), transparent 32%);
+  box-shadow: 0 28px 76px rgba(76, 26, 34, 0.12);
+}
+
+.non-tech-note-card::before,
+.non-tech-note-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.non-tech-note-card::before {
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 0 32%, rgba(255, 255, 255, 0.62) 45%, transparent 58% 100%);
+  opacity: 0.5;
+  transform: translateX(-42%);
+  animation: non-tech-card-shine 6.8s ease-in-out infinite;
+}
+
+.non-tech-note-card::after {
+  width: 8rem;
+  height: 8rem;
+  right: -2.8rem;
+  top: -2.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--primary-rgb), 0.16);
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.16), transparent 68%);
+  animation: non-tech-card-orbit 7s ease-in-out infinite alternate;
+}
+
+.non-tech-note-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.non-tech-note-card h3 {
+  margin: 0.45rem 0 0;
+  max-width: 16ch;
+  font-size: clamp(1.35rem, 2.6vw, 2.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.non-tech-note-card .card-copy {
+  margin: 0;
+  max-width: 58ch;
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  line-height: 1.58;
+}
+
+.non-tech-note-card strong {
+  color: var(--ink);
 }
 
 .non-tech-event-grid .placeholder-card::before,
@@ -2320,11 +2396,33 @@ input[type="radio"]:focus {
   .non-tech-event-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .non-tech-note-card {
+    grid-template-columns: 1fr;
+  }
+
+  .non-tech-note-card h3 {
+    max-width: 22ch;
+  }
 }
 
 @media (max-width: 640px) {
   .non-tech-event-grid {
     grid-template-columns: 1fr;
+  }
+
+  .non-tech-note-card {
+    padding: 1rem;
+    border-radius: 22px;
+  }
+
+  .non-tech-note-card h3 {
+    max-width: none;
+    font-size: clamp(1.45rem, 9vw, 2.12rem);
+  }
+
+  .non-tech-note-card .card-copy {
+    font-size: 0.98rem;
   }
 }
 
@@ -2360,8 +2458,11 @@ input[type="radio"]:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .non-tech-event-grid .placeholder-card,
+  .non-tech-note-card,
   .non-tech-event-grid .placeholder-card::before,
-  .non-tech-event-grid .placeholder-card::after {
+  .non-tech-event-grid .placeholder-card::after,
+  .non-tech-note-card::before,
+  .non-tech-note-card::after {
     transition: none !important;
     animation: none !important;
   }
@@ -3347,6 +3448,512 @@ input[type="radio"]:focus {
 
 .confirmation-actions .button {
   min-width: 150px;
+}
+
+.acknowledgement-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(var(--accent-rgb), 0.2), transparent 30%),
+    rgba(39, 13, 21, 0.42);
+  backdrop-filter: blur(18px);
+}
+
+.acknowledgement-modal {
+  position: relative;
+  width: min(100%, 920px);
+  max-height: min(88vh, 820px);
+  overflow: auto;
+  display: grid;
+  gap: clamp(0.9rem, 1.5vw, 1.15rem);
+  padding: clamp(1.05rem, 2.4vw, 1.65rem);
+  border: 1px solid rgba(var(--primary-rgb), 0.16);
+  border-radius: clamp(26px, 3vw, 38px);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(var(--primary-rgb), 0.14), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(250, 239, 242, 0.96));
+  box-shadow: 0 34px 100px rgba(48, 11, 24, 0.32);
+  isolation: isolate;
+}
+
+.acknowledgement-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0.75rem;
+  z-index: -1;
+  border: 1px solid rgba(var(--primary-rgb), 0.08);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.acknowledgement-modal-orbit {
+  position: absolute;
+  right: -5rem;
+  bottom: -8rem;
+  width: 22rem;
+  height: 22rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+  border-radius: 50%;
+  opacity: 0.75;
+  animation: frame-orbit 12s linear infinite;
+  pointer-events: none;
+}
+
+.acknowledgement-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  width: 2.65rem;
+  height: 2.65rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(48, 11, 24, 0.12);
+}
+
+.acknowledgement-modal-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(0.85rem, 1.8vw, 1.2rem);
+  align-items: center;
+  padding-right: 3rem;
+}
+
+.acknowledgement-modal-head .success-lockup {
+  width: clamp(118px, 12vw, 150px);
+  height: clamp(118px, 12vw, 150px);
+}
+
+.acknowledgement-modal h2 {
+  margin: 0;
+  max-width: 760px;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(2rem, 4.2vw, 4rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+
+.acknowledgement-modal p {
+  max-width: 680px;
+  margin: 0.55rem 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(1rem, 1.6vw, 1.14rem);
+  line-height: 1.45;
+}
+
+.acknowledgement-modal-code {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(var(--primary-rgb), 0.12), rgba(var(--accent-rgb), 0.08)),
+    rgba(255, 255, 255, 0.88);
+  text-align: center;
+}
+
+.acknowledgement-modal-code span,
+.acknowledgement-modal-grid span {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.acknowledgement-modal-code strong {
+  color: var(--primary);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+  letter-spacing: 0.02em;
+}
+
+.acknowledgement-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.72rem;
+}
+
+.acknowledgement-modal-grid div,
+.acknowledgement-modal-note {
+  display: grid;
+  gap: 0.38rem;
+  min-width: 0;
+  padding: 0.84rem 0.92rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 38px rgba(48, 11, 24, 0.06);
+}
+
+.acknowledgement-modal-grid strong {
+  color: var(--ink);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1rem, 1.35vw, 1.12rem);
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.acknowledgement-modal-note {
+  display: block;
+  color: var(--ink-soft);
+  line-height: 1.42;
+}
+
+.acknowledgement-modal-note strong {
+  color: var(--primary);
+}
+
+.acknowledgement-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: flex-end;
+}
+
+.acknowledgement-modal-actions .button {
+  min-width: 170px;
+}
+
+.acknowledgement-modal.acknowledgement-pdf-modal {
+  width: min(100%, 920px);
+  max-height: min(92svh, 940px);
+  overflow: auto;
+  display: block;
+  padding: clamp(0.58rem, 1.4vw, 0.9rem);
+  border: 0;
+  border-radius: clamp(20px, 3vw, 30px);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 34px 100px rgba(48, 11, 24, 0.32);
+}
+
+.acknowledgement-modal.acknowledgement-pdf-modal::before {
+  display: none;
+}
+
+.ack-document {
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 18px 52px rgba(48, 11, 24, 0.08);
+}
+
+.ack-document-border {
+  overflow: hidden;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(var(--primary-rgb), 0.045) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(var(--primary-rgb), 0.045) 0 1px, transparent 1px 100%),
+    #fff;
+  background-size: 56px 56px;
+}
+
+.ack-document-letterhead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: clamp(0.85rem, 1.7vw, 1.15rem);
+  align-items: center;
+  padding: clamp(0.9rem, 2vw, 1.25rem);
+  border-bottom: 4px solid var(--primary);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 244, 246, 0.96));
+}
+
+.ack-college-seal {
+  width: clamp(64px, 7vw, 78px);
+  height: clamp(64px, 7vw, 78px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.98);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(var(--primary-rgb), 0.2),
+    0 12px 28px rgba(48, 11, 24, 0.14);
+}
+
+.ack-college-seal img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ack-college-title {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.ack-college-title strong {
+  color: var(--primary);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.06rem, 2.2vw, 1.7rem);
+  line-height: 1.05;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.ack-college-title span,
+.ack-document-meta span,
+.ack-document-title p,
+.ack-footer p {
+  color: var(--ink-soft);
+}
+
+.ack-college-title span {
+  font-size: clamp(0.84rem, 1.2vw, 0.94rem);
+  line-height: 1.34;
+}
+
+.ack-document-meta {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: end;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.ack-document-meta strong {
+  color: var(--ink);
+  font-family: var(--font-heading), sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.1;
+}
+
+.ack-document-body {
+  padding: clamp(1rem, 2.4vw, 1.65rem);
+}
+
+.ack-document-title {
+  display: grid;
+  gap: 0.48rem;
+  justify-items: center;
+  margin-bottom: clamp(0.9rem, 1.6vw, 1.2rem);
+  text-align: center;
+}
+
+.ack-document-title .section-eyebrow {
+  width: fit-content;
+  padding: 0.3rem 0.68rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.ack-document-title h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.85rem, 4vw, 3rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.ack-document-title p {
+  max-width: 680px;
+  margin: 0;
+  font-size: clamp(0.94rem, 1.35vw, 1.04rem);
+  line-height: 1.5;
+}
+
+.ack-code-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  margin: 0 0 clamp(0.85rem, 1.6vw, 1.15rem);
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), rgba(255, 255, 255, 0.98));
+}
+
+.ack-code-band span,
+.ack-detail-grid span,
+.ack-section-head span,
+.ack-table th {
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ack-code-band strong {
+  color: var(--primary);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  letter-spacing: 0.035em;
+}
+
+.ack-status-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(19, 113, 75, 0.18);
+  border-radius: 999px;
+  background: #eefaf4;
+  color: #11714b;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.ack-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.ack-detail-grid div {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+  padding: 0.78rem 0.86rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.12);
+  border-radius: 15px;
+  background: rgba(255, 248, 249, 0.74);
+}
+
+.ack-detail-grid strong {
+  color: var(--ink);
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(0.98rem, 1.35vw, 1.1rem);
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.ack-section {
+  margin-top: clamp(0.9rem, 1.6vw, 1.18rem);
+}
+
+.ack-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.62rem;
+}
+
+.ack-section-head::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(var(--primary-rgb), 0.14);
+}
+
+.ack-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: 15px;
+  background: #fff;
+}
+
+.ack-table th,
+.ack-table td {
+  padding: 0.72rem 0.85rem;
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ack-table tr:last-child th,
+.ack-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.ack-table th {
+  width: 32%;
+  background: rgba(255, 246, 248, 0.92);
+}
+
+.ack-table td {
+  color: var(--ink);
+  font-weight: 680;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ack-note-box {
+  margin-top: clamp(0.9rem, 1.6vw, 1.15rem);
+  padding: 0.9rem 1rem;
+  border: 1px solid #f2d08d;
+  border-left: 5px solid #d99218;
+  border-radius: 14px;
+  background: #fffaf0;
+  color: #735018;
+  line-height: 1.48;
+}
+
+.ack-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+  margin-top: clamp(1rem, 1.8vw, 1.25rem);
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(var(--primary-rgb), 0.14);
+}
+
+.ack-footer p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.ack-signature {
+  min-width: 210px;
+  text-align: center;
+}
+
+.ack-signature span {
+  display: block;
+  height: 1px;
+  margin: 2.4rem 0 0.45rem;
+  background: rgba(var(--primary-rgb), 0.18);
+}
+
+.ack-signature strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-heading), sans-serif;
+  line-height: 1.15;
+}
+
+.ack-signature small {
+  color: var(--ink-soft);
+}
+
+.ack-document-actions {
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.ack-document-actions p {
+  flex: 1 1 260px;
+  max-width: none;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .success-lockup {
@@ -4496,6 +5103,10 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .acknowledgement-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .event-card-topline,
   .summary-row {
     grid-template-columns: 1fr;
@@ -4509,6 +5120,17 @@ th {
   .confirmation-detail-row {
     grid-template-columns: 1fr;
     row-gap: 0.35rem;
+  }
+
+  .acknowledgement-modal-head {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding-right: 0;
+    text-align: center;
+  }
+
+  .acknowledgement-modal p {
+    margin-inline: auto;
   }
 
   .admin-notification-grid {
@@ -4810,6 +5432,190 @@ th {
   .step-actions .button,
   .confirmation-actions .button {
     width: 100%;
+  }
+
+  .acknowledgement-modal-backdrop {
+    align-items: start;
+    padding: 0.75rem;
+    overflow: auto;
+  }
+
+  .acknowledgement-modal {
+    max-height: none;
+    padding: 1rem;
+    border-radius: 26px;
+  }
+
+  .acknowledgement-modal-close {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .acknowledgement-modal-head .success-lockup {
+    width: 112px;
+    height: 112px;
+  }
+
+  .acknowledgement-modal h2 {
+    font-size: clamp(1.72rem, 11vw, 2.55rem);
+    line-height: 0.95;
+  }
+
+  .acknowledgement-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acknowledgement-modal-actions,
+  .acknowledgement-modal-actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 860px) {
+  .acknowledgement-modal.acknowledgement-pdf-modal {
+    width: min(100%, 760px);
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-letterhead {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-meta {
+    grid-column: 1 / -1;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .acknowledgement-modal.acknowledgement-pdf-modal {
+    max-height: none;
+    padding: 0.55rem;
+    border-radius: 22px;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document {
+    border-radius: 18px;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-border {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-letterhead,
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-code-band {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-college-seal {
+    width: 64px;
+    height: 64px;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-college-title h1 {
+    font-size: clamp(1.02rem, 5vw, 1.42rem);
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-meta {
+    font-size: 0.78rem;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-title h2 {
+    font-size: clamp(1.9rem, 11vw, 3rem);
+    line-height: 0.92;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-table th,
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-table th {
+    border-bottom: 0;
+    padding-bottom: 0.25rem;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-table td {
+    padding-top: 0.25rem;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-actions,
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-document-actions .button {
+    width: 100%;
+  }
+
+  .acknowledgement-modal.acknowledgement-pdf-modal .ack-signature {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body.is-printing-acknowledgement * {
+    visibility: hidden !important;
+  }
+
+  body.is-printing-acknowledgement .acknowledgement-modal-backdrop,
+  body.is-printing-acknowledgement .acknowledgement-modal-backdrop * {
+    visibility: visible !important;
+  }
+
+  body.is-printing-acknowledgement .acknowledgement-modal-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+  }
+
+  body.is-printing-acknowledgement .acknowledgement-modal.acknowledgement-pdf-modal {
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  body.is-printing-acknowledgement .acknowledgement-modal-close,
+  body.is-printing-acknowledgement .ack-document-actions,
+  body.is-printing-acknowledgement .acknowledgement-modal-orbit {
+    display: none !important;
+  }
+
+  body.is-printing-acknowledgement .ack-document {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body.is-printing-acknowledgement .ack-document-border {
+    border-radius: 0 !important;
+    min-height: auto !important;
   }
 }
 

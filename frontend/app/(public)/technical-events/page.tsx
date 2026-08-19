@@ -13,7 +13,7 @@ export default async function TechnicalEventsPage() {
           <AnimatedHeading
             eyebrow="Technical Events"
             title="Technical events built for makers"
-            copy="Paper Presentation, Code Busters, Web Craft, and Visualytics are open for solo or team participation with a Rs. 250 per participant registration fee."
+            copy="A national-level technical symposium featuring technical events for solo or team participation. Registration fee: ₹250 per member."
           />
         </div>
         <div className="event-grid">

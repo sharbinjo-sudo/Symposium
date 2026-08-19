@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedHeading } from "@/components/ui/AnimatedHeading";
 import { Button } from "@/components/ui/Button";
@@ -246,72 +246,15 @@ function formatStatusLabel(value: string | undefined) {
     .join(" ");
 }
 
-function escapePdfText(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-}
+function formatYearOfStudy(value: string) {
+  const yearLabels: Record<string, string> = {
+    "1": "1st year",
+    "2": "2nd year",
+    "3": "3rd year",
+    "4": "4th year"
+  };
 
-function wrapPdfText(text: string, maxChars = 78) {
-  if (text.length <= maxChars) {
-    return [text];
-  }
-
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-    if (nextLine.length > maxChars && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = nextLine;
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
-}
-
-function createPdfBlob(lines: string[]) {
-  const streamCommands = ["BT", "/F1 12 Tf", "14 TL", "1 0 0 1 48 792 Tm"];
-
-  for (const line of lines) {
-    streamCommands.push(`(${escapePdfText(line)}) Tj`);
-    streamCommands.push("T*");
-  }
-
-  streamCommands.push("ET");
-
-  const stream = `${streamCommands.join("\n")}\n`;
-  const objects = [
-    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
-    "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n",
-    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n",
-    `4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}endstream\nendobj\n`,
-    "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
-  ];
-
-  let pdf = "%PDF-1.4\n";
-  const offsets: number[] = [];
-
-  objects.forEach((object) => {
-    offsets.push(pdf.length);
-    pdf += object;
-  });
-
-  const xrefStart = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n`;
-  pdf += "0000000000 65535 f \n";
-  offsets.forEach((offset) => {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-
-  return new Blob([pdf], { type: "application/pdf" });
+  return yearLabels[value] ?? (value || "Not provided");
 }
 
 function openRazorpayCheckout(order: RegistrationPaymentOrder): Promise<RazorpayCheckoutState> {
@@ -398,11 +341,17 @@ function openRazorpayCheckout(order: RegistrationPaymentOrder): Promise<Razorpay
 
 type RegistrationWizardProps = {
   events?: EventConfig[];
+  initialEventCode?: string;
 };
 
-export function RegistrationWizard({ events = siteConfig.technicalEvents }: RegistrationWizardProps) {
+function getInitialEvent(events: EventConfig[], initialEventCode?: string) {
+  const normalizedCode = initialEventCode?.trim().toUpperCase();
+  return events.find((event) => event.code.toUpperCase() === normalizedCode) ?? events[0];
+}
+
+export function RegistrationWizard({ events = siteConfig.technicalEvents, initialEventCode }: RegistrationWizardProps) {
   const availableEvents = events.length > 0 ? events : siteConfig.technicalEvents;
-  const initialEvent = availableEvents[0];
+  const initialEvent = getInitialEvent(availableEvents, initialEventCode);
   const [step, setStep] = useState(0);
   const [eventCode, setEventCode] = useState(initialEvent?.code ?? "");
   const [teamSize, setTeamSize] = useState(initialEvent?.minTeamSize ?? 1);
@@ -416,6 +365,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<RegistrationResponse | null>(null);
+  const [acknowledgementOpen, setAcknowledgementOpen] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [idempotencyKey] = useState(() => createIdempotencyKey());
@@ -423,6 +373,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   const currentEvent = availableEvents.find((item) => item.code === eventCode) ?? availableEvents[0];
 
   const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
+  const registrationFeeLabel =
+    currentEvent.feeType === "per_team" ? `₹${currentEvent.feeAmount} per team` : `₹${currentEvent.feeAmount} per member`;
+  const billingModeLabel = currentEvent.feeType === "per_team" ? "Per team" : "Per member";
+  const teamLabel = teamName || (teamSize === 1 ? "Solo entry" : `Team of ${teamSize}`);
+  const leadParticipant = participants[0] ?? emptyParticipant(true);
   const participantNames = participants.map((participant) => participant.fullName || "Participant").join(", ");
   const participantFoodPreferences = participants
     .map((participant) => formatFoodPreference(participant.foodPreference))
@@ -432,46 +387,20 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
   const paymentLockedMessage =
     "Payment is already received. Submit this registration, or start another registration if you need to change details.";
 
-  function handleDownloadPdf() {
-    const registrationCode = confirmation?.registrationCode ?? "CP26-PENDING";
-    const paymentReference = confirmation?.paymentReference ?? checkoutState?.paymentId ?? "Pending";
-    const paymentDate = confirmation?.paymentDate ?? checkoutState?.paidAt ?? "";
-    const paymentProvider = confirmation?.paymentProvider ?? "razorpay";
-    const pdfLines = [
-      `${siteConfig.eventTitle} Registration Acknowledgement`,
-      siteConfig.heroSubtitle,
-      "",
-      `Registration code: ${registrationCode}`,
-      `Event: ${currentEvent.name}`,
-      `Track: ${currentEvent.track}`,
-      `Team: ${teamName || "Solo entry"}`,
-      `Participants: ${participantNames}`,
-      `Food preference: ${participantFoodPreferences}`,
-      `Team size: ${teamSize}`,
-      `Amount paid: Rs. ${totalAmount}`,
-      `Payment date: ${formatDisplayDate(paymentDate)}`,
-      `Payment reference: ${paymentReference}`,
-      `Payment provider: ${formatStatusLabel(paymentProvider)}`,
-      `Payment status: ${formatStatusLabel(confirmation?.paymentStatus)}`,
-      `Email status: ${formatStatusLabel(confirmation?.emailStatus)}`,
-      "",
-      `Venue: ${siteConfig.venue}`,
-      `Location: ${siteConfig.venueDetail}`,
-      `Event date: ${formatDisplayDate(siteConfig.eventDate)}`,
-      `Coordinator email: ${coordinatorEmail}`,
-      "",
-      "Keep this acknowledgement for event-day verification and organizer communication."
-    ].flatMap((line) => wrapPdfText(line));
+  useEffect(() => {
+    const isAcknowledgementVisible = Boolean(confirmation && acknowledgementOpen);
+    document.body.classList.toggle("is-printing-acknowledgement", isAcknowledgementVisible);
 
-    const pdfBlob = createPdfBlob(pdfLines);
-    const objectUrl = URL.createObjectURL(pdfBlob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = `${registrationCode.toLowerCase()}-acknowledgement.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(objectUrl);
+    return () => {
+      document.body.classList.remove("is-printing-acknowledgement");
+    };
+  }, [acknowledgementOpen, confirmation]);
+
+  function handleDownloadPdf() {
+    setAcknowledgementOpen(true);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => window.print());
+    });
   }
 
   function syncParticipants(size: number) {
@@ -736,6 +665,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
             idempotencyKey
           });
           setConfirmation(response);
+          setAcknowledgementOpen(true);
           setStep(5);
         } catch (error) {
           if (error instanceof ApiError) {
@@ -753,6 +683,233 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
 
   return (
     <div className="wizard-shell">
+      <AnimatePresence>
+        {confirmation && acknowledgementOpen ? (
+          <motion.div
+            className="acknowledgement-modal-backdrop"
+            role="presentation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            onClick={() => setAcknowledgementOpen(false)}
+          >
+            <motion.section
+              className="acknowledgement-modal acknowledgement-pdf-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="acknowledgement-modal-title"
+              initial={{ opacity: 0, y: 34, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 22, scale: 0.98 }}
+              transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="acknowledgement-modal-close"
+                aria-label="Close acknowledgement"
+                onClick={() => setAcknowledgementOpen(false)}
+              >
+                x
+              </button>
+
+              <article className="ack-document" aria-label={`${siteConfig.eventTitle} registration acknowledgement`}>
+                <div className="ack-document-border">
+                  <header className="ack-document-letterhead">
+                    <span className="ack-college-seal">
+                      <img src="/vvcoe-logo.jpg" alt="V V College of Engineering logo" />
+                    </span>
+
+                    <div className="ack-college-title">
+                      <strong>V V College of Engineering</strong>
+                      <span>Department of Artificial Intelligence and Data Science</span>
+                      <span>V V Nagar, Tisaiyanvillai - 627657</span>
+                    </div>
+
+                    <div className="ack-document-meta">
+                      <span>Generated on</span>
+                      <strong>{formatDisplayDate(confirmation.paymentDate || checkoutState?.paidAt || new Date().toISOString())}</strong>
+                      <span>Official acknowledgement</span>
+                    </div>
+                  </header>
+
+                  <div className="ack-document-body">
+                    <section className="ack-document-title">
+                      <span className="section-eyebrow">CYBERPUNK'26</span>
+                      <h2 id="acknowledgement-modal-title">Registration Acknowledgement</h2>
+                      <p>
+                        This document confirms that the participant details and payment reference have been received
+                        for CYBERPUNK'26, a national-level technical symposium.
+                      </p>
+                    </section>
+
+                    <section className="ack-code-band">
+                      <div>
+                        <span>Registration code</span>
+                        <strong>{confirmation.registrationCode}</strong>
+                      </div>
+                      <div className="ack-status-stamp">Payment {formatStatusLabel(confirmation.paymentStatus)}</div>
+                    </section>
+
+                    <section className="ack-detail-grid" aria-label="Registration summary">
+                      <div>
+                        <span>Selected event</span>
+                        <strong>{currentEvent.name}</strong>
+                      </div>
+                      <div>
+                        <span>Registration type</span>
+                        <strong>{teamLabel}</strong>
+                      </div>
+                      <div>
+                        <span>Amount paid</span>
+                        <strong>Rs. {totalAmount}</strong>
+                      </div>
+                      <div>
+                        <span>Event date</span>
+                        <strong>{formatDisplayDate(siteConfig.eventDate)}</strong>
+                      </div>
+                      <div>
+                        <span>Event time</span>
+                        <strong>9:30 AM onwards</strong>
+                      </div>
+                      <div>
+                        <span>Venue</span>
+                        <strong>{siteConfig.venueDetail}</strong>
+                      </div>
+                    </section>
+
+                    <section className="ack-section">
+                      <div className="ack-section-head">
+                        <span>{teamSize === 1 ? "Participant details" : "Team details"}</span>
+                      </div>
+
+                      <table className="ack-table">
+                        <tbody>
+                          {teamSize === 1 ? (
+                            <>
+                              <tr>
+                                <th>Full name</th>
+                                <td>{leadParticipant.fullName || "Participant"}</td>
+                              </tr>
+                              <tr>
+                                <th>Email address</th>
+                                <td>{leadParticipant.email || "Email not provided"}</td>
+                              </tr>
+                              <tr>
+                                <th>Mobile number</th>
+                                <td>{leadParticipant.mobileNumber || "Phone not provided"}</td>
+                              </tr>
+                              <tr>
+                                <th>College</th>
+                                <td>{leadParticipant.collegeName || "College not provided"}</td>
+                              </tr>
+                              <tr>
+                                <th>Roll number</th>
+                                <td>{leadParticipant.rollNumber || "Not provided"}</td>
+                              </tr>
+                              <tr>
+                                <th>Department</th>
+                                <td>{leadParticipant.department || "Department not provided"}</td>
+                              </tr>
+                              <tr>
+                                <th>Year</th>
+                                <td>{formatYearOfStudy(leadParticipant.yearOfStudy)}</td>
+                              </tr>
+                              <tr>
+                                <th>Food preference</th>
+                                <td>{formatFoodPreference(leadParticipant.foodPreference)}</td>
+                              </tr>
+                            </>
+                          ) : (
+                            <>
+                              <tr>
+                                <th>Team name</th>
+                                <td>{teamLabel}</td>
+                              </tr>
+                              <tr>
+                                <th>Team size</th>
+                                <td>{formatMemberCount(teamSize)}</td>
+                              </tr>
+                              <tr>
+                                <th>Team members</th>
+                                <td>{participantNames}</td>
+                              </tr>
+                              <tr>
+                                <th>Food preferences</th>
+                                <td>{participantFoodPreferences}</td>
+                              </tr>
+                            </>
+                          )}
+                        </tbody>
+                      </table>
+                    </section>
+
+                    <section className="ack-section">
+                      <div className="ack-section-head">
+                        <span>Payment details</span>
+                      </div>
+
+                      <table className="ack-table">
+                        <tbody>
+                          <tr>
+                            <th>Payment gateway</th>
+                            <td>{formatStatusLabel(confirmation.paymentProvider)}</td>
+                          </tr>
+                          <tr>
+                            <th>Payment reference</th>
+                            <td>{confirmation.paymentReference || checkoutState?.paymentId || "Pending"}</td>
+                          </tr>
+                          <tr>
+                            <th>Payment status</th>
+                            <td>{formatStatusLabel(confirmation.paymentStatus)}</td>
+                          </tr>
+                          <tr>
+                            <th>Email status</th>
+                            <td>{formatStatusLabel(confirmation.emailStatus)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </section>
+
+                    <div className="ack-note-box">
+                      Please keep this acknowledgement safe. The registration code and participant email may be
+                      required for event-day verification, status lookup, and organizer communication. All registered
+                      participants are eligible to receive participation certificates.
+                    </div>
+
+                    <footer className="ack-footer">
+                      <p>
+                        For help, contact {coordinatorEmail}. This acknowledgement is generated from the registration
+                        system and should be presented when requested by the organizing committee.
+                      </p>
+                      <div className="ack-signature">
+                        <span />
+                        <strong>Organizing Committee</strong>
+                        <small>CYBERPUNK'26</small>
+                      </div>
+                    </footer>
+                  </div>
+                </div>
+              </article>
+
+              <div className="acknowledgement-modal-actions ack-document-actions">
+                <p>Click Download PDF, then choose Save as PDF in the browser print window.</p>
+                <Button type="button" variant="primary" onClick={handleDownloadPdf}>
+                  Download PDF
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setAcknowledgementOpen(false)}>
+                  View full acknowledgement
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => assignWithLoading("/status")}>
+                  Check status
+                </Button>
+              </div>
+            </motion.section>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
       <div className="container">
         <div className="wizard-heading-wrap">
           <AnimatedHeading
@@ -813,7 +970,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                     </div>
                     <div className="summary-row">
                       <span>Registration fee</span>
-                      <strong>Rs. {currentEvent.feeAmount}</strong>
+                      <strong>{registrationFeeLabel}</strong>
                     </div>
                     <div className="summary-row">
                       <span>Team range</span>
@@ -863,7 +1020,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       </div>
                       <div className="summary-row">
                         <span>Billing mode</span>
-                        <strong>{currentEvent.feeType === "per_team" ? "Per team" : "Per participant"}</strong>
+                        <strong>{billingModeLabel}</strong>
                       </div>
                     </GlassPanel>
                   </div>
@@ -1067,7 +1224,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       </div>
                       <div className="summary-row">
                         <span>Billing mode</span>
-                        <strong>{currentEvent.feeType === "per_team" ? "Per team" : "Per participant"}</strong>
+                        <strong>{billingModeLabel}</strong>
                       </div>
                       <div className="summary-row">
                         <span>Total payable</span>
@@ -1133,7 +1290,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                     </div>
                     <div className="summary-row">
                       <span>Team</span>
-                      <strong>{teamName || "Solo entry"}</strong>
+                      <strong>{teamLabel}</strong>
                     </div>
                     <div className="summary-row">
                       <span>Participants</span>
@@ -1226,7 +1383,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       </div>
                       <div className="confirmation-detail-row">
                         <span>Team</span>
-                        <strong>{teamName || "Solo entry"}</strong>
+                        <strong>{teamLabel}</strong>
                       </div>
                       <div className="confirmation-detail-row">
                         <span>Participants</span>
@@ -1257,7 +1414,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents }: Regi
                       <Button variant="secondary" onClick={() => assignWithLoading("/status")}>
                         Check status
                       </Button>
-                      <Button variant="accent" onClick={() => window.print()}>
+                      <Button variant="accent" onClick={handleDownloadPdf}>
                         Print acknowledgement
                       </Button>
                       <Button variant="secondary" onClick={() => assignWithLoading("/")}>

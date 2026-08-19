@@ -9,24 +9,24 @@ export const siteConfig: SiteConfig = {
   venue: "V V College of Engineering",
   venueDetail: "V V Nagar, Tisaiyanvillai - 627657",
   heroCopy:
-    "A national level AI & Data Science symposium with technical and non-tech events, solo/team participation, and Rs. 250 registration.",
+    "A national-level technical symposium featuring technical and non-technical events for solo or team participation. Registration fee: ₹250 per member.",
   about:
-    "CYBERPUNK'26 is organized by the Department of Artificial Intelligence and Data Science, V V College of Engineering. The symposium starts at 9:30 AM on September 11, 2026, and is open to all engineering students through solo or team participation.",
+    "CYBERPUNK'26 is a national-level technical symposium organized by the Department of Artificial Intelligence and Data Science, V V College of Engineering. The symposium starts at 9:30 AM on September 11, 2026, with technical and non-technical events for solo or team participation.",
   facilitiesNote:
     "V V College of Engineering is approved by AICTE, New Delhi and affiliated to Anna University, Chennai. The event venue is V V College of Engineering, Tisaiyanvillai.",
   contacts: [
-    { label: "Convener", value: "Merlin Gethsy. D, HOD/AI&DS" },
-    { label: "Co-ordinator", value: "Shanthi. S" },
+    { label: "Convener", value: "Mrs. Merlin Gethsy. D, HOD/AI&DS" },
+    { label: "Co-ordinator", value: "Mrs. Shanthi. S, AP/AI&DS" },
     { label: "Student Co-ordinator", value: "Vanni Venkatesh. R" },
     { label: "Student Co-ordinator", value: "Chendur Priya. B" },
     { label: "Event Contact", value: "8056591486" },
     { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
   ],
   highlights: [
-    "National level symposium hosted by the Department of AI & DS",
+    "National-level technical symposium hosted by the Department of AI & DS",
     "Open to all engineering students",
-    "Solo and team participation available",
-    "Registration fee: Rs. 250",
+    "Solo or team participation available",
+    "Registration fee: ₹250 per member",
     "Registration end date: September 10, 2026"
   ],
   heroStats: [

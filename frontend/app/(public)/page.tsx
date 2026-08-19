@@ -42,7 +42,7 @@ const homeFacts = [
   },
   {
     label: "Registration fee",
-    value: "Rs. 250"
+    value: "₹250 per member"
   },
   {
     label: "Registration deadline",

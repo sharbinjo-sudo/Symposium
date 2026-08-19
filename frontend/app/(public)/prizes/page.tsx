@@ -23,7 +23,7 @@ export default async function PrizesPage() {
                 title={event.name}
                 prizes={event.prizes}
                 details={`${event.code} | Fee: Rs. ${event.feeAmount} | ${
-                  event.feeType === "per_team" ? "per team" : "per participant"
+                  event.feeType === "per_team" ? "per team" : "per member"
                 }`}
               />
             </Reveal>

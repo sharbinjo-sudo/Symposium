@@ -31,9 +31,9 @@ export default function ContactPage() {
             <GlassPanel className="content-panel">
               <h4>Official event details</h4>
               <p className="card-copy">
-                CYBERPUNK&apos;26 is a national level symposium by the Department of Artificial Intelligence and Data
-                Science, V V College of Engineering. The event starts at 9:30 AM on September 11, 2026, and is open
-                to all engineering students.
+                CYBERPUNK&apos;26 is a national-level technical symposium by the Department of Artificial Intelligence
+                and Data Science, V V College of Engineering. The event starts at 9:30 AM on September 11, 2026,
+                and includes technical and non-technical events for solo or team participation.
               </p>
             </GlassPanel>
           </Reveal>

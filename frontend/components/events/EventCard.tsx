@@ -68,7 +68,7 @@ function renderGraphic(event: EventConfig) {
 
 export function EventCard({ event }: EventCardProps) {
   const [open, setOpen] = useState(false);
-  const feeLabel = event.feeType === "per_team" ? "Per team" : "Per participant";
+  const feeLabel = event.feeType === "per_team" ? "per team" : "per member";
   const leadNote = event.importantNotes[0];
 
   return (
@@ -101,7 +101,7 @@ export function EventCard({ event }: EventCardProps) {
           <div className="event-metric">
             <span>Fee</span>
             <strong>
-              Rs. {event.feeAmount} / {feeLabel}
+              ₹{event.feeAmount} / {feeLabel}
             </strong>
           </div>
         </div>
@@ -132,7 +132,7 @@ export function EventCard({ event }: EventCardProps) {
           >
             {open ? "Hide Rules" : "View Rules"}
           </Button>
-          <ButtonLink href="/registration" variant="primary" magnetic>
+          <ButtonLink href={`/registration?event=${encodeURIComponent(event.code)}`} variant="primary" magnetic>
             Register
           </ButtonLink>
         </div>

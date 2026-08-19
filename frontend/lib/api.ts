@@ -115,7 +115,7 @@ async function ensureCsrfToken(forceRefresh = false): Promise<string> {
     return csrfTokenPromise;
   }
 
-  csrfTokenPromise = fetch(createApiUrl("/api/security/csrf"), {
+  csrfTokenPromise = fetch(createApiUrl("/api/security/csrf/"), {
     method: "GET",
     credentials: "include",
     cache: "no-store"
@@ -281,7 +281,7 @@ function buildAdminRegistrationQuery(filters?: AdminRegistrationFilters) {
   }
 
   const query = params.toString();
-  return query ? `/api/admin/registrations?${query}` : "/api/admin/registrations";
+  return query ? `/api/admin/registrations/?${query}` : "/api/admin/registrations/";
 }
 
 function normalizeFeeAmount(value: EventConfig["feeAmount"] | `${number}` | string | number | undefined, fallback: number) {
@@ -361,7 +361,7 @@ function mergeTechnicalEvents(events: Partial<EventConfig>[]) {
 
 export async function getEvents(): Promise<EventConfig[]> {
   try {
-    const events = await requestJson<Partial<EventConfig>[]>("/api/events");
+    const events = await requestJson<Partial<EventConfig>[]>("/api/events/");
     return mergeTechnicalEvents(events);
   } catch {
     return FALLBACK_EVENTS;
@@ -369,7 +369,7 @@ export async function getEvents(): Promise<EventConfig[]> {
 }
 
 export async function submitRegistration(payload: RegistrationPayload): Promise<RegistrationResponse> {
-  return requestJson<RegistrationResponse>("/api/registrations", {
+  return requestJson<RegistrationResponse>("/api/registrations/", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -378,7 +378,7 @@ export async function submitRegistration(payload: RegistrationPayload): Promise<
 export async function createRegistrationPaymentOrder(
   payload: RegistrationPaymentOrderPayload
 ): Promise<RegistrationPaymentOrder> {
-  return requestJson<RegistrationPaymentOrder>("/api/registrations/payment-order", {
+  return requestJson<RegistrationPaymentOrder>("/api/registrations/payment-order/", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -387,7 +387,7 @@ export async function createRegistrationPaymentOrder(
 export async function checkRegistrationStatus(
   payload: RegistrationStatusLookupPayload
 ): Promise<RegistrationStatusResponse> {
-  return requestJson<RegistrationStatusResponse>("/api/registrations/status-check", {
+  return requestJson<RegistrationStatusResponse>("/api/registrations/status-check/", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -397,13 +397,13 @@ export async function uploadScreenshot(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  let response = await performRequest("/api/uploads/screenshot", {
+  let response = await performRequest("/api/uploads/screenshot/", {
     method: "POST",
     body: formData
   });
 
   if (response.status === 403) {
-    response = await performRequest("/api/uploads/screenshot", {
+    response = await performRequest("/api/uploads/screenshot/", {
       method: "POST",
       body: formData
     }, true);
@@ -419,7 +419,7 @@ export async function uploadScreenshot(file: File): Promise<string> {
 
 export async function adminLogin(email: string, password: string) {
   try {
-    return await requestJson<{ ok: boolean }>("/api/admin/auth/login", {
+    return await requestJson<{ ok: boolean }>("/api/admin/auth/login/", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
@@ -433,7 +433,7 @@ export async function adminLogin(email: string, password: string) {
 }
 
 export async function getAdminSummary(): Promise<DashboardSummary> {
-  return requestJson<DashboardSummary>("/api/admin/dashboard/summary");
+  return requestJson<DashboardSummary>("/api/admin/dashboard/summary/");
 }
 
 export async function getAdminRegistrations(filters?: AdminRegistrationFilters): Promise<AdminRegistrationRow[]> {
@@ -444,27 +444,27 @@ export async function updateAdminRegistration(
   registrationCode: string,
   payload: AdminRegistrationActionPayload
 ): Promise<{ ok: boolean }> {
-  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/action`, {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/action/`, {
     method: "POST",
     body: JSON.stringify(payload)
   });
 }
 
 export async function createAdminRegistration(payload: AdminRegistrationCreatePayload): Promise<AdminRegistrationRow> {
-  return requestJson<AdminRegistrationRow>("/api/admin/registrations/create", {
+  return requestJson<AdminRegistrationRow>("/api/admin/registrations/create/", {
     method: "POST",
     body: JSON.stringify(payload)
   });
 }
 
 export async function resendAdminRegistrationEmail(registrationCode: string): Promise<{ ok: boolean }> {
-  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/resend-email`, {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/resend-email/`, {
     method: "POST"
   });
 }
 
 export async function adminLogout(): Promise<{ ok: boolean }> {
-  return requestJson<{ ok: boolean }>("/api/admin/auth/logout", {
+  return requestJson<{ ok: boolean }>("/api/admin/auth/logout/", {
     method: "POST"
   });
 }
@@ -485,23 +485,23 @@ export async function downloadAdminRegistrationsCsv(filters?: AdminRegistrationF
   }
 
   const query = params.toString();
-  const blob = await requestBlob(query ? `/api/admin/registrations/export?${query}` : "/api/admin/registrations/export");
+  const blob = await requestBlob(query ? `/api/admin/registrations/export/?${query}` : "/api/admin/registrations/export/");
   return createObjectUrlFromBlob(blob);
 }
 
 export async function openAdminRegistrationScreenshot(registrationCode: string) {
-  const blob = await requestBlob(`/api/admin/registrations/${registrationCode}/screenshot`);
+  const blob = await requestBlob(`/api/admin/registrations/${registrationCode}/screenshot/`);
   return createObjectUrlFromBlob(blob);
 }
 
 export async function deleteAdminRegistration(registrationCode: string): Promise<{ ok: boolean }> {
-  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}`, {
+  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/`, {
     method: "DELETE"
   });
 }
 
 export async function clearAdminRegistrations(): Promise<{ ok: boolean; deleted: number }> {
-  return requestJson<{ ok: boolean; deleted: number }>("/api/admin/registrations/clear", {
+  return requestJson<{ ok: boolean; deleted: number }>("/api/admin/registrations/clear/", {
     method: "POST"
   });
 }

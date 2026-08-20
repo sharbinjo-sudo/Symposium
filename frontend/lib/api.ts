@@ -15,13 +15,23 @@ import type {
 } from "@/lib/types";
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
-const EXPLICIT_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const EXPLICIT_API_BASE =
+  process.env.BACKEND_API_BASE_URL?.trim() || process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
 const FALLBACK_EVENTS = siteConfig.technicalEvents;
 const ACCENT_ROTATION: EventConfig["accent"][] = ["blue-violet", "cyan-blue", "violet-teal", "teal-blue"];
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 type CsrfResponse = {
   csrfToken: string;
+};
+
+type AdminSessionResponse = {
+  ok: boolean;
+  admin: {
+    name: string;
+    email: string;
+    role: string;
+  };
 };
 
 export class ApiError extends Error {
@@ -432,6 +442,10 @@ export async function adminLogin(email: string, password: string) {
   }
 }
 
+export async function getAdminSession(): Promise<AdminSessionResponse> {
+  return requestJson<AdminSessionResponse>("/api/admin/auth/session/");
+}
+
 export async function getAdminSummary(): Promise<DashboardSummary> {
   return requestJson<DashboardSummary>("/api/admin/dashboard/summary/");
 }
@@ -497,12 +511,6 @@ export async function openAdminRegistrationScreenshot(registrationCode: string) 
 export async function deleteAdminRegistration(registrationCode: string): Promise<{ ok: boolean }> {
   return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/`, {
     method: "DELETE"
-  });
-}
-
-export async function clearAdminRegistrations(): Promise<{ ok: boolean; deleted: number }> {
-  return requestJson<{ ok: boolean; deleted: number }>("/api/admin/registrations/clear/", {
-    method: "POST"
   });
 }
 

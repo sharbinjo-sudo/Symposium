@@ -14,13 +14,9 @@ export default function NonTechnicalEventsPage() {
         />
         <Reveal className="non-tech-note-reveal" delay={0.06} y={20} scale={0.98}>
           <GlassPanel className="non-tech-note-card" tone="strong">
-            <div>
-              <span className="section-eyebrow">Offline registration note</span>
-              <h3>Register on campus for Non-Tech events</h3>
-            </div>
-            <p className="card-copy">
-              <strong>Note:</strong> Registration for non-technical events is offline, and prizes will also be given
-              on campus.
+            <p className="card-copy non-tech-note-copy">
+              <strong>Note:</strong>
+              <span>Registration for non-technical events is offline.</span>
             </p>
           </GlassPanel>
         </Reveal>

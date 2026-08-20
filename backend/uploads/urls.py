@@ -1,6 +1,5 @@
-from django.urls import path
+from django.urls import re_path
 
 from .views import ScreenshotUploadView
 
-urlpatterns = [path("screenshot/", ScreenshotUploadView.as_view(), name="screenshot-upload")]
-
+urlpatterns = [re_path(r"^screenshot/?$", ScreenshotUploadView.as_view(), name="screenshot-upload")]

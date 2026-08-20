@@ -7,5 +7,10 @@ class IsAuthenticatedAdmin(BasePermission):
   message = "Admin session expired. Please sign in again."
 
   def has_permission(self, request, view):
-    return get_authenticated_admin(request) is not None
+    admin = get_authenticated_admin(request)
+    if admin is None:
+      return False
+
+    request.admin_user = admin
+    return True
 

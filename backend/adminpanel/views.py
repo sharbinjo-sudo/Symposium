@@ -95,7 +95,7 @@ class AdminLoginView(APIView):
 
 
 class AdminLogoutView(APIView):
-  permission_classes = [IsAuthenticatedAdmin]
+  permission_classes = [AllowAny]
 
   def post(self, request):
     admin = get_authenticated_admin(request)
@@ -103,6 +103,23 @@ class AdminLogoutView(APIView):
     if admin:
       log_admin_action(admin=admin, action="logout", entity_type="admin_user", entity_id=str(admin.pk))
     return apply_no_store(Response({"ok": True}))
+
+
+class AdminSessionView(APIView):
+  permission_classes = [IsAuthenticatedAdmin]
+
+  def get(self, request):
+    admin = get_authenticated_admin(request)
+    return apply_no_store(Response(
+      {
+        "ok": True,
+        "admin": {
+          "name": admin.name,
+          "email": admin.email,
+          "role": admin.role
+        }
+      }
+    ))
 
 
 class AdminDashboardSummaryView(APIView):
@@ -272,36 +289,6 @@ class AdminRegistrationDeleteView(APIView):
       entity_id=registration_code
     )
     return apply_no_store(Response({"ok": True}))
-
-
-class AdminRegistrationClearView(APIView):
-  permission_classes = [IsAuthenticatedAdmin]
-  throttle_classes = [ScopedRateThrottle]
-  throttle_scope = "admin_action"
-
-  def post(self, request):
-    admin = get_authenticated_admin(request)
-    registrations = list(Registration.objects.all())
-    deleted_count = len(registrations)
-    screenshot_paths = [registration.payment_screenshot_path for registration in registrations if registration.payment_screenshot_path]
-
-    Registration.objects.all().delete()
-
-    for screenshot_path in screenshot_paths:
-      try:
-        if default_storage.exists(screenshot_path):
-          default_storage.delete(screenshot_path)
-      except Exception:
-        continue
-
-    log_admin_action(
-      admin=admin,
-      action="clear_registrations",
-      entity_type="registration",
-      entity_id="all",
-      metadata={"deleted": deleted_count}
-    )
-    return apply_no_store(Response({"ok": True, "deleted": deleted_count}))
 
 
 class AdminResendEmailView(APIView):

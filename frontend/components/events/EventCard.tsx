@@ -68,7 +68,6 @@ function renderGraphic(event: EventConfig) {
 
 export function EventCard({ event }: EventCardProps) {
   const [open, setOpen] = useState(false);
-  const feeLabel = event.feeType === "per_team" ? "per team" : "per member";
   const leadNote = event.importantNotes[0];
 
   return (
@@ -97,12 +96,6 @@ export function EventCard({ event }: EventCardProps) {
           <div className="event-metric">
             <span>Team size</span>
             <strong>{formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
-          </div>
-          <div className="event-metric">
-            <span>Fee</span>
-            <strong>
-              ₹{event.feeAmount} / {feeLabel}
-            </strong>
           </div>
         </div>
 

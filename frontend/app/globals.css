@@ -2270,23 +2270,17 @@ input[type="radio"]:focus {
 }
 
 .non-tech-note-reveal {
-  margin-top: clamp(1rem, 1.8vw, 1.35rem);
+  margin-top: clamp(0.95rem, 1.6vw, 1.25rem);
 }
 
 .non-tech-note-card {
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(18rem, 1.05fr);
-  align-items: center;
-  gap: clamp(1rem, 2vw, 1.6rem);
-  padding: clamp(1.05rem, 1.9vw, 1.45rem);
-  border-color: rgba(var(--primary-rgb), 0.2);
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(255, 238, 243, 0.78)),
-    radial-gradient(circle at 10% 22%, rgba(var(--accent-rgb), 0.2), transparent 34%),
-    radial-gradient(circle at 92% 20%, rgba(var(--primary-rgb), 0.16), transparent 32%);
-  box-shadow: 0 28px 76px rgba(76, 26, 34, 0.12);
+  display: block;
+  padding: clamp(1rem, 1.45vw, 1.35rem) clamp(1.15rem, 1.9vw, 1.8rem);
+  border-color: rgba(var(--primary-rgb), 0.18);
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(76, 26, 34, 0.1);
 }
 
 .non-tech-note-card::before,
@@ -2299,21 +2293,21 @@ input[type="radio"]:focus {
 .non-tech-note-card::before {
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(115deg, transparent 0 32%, rgba(255, 255, 255, 0.62) 45%, transparent 58% 100%);
+  background: linear-gradient(115deg, transparent 0 34%, rgba(255, 255, 255, 0.7) 46%, transparent 58% 100%);
   opacity: 0.5;
-  transform: translateX(-42%);
-  animation: non-tech-card-shine 6.8s ease-in-out infinite;
+  transform: translateX(-46%);
+  animation: non-tech-card-shine 7s ease-in-out infinite;
 }
 
 .non-tech-note-card::after {
-  width: 8rem;
-  height: 8rem;
-  right: -2.8rem;
-  top: -2.5rem;
+  width: 7rem;
+  height: 7rem;
+  right: -2.4rem;
+  top: -2.8rem;
   border-radius: 999px;
-  border: 1px solid rgba(var(--primary-rgb), 0.16);
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.16), transparent 68%);
-  animation: non-tech-card-orbit 7s ease-in-out infinite alternate;
+  border: 1px solid rgba(var(--line-rgb), 0.7);
+  background: transparent;
+  animation: non-tech-card-orbit 7.4s ease-in-out infinite alternate;
 }
 
 .non-tech-note-card > * {
@@ -2321,23 +2315,27 @@ input[type="radio"]:focus {
   z-index: 1;
 }
 
-.non-tech-note-card h3 {
-  margin: 0.45rem 0 0;
-  max-width: 16ch;
-  font-size: clamp(1.35rem, 2.6vw, 2.1rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-}
-
 .non-tech-note-card .card-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.42rem;
   margin: 0;
-  max-width: 58ch;
-  font-size: clamp(1rem, 1.35vw, 1.18rem);
-  line-height: 1.58;
+  max-width: 96ch;
+  color: var(--muted);
+  font-size: clamp(0.96rem, 1.08vw, 1.08rem);
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .non-tech-note-card strong {
+  flex: 0 0 auto;
   color: var(--ink);
+  font-weight: 900;
+}
+
+.non-tech-note-copy span {
+  min-width: 0;
 }
 
 .non-tech-event-grid .placeholder-card::before,
@@ -2396,14 +2394,6 @@ input[type="radio"]:focus {
   .non-tech-event-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .non-tech-note-card {
-    grid-template-columns: 1fr;
-  }
-
-  .non-tech-note-card h3 {
-    max-width: 22ch;
-  }
 }
 
 @media (max-width: 640px) {
@@ -2412,17 +2402,15 @@ input[type="radio"]:focus {
   }
 
   .non-tech-note-card {
-    padding: 1rem;
-    border-radius: 22px;
-  }
-
-  .non-tech-note-card h3 {
-    max-width: none;
-    font-size: clamp(1.45rem, 9vw, 2.12rem);
+    padding: 0.95rem;
+    border-radius: 20px;
   }
 
   .non-tech-note-card .card-copy {
-    font-size: 0.98rem;
+    display: grid;
+    gap: 0.18rem;
+    font-size: 0.92rem;
+    line-height: 1.42;
   }
 }
 
@@ -2459,10 +2447,13 @@ input[type="radio"]:focus {
 @media (prefers-reduced-motion: reduce) {
   .non-tech-event-grid .placeholder-card,
   .non-tech-note-card,
+  .technical-note-card,
   .non-tech-event-grid .placeholder-card::before,
   .non-tech-event-grid .placeholder-card::after,
   .non-tech-note-card::before,
-  .non-tech-note-card::after {
+  .non-tech-note-card::after,
+  .technical-note-card::before,
+  .technical-note-card::after {
     transition: none !important;
     animation: none !important;
   }
@@ -5731,6 +5722,23 @@ textarea {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 225, 229, 0.85));
 }
 
+.glass-panel.non-tech-note-card,
+.glass-panel.technical-note-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.glass-panel.non-tech-note-card::before,
+.glass-panel.non-tech-note-card::after,
+.glass-panel.technical-note-card::before,
+.glass-panel.technical-note-card::after {
+  display: none !important;
+  background: none !important;
+  animation: none !important;
+}
+
 .highlight-dot,
 .button-primary,
 .button-accent,
@@ -7164,6 +7172,75 @@ textarea {
   line-height: 1.45;
 }
 
+.technical-note-reveal {
+  margin-top: clamp(0.15rem, 0.7vw, 0.45rem);
+}
+
+.technical-note-card {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  padding: clamp(1rem, 1.45vw, 1.35rem) clamp(1.15rem, 1.9vw, 1.8rem);
+  border-color: rgba(var(--primary-rgb), 0.18);
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(76, 26, 34, 0.1);
+}
+
+.technical-note-card::before,
+.technical-note-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.technical-note-card::before {
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 0 34%, rgba(255, 255, 255, 0.7) 46%, transparent 58% 100%);
+  opacity: 0.5;
+  transform: translateX(-46%);
+  animation: non-tech-card-shine 7s ease-in-out infinite;
+}
+
+.technical-note-card::after {
+  width: 7rem;
+  height: 7rem;
+  right: -2.4rem;
+  top: -2.8rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.14);
+  border-radius: 999px;
+  background: transparent;
+  animation: non-tech-card-orbit 7.4s ease-in-out infinite alternate;
+}
+
+.technical-note-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.technical-note-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.42rem;
+  margin: 0;
+  max-width: 96ch;
+  color: var(--muted);
+  font-size: clamp(0.96rem, 1.08vw, 1.08rem);
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.technical-note-copy strong {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.technical-note-copy span {
+  min-width: 0;
+}
+
 .technical-events-page .event-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(1rem, 1.65vw, 1.35rem);
@@ -7171,11 +7248,17 @@ textarea {
   align-items: start;
 }
 
+.technical-events-page .reveal-block,
+.technical-events-page .water-ripple-card,
+.technical-events-page .event-card {
+  height: auto;
+}
+
 .technical-events-page .event-card {
   min-height: 0;
   background:
     radial-gradient(circle at 92% 12%, rgba(var(--accent-rgb), 0.1), transparent 34%),
-    rgba(255, 255, 255, 0.86);
+    rgba(255, 255, 255, 0.96);
 }
 
 .technical-events-page .event-card-shell {
@@ -7218,6 +7301,7 @@ textarea {
 }
 
 .technical-events-page .event-card-meta {
+  grid-template-columns: 1fr;
   gap: 0.56rem;
 }
 
@@ -7390,6 +7474,18 @@ textarea {
 
   .technical-events-head .section-copy {
     margin-top: 0;
+    font-size: 0.92rem;
+    line-height: 1.42;
+  }
+
+  .technical-note-card {
+    padding: 0.95rem;
+    border-radius: 20px;
+  }
+
+  .technical-note-copy {
+    display: grid;
+    gap: 0.18rem;
     font-size: 0.92rem;
     line-height: 1.42;
   }

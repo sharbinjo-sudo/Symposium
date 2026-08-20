@@ -145,6 +145,10 @@ function getReadableAdminError(error: unknown, fallbackMessage: string) {
   return message
 }
 
+function isAdminAuthError(error: unknown) {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403)
+}
+
 function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
   return {
     fullName: "",
@@ -231,6 +235,7 @@ export default function AdminDashboardPage() {
   const [createParticipants, setCreateParticipants] = useState<ParticipantInput[]>(() =>
     Array.from({ length: defaultEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
   )
+  const authRedirectingRef = useRef(false)
   const latestRegistrationCodeRef = useRef<string | null>(null)
   const initialNotificationSeededRef = useRef(false)
 
@@ -245,6 +250,21 @@ export default function AdminDashboardPage() {
   const selectedRegistration = registrations.find((registration) => registration.registrationCode === selectedCode) ?? null
   const createEvent =
     siteConfig.technicalEvents.find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
+
+  function redirectToAdminLogin() {
+    if (authRedirectingRef.current) {
+      return
+    }
+
+    authRedirectingRef.current = true
+    setLoading(false)
+    setSaving(false)
+    setResending(false)
+    setExporting(false)
+    setDeleting(false)
+    setCreating(false)
+    navigateWithLoading(router, "/aidsadmin?next=%2Fadmin%2Fdashboard", "replace")
+  }
 
   useEffect(() => {
     if (!selectedRegistration) {
@@ -312,8 +332,8 @@ export default function AdminDashboardPage() {
           return
         }
 
-        if (loadError instanceof ApiError && (loadError.status === 401 || loadError.status === 403)) {
-          navigateWithLoading(router, "/aidsadmin", "replace")
+        if (isAdminAuthError(loadError)) {
+          redirectToAdminLogin()
           return
         }
 
@@ -371,8 +391,8 @@ export default function AdminDashboardPage() {
           : nextData.registrations[0]?.registrationCode ?? null
       )
     } catch (refreshError) {
-      if (refreshError instanceof ApiError && (refreshError.status === 401 || refreshError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(refreshError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -481,8 +501,8 @@ export default function AdminDashboardPage() {
       resetCreateForm()
       setActionMessage("New registration was created successfully.")
     } catch (createError) {
-      if (createError instanceof ApiError && (createError.status === 401 || createError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(createError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -513,8 +533,8 @@ export default function AdminDashboardPage() {
       await refreshDashboard()
       setActionMessage("Registration details were updated successfully.")
     } catch (saveError) {
-      if (saveError instanceof ApiError && (saveError.status === 401 || saveError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(saveError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -540,8 +560,8 @@ export default function AdminDashboardPage() {
         result.ok ? "Confirmation email was sent to the participant." : "The participant email could not be sent right now."
       )
     } catch (resendError) {
-      if (resendError instanceof ApiError && (resendError.status === 401 || resendError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(resendError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -572,8 +592,8 @@ export default function AdminDashboardPage() {
       await refreshDashboard()
       setActionMessage("Registration was deleted successfully.")
     } catch (deleteError) {
-      if (deleteError instanceof ApiError && (deleteError.status === 401 || deleteError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(deleteError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -599,8 +619,8 @@ export default function AdminDashboardPage() {
       link.remove()
       URL.revokeObjectURL(objectUrl)
     } catch (exportError) {
-      if (exportError instanceof ApiError && (exportError.status === 401 || exportError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(exportError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -625,8 +645,8 @@ export default function AdminDashboardPage() {
       window.open(objectUrl, "_blank", "noopener,noreferrer")
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
     } catch (screenshotError) {
-      if (screenshotError instanceof ApiError && (screenshotError.status === 401 || screenshotError.status === 403)) {
-        navigateWithLoading(router, "/aidsadmin", "replace")
+      if (isAdminAuthError(screenshotError)) {
+        redirectToAdminLogin()
         return
       }
 
@@ -642,6 +662,11 @@ export default function AdminDashboardPage() {
       await adminLogout()
       navigateWithLoading(router, "/aidsadmin", "replace")
     } catch (logoutError) {
+      if (isAdminAuthError(logoutError)) {
+        navigateWithLoading(router, "/aidsadmin", "replace")
+        return
+      }
+
       setError(getReadableAdminError(logoutError, "We couldn't sign you out right now."))
       setLoggingOut(false)
     }

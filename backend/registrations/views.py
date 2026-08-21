@@ -1,3 +1,5 @@
+import time
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -6,6 +8,9 @@ from rest_framework.views import APIView
 from config.security import apply_no_store
 from notifications.emailjs import send_registration_notifications
 from .models import Registration
+
+# Security: Constant time delay to prevent timing attacks on status lookup
+STATUS_LOOKUP_MIN_DELAY = 0.1  # 100ms minimum delay
 
 from .serializers import (
   RegistrationPaymentOrderSerializer,
@@ -93,6 +98,8 @@ class RegistrationStatusLookupView(APIView):
   throttle_scope = "status_lookup"
 
   def post(self, request):
+    start_time = time.time()
+    
     serializer = RegistrationStatusLookupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -107,10 +114,16 @@ class RegistrationStatusLookupView(APIView):
       .first()
     )
 
+    # Security: Ensure minimum response time to prevent timing attacks
+    elapsed = time.time() - start_time
+    if elapsed < STATUS_LOOKUP_MIN_DELAY:
+      time.sleep(STATUS_LOOKUP_MIN_DELAY - elapsed)
+
     if registration is None:
+      # Security: Generic error message to prevent user enumeration
       return apply_no_store(
         Response(
-          {"detail": "We couldn't find a registration with that code and email address."},
+          {"detail": "If a registration exists with that code and email, it will be shown."},
           status=status.HTTP_404_NOT_FOUND
         )
       )

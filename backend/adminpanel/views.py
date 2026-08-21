@@ -1,4 +1,5 @@
 import csv
+import os
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -23,11 +24,54 @@ from registrations.serializers import (
 from registrations.services import DuplicateRegistrationError, create_registration, normalize_transaction_id
 
 from .audit import log_admin_action
-from .auth import SESSION_ADMIN_KEY, get_authenticated_admin
+from .auth import SESSION_ADMIN_KEY, get_authenticated_admin, set_admin_session
 from .models import AdminUser
 from .permissions import IsAuthenticatedAdmin
 
 DUMMY_PASSWORD_HASH = make_password("cyberpunk26-admin-dummy")
+
+# Security: Maximum length for search queries to prevent DoS
+MAX_SEARCH_LENGTH = 200
+
+# Security: Allowed path prefix for screenshot files
+ALLOWED_SCREENSHOT_PREFIX = "payments/"
+
+
+def _validate_search_length(search: str) -> str:
+  """Validate and truncate search input to prevent DoS attacks."""
+  if len(search) > MAX_SEARCH_LENGTH:
+    return search[:MAX_SEARCH_LENGTH]
+  return search
+
+
+def _is_safe_screenshot_path(path: str) -> bool:
+  """
+  Validate that the screenshot path is safe and doesn't contain directory traversal.
+  Returns False if path contains suspicious patterns.
+  """
+  if not path:
+    return False
+
+  # Normalize path separators
+  normalized = os.path.normpath(path)
+
+  # Check for directory traversal attempts
+  if ".." in path or ".." in normalized:
+    return False
+
+  # Path must start with the allowed prefix
+  if not normalized.startswith(ALLOWED_SCREENSHOT_PREFIX):
+    return False
+
+  # Check for absolute paths (Unix and Windows)
+  if os.path.isabs(normalized):
+    return False
+
+  # Check for null bytes
+  if "\x00" in path or "\x00" in normalized:
+    return False
+
+  return True
 
 
 def get_admin_registration_queryset(request):
@@ -42,6 +86,8 @@ def get_admin_registration_queryset(request):
   if payment_status:
     queryset = queryset.filter(payment_status=payment_status)
   if search:
+    # Security: Validate search length to prevent DoS
+    search = _validate_search_length(search)
     queryset = queryset.filter(
       Q(registration_code__icontains=search)
       | Q(team_name__icontains=search)
@@ -72,23 +118,25 @@ class AdminLoginView(APIView):
           admin=None,
           action="login_failed",
           entity_type="admin_user",
-          entity_id=email,
+          entity_id="[REDACTED]",
           metadata={"reason": "invalid_credentials"}
         )
       return apply_no_store(Response({"ok": False}, status=status.HTTP_401_UNAUTHORIZED))
 
     if not admin.verify_password(password):
+      # Security: Don't log email (PII) in failed login attempts
       log_admin_action(
         admin=None,
         action="login_failed",
         entity_type="admin_user",
-        entity_id=email,
+        entity_id="[REDACTED]",
         metadata={"reason": "invalid_credentials"}
       )
       return apply_no_store(Response({"ok": False}, status=status.HTTP_401_UNAUTHORIZED))
 
     request.session.cycle_key()
-    request.session[SESSION_ADMIN_KEY] = admin.pk
+    # Security: Use set_admin_session to track session creation time
+    set_admin_session(request, admin)
     request.session.set_expiry(60 * 60 * 8)
     log_admin_action(admin=admin, action="login", entity_type="admin_user", entity_id=str(admin.pk))
     return apply_no_store(Response({"ok": True}))
@@ -382,11 +430,16 @@ class AdminScreenshotView(APIView):
     except Registration.DoesNotExist:
       return apply_no_store(Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND))
 
-    if not registration.payment_screenshot_path:
+    screenshot_path = registration.payment_screenshot_path
+    if not screenshot_path:
       return apply_no_store(Response({"detail": "Screenshot not found."}, status=status.HTTP_404_NOT_FOUND))
 
-    if not default_storage.exists(registration.payment_screenshot_path):
+    # Security: Validate path to prevent directory traversal attacks
+    if not _is_safe_screenshot_path(screenshot_path):
+      return apply_no_store(Response({"detail": "Invalid screenshot path."}, status=status.HTTP_400_BAD_REQUEST))
+
+    if not default_storage.exists(screenshot_path):
       return apply_no_store(Response({"detail": "Screenshot not found."}, status=status.HTTP_404_NOT_FOUND))
 
-    file_handle = default_storage.open(registration.payment_screenshot_path, "rb")
+    file_handle = default_storage.open(screenshot_path, "rb")
     return apply_no_store(FileResponse(file_handle))

@@ -8,10 +8,8 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-
 def _missing_emailjs_settings() -> list[str]:
   missing: list[str] = []
-
   if not settings.EMAILJS_SERVICE_ID:
     missing.append("EMAILJS_SERVICE_ID")
   if not settings.EMAILJS_TEMPLATE_ID:
@@ -20,29 +18,25 @@ def _missing_emailjs_settings() -> list[str]:
     missing.append("EMAILJS_PUBLIC_KEY")
   if not settings.EMAILJS_PRIVATE_KEY:
     missing.append("EMAILJS_PRIVATE_KEY")
-
   return missing
 
-
 def _send_emailjs_message(recipient_email: str, template_id: str, template_params: dict[str, str]) -> bool:
-  payload = json.dumps(
-    {
-      "service_id": settings.EMAILJS_SERVICE_ID,
-      "template_id": template_id,
-      "user_id": settings.EMAILJS_PUBLIC_KEY,
-      "accessToken": settings.EMAILJS_PRIVATE_KEY,
-      "template_params": {
-        **template_params,
-        "to": recipient_email,
-        "to_email": recipient_email,
-        "email": recipient_email,
-        "user_email": recipient_email,
-        "recipient_email": recipient_email,
-        "receiver_email": recipient_email,
-        "reply_to": recipient_email
-      }
+  payload = json.dumps({
+    "service_id": settings.EMAILJS_SERVICE_ID,
+    "template_id": template_id,
+    "user_id": settings.EMAILJS_PUBLIC_KEY,
+    "accessToken": settings.EMAILJS_PRIVATE_KEY,
+    "template_params": {
+      **template_params,
+      "to": recipient_email,
+      "to_email": recipient_email,
+      "email": recipient_email,
+      "user_email": recipient_email,
+      "recipient_email": recipient_email,
+      "receiver_email": recipient_email,
+      "reply_to": recipient_email
     }
-  ).encode("utf-8")
+  }).encode("utf-8")
 
   req = request.Request(
     url="https://api.emailjs.com/api/v1.0/email/send",
@@ -71,10 +65,8 @@ def _send_emailjs_message(recipient_email: str, template_id: str, template_param
     logger.exception("Unexpected EmailJS error for %s: %s", recipient_email, exc)
     return False
 
-
 def _get_admin_template_id() -> str:
   return getattr(settings, "EMAILJS_ADMIN_TEMPLATE_ID", "").strip() or settings.EMAILJS_TEMPLATE_ID
-
 
 def _event_date_label() -> str:
   event_date = getattr(settings, "EVENT_DATE", "")
@@ -82,64 +74,64 @@ def _event_date_label() -> str:
     return str(event_date)
   return "11 September 2026"
 
+def _build_participant_2_block(participants: list) -> str:
+  participant_2 = None
+  for p in participants:
+    if p.participant_number == 2:
+      participant_2 = p
+      break
+  if participant_2 is None:
+    return ""
+  return f"""<div style="background:#f8f9fa; border-left:4px solid #b3344a; padding:16px; margin:20px 0;">
+<h3 style="margin:0 0 12px;">Participant 2 Details</h3>
+<p><strong>Name:</strong> {participant_2.full_name}</p>
+<p><strong>Email:</strong> {participant_2.email.strip().lower()}</p>
+<p><strong>Phone:</strong> {participant_2.mobile_number}</p>
+<p><strong>College:</strong> {participant_2.college_name}</p>
+<p><strong>Roll Number:</strong> {participant_2.roll_number}</p>
+<p><strong>Department:</strong> {participant_2.department}</p>
+<p><strong>Year:</strong> {participant_2.year_of_study}</p>
+<p><strong>Food Preference:</strong> {participant_2.get_food_preference_display()}</p>
+</div>"""
 
-def _build_admin_participant_params(participants) -> dict[str, str]:
-  params: dict[str, str] = {}
-  max_slots = max(2, len(participants))
-
-  for slot_number in range(1, max_slots + 1):
-    params.update(
-      {
-        f"participant_{slot_number}_name": "",
-        f"participant_{slot_number}_email": "",
-        f"participant_{slot_number}_phone": "",
-        f"participant_{slot_number}_college": "",
-        f"participant_{slot_number}_roll_number": "",
-        f"participant_{slot_number}_department": "",
-        f"participant_{slot_number}_year": "",
-        f"participant_{slot_number}_food_preference": ""
-      }
-    )
-
-  for participant in participants:
-    slot_number = participant.participant_number
-    params.update(
-      {
-        f"participant_{slot_number}_name": participant.full_name,
-        f"participant_{slot_number}_email": participant.email.strip().lower(),
-        f"participant_{slot_number}_phone": participant.mobile_number,
-        f"participant_{slot_number}_college": participant.college_name,
-        f"participant_{slot_number}_roll_number": participant.roll_number,
-        f"participant_{slot_number}_department": participant.department,
-        f"participant_{slot_number}_year": participant.year_of_study,
-        f"participant_{slot_number}_food_preference": participant.get_food_preference_display()
-      }
-    )
-
-  return params
-
+def _build_participant_1_params(participants: list) -> dict[str, str]:
+  participant_1 = None
+  for p in participants:
+    if p.participant_number == 1:
+      participant_1 = p
+      break
+  if participant_1 is None:
+    return {
+      "participant_1_name": "",
+      "participant_1_email": "",
+      "participant_1_phone": "",
+      "participant_1_college": "",
+      "participant_1_roll_number": "",
+      "participant_1_department": "",
+      "participant_1_year": "",
+      "participant_1_food_preference": ""
+    }
+  return {
+    "participant_1_name": participant_1.full_name,
+    "participant_1_email": participant_1.email.strip().lower(),
+    "participant_1_phone": participant_1.mobile_number,
+    "participant_1_college": participant_1.college_name,
+    "participant_1_roll_number": participant_1.roll_number,
+    "participant_1_department": participant_1.department,
+    "participant_1_year": participant_1.year_of_study,
+    "participant_1_food_preference": participant_1.get_food_preference_display()
+  }
 
 def _build_registration_template_params(registration, participant, recipient_email: str, audience: str) -> dict[str, str]:
   participant_email = participant.email.strip().lower()
   all_participants = list(registration.participants.all())
   participant_food_preference = participant.get_food_preference_display()
   food_preferences = ", ".join(
-    f"{team_participant.full_name}: {team_participant.get_food_preference_display()}"
-    for team_participant in all_participants
+    f"{p.full_name}: {p.get_food_preference_display()}" for p in all_participants
   )
-  team_members = ", ".join(team_participant.full_name for team_participant in all_participants)
+  team_members = ", ".join(p.full_name for p in all_participants)
   team_name = registration.team_name or (
     "Solo entry" if registration.team_size == 1 else f"Team of {registration.team_size}"
-  )
-  participants_summary = " | ".join(
-    (
-      f"{team_participant.participant_number}. {team_participant.full_name} - "
-      f"{team_participant.email.strip().lower()} - {team_participant.mobile_number} - "
-      f"{team_participant.college_name} - {team_participant.roll_number} - "
-      f"{team_participant.department} - {team_participant.year_of_study} - "
-      f"{team_participant.get_food_preference_display()}"
-    )
-    for team_participant in all_participants
   )
   submitted_at = timezone.localtime(registration.created_at).strftime("%d %B %Y, %I:%M %p")
 
@@ -152,7 +144,6 @@ def _build_registration_template_params(registration, participant, recipient_ema
     "team_name": team_name,
     "team_members": team_members,
     "participant_count": str(registration.team_size),
-    "participants_summary": participants_summary if audience == "admin" else "",
     "payment_status": registration.payment_status,
     "admin_email": settings.ADMIN_NOTIFICATION_EMAIL.strip(),
     "name": participant.full_name,
@@ -176,12 +167,9 @@ def _build_registration_template_params(registration, participant, recipient_ema
     "venue": "V V College of Engineering, Tisaiyanvillai",
     "recipient_email": recipient_email
   }
-
-  if audience == "admin":
-    template_params.update(_build_admin_participant_params(all_participants))
-
+  template_params.update(_build_participant_1_params(all_participants))
+  template_params["participant_2_block"] = _build_participant_2_block(all_participants)
   return template_params
-
 
 def send_registration_notifications(registration) -> bool:
   missing_settings = _missing_emailjs_settings()
@@ -223,18 +211,10 @@ def send_registration_notifications(registration) -> bool:
 
     participant_recipient_emails.add(participant_email)
     participant_template_params = _build_registration_template_params(
-      registration,
-      participant,
-      participant_email,
-      "participant"
+      registration, participant, participant_email, "participant"
     )
-
     participant_results.append(
-      _send_emailjs_message(
-        participant_email,
-        settings.EMAILJS_TEMPLATE_ID,
-        participant_template_params
-      )
+      _send_emailjs_message(participant_email, settings.EMAILJS_TEMPLATE_ID, participant_template_params)
     )
 
   participant_sent = bool(participant_results) and all(participant_results)

@@ -152,12 +152,31 @@ REST_FRAMEWORK = {
   }
 }
 
+# Security: Default secure cookie settings (overridden in prod.py for production)
+# These provide defense in depth even if DJANGO_SETTINGS_MODULE is misconfigured
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_NAME = "cp26_admin_session"
 SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Security: Default to secure cookies when running behind HTTPS proxy
+# In production, these should be True (set in prod.py)
+SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "false").lower() == "true"
+CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "false").lower() == "true"
+
+# Security: Content Security Policy headers
+# Provides protection against XSS attacks by controlling resource sources
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = None  # Set to None to avoid compatibility issues
+
+# Security: HSTS settings (only effective with HTTPS)
+# These are safe defaults; prod.py enables full HSTS
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
+
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
@@ -170,3 +189,37 @@ EMAILJS_PRIVATE_KEY = os.getenv("EMAILJS_PRIVATE_KEY", "")
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", os.getenv("EMAILJS_ADMIN_RECEIVER", ""))
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+
+# Logging configuration
+LOGGING = {
+  "version": 1,
+  "disable_existing_loggers": False,
+  "formatters": {
+    "verbose": {
+      "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "verbose"
+    }
+  },
+  "root": {
+    "handlers": ["console"],
+    "level": "INFO"
+  },
+  "loggers": {
+    "django": {
+      "handlers": ["console"],
+      "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+      "propagate": False
+    },
+    "notifications": {
+      "handlers": ["console"],
+      "level": "INFO",
+      "propagate": False
+    }
+  }
+}

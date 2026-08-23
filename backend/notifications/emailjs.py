@@ -186,10 +186,11 @@ def send_registration_notifications(registration) -> bool:
     logger.warning("Registration email skipped for %s. Participant list is empty.", registration.registration_code)
     return False
 
-  admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip()
+  admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip().lower()
   participant_results: list[bool] = []
   participant_recipient_emails: set[str] = set()
 
+  # Step 1: Send participant confirmation to EACH participant (only their own email)
   for participant in participants:
     participant_email = participant.email.strip().lower()
     if not participant_email:
@@ -213,19 +214,37 @@ def send_registration_notifications(registration) -> bool:
     participant_template_params = _build_registration_template_params(
       registration, participant, participant_email, "participant"
     )
-    participant_results.append(
-      _send_emailjs_message(participant_email, settings.EMAILJS_TEMPLATE_ID, participant_template_params)
+    sent = _send_emailjs_message(participant_email, settings.EMAILJS_TEMPLATE_ID, participant_template_params)
+    participant_results.append(sent)
+    logger.info(
+      "Participant email %s to %s: %s",
+      registration.registration_code,
+      participant_email,
+      "sent" if sent else "failed"
     )
 
   participant_sent = bool(participant_results) and all(participant_results)
+
+  # Step 2: Send admin notification ONLY to admin email (never to participants)
   lead_participant = participants[0]
   admin_sent = True
-  if admin_email and admin_email.lower() not in participant_recipient_emails:
+  if not admin_email:
+    logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
+  elif admin_email in participant_recipient_emails:
+    # Admin is also a participant — they already got the participant email, skip admin duplicate
+    logger.info(
+      "Admin notification skipped for %s because admin email %s is also a participant.",
+      registration.registration_code,
+      admin_email
+    )
+  else:
     admin_template_params = _build_registration_template_params(registration, lead_participant, admin_email, "admin")
     admin_sent = _send_emailjs_message(admin_email, _get_admin_template_id(), admin_template_params)
-  elif admin_email:
-    logger.info("Admin notification skipped for %s because admin and participant emails match.", registration.registration_code)
-  else:
-    logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
+    logger.info(
+      "Admin email %s to %s: %s",
+      registration.registration_code,
+      admin_email,
+      "sent" if admin_sent else "failed"
+    )
 
   return participant_sent and admin_sent

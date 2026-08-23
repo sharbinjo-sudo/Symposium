@@ -13,7 +13,6 @@ import {
   downloadAdminRegistrationsCsv,
   getAdminRegistrations,
   getAdminSummary,
-  openAdminRegistrationScreenshot,
   resendAdminRegistrationEmail,
   updateAdminRegistration
 } from "@/lib/api"
@@ -297,7 +296,7 @@ export default function AdminDashboardPage() {
         setSelectedCode((current) =>
           current && nextData.registrations.some((registration) => registration.registrationCode === current)
             ? current
-            : nextData.registrations[0]?.registrationCode ?? null
+            : null
         )
 
         const latestCode = nextData.summary.latestRegistration?.registrationCode ?? null
@@ -380,7 +379,7 @@ export default function AdminDashboardPage() {
       setSelectedCode((current) =>
         current && nextData.registrations.some((registration) => registration.registrationCode === current)
           ? current
-          : nextData.registrations[0]?.registrationCode ?? null
+          : null
       )
     } catch (refreshError) {
       if (isAdminAuthError(refreshError)) {
@@ -620,30 +619,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  async function handleViewScreenshot() {
-    if (!selectedRegistration?.screenshotAvailable) {
-      setActionError("No payment proof is stored for this registration.")
-      setActionMessage("")
-      return
-    }
-
-    setActionError("")
-    setActionMessage("")
-
-    try {
-      const objectUrl = await openAdminRegistrationScreenshot(selectedRegistration.registrationCode)
-      window.open(objectUrl, "_blank", "noopener,noreferrer")
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-    } catch (screenshotError) {
-      if (isAdminAuthError(screenshotError)) {
-        redirectToAdminLogin()
-        return
-      }
-
-      setActionError(getReadableAdminError(screenshotError, "We couldn't open the payment proof right now."))
-    }
-  }
-
   async function handleLogout() {
     setLoggingOut(true)
     setError("")
@@ -674,6 +649,9 @@ export default function AdminDashboardPage() {
             <StatusChip tone={registrationTone(registration.registrationStatus)}>
               {formatStatusLabel(registration.registrationStatus)}
             </StatusChip>
+            <Button type="button" variant="secondary" onClick={() => setSelectedCode(null)}>
+              Close
+            </Button>
           </div>
         </div>
 
@@ -768,9 +746,6 @@ export default function AdminDashboardPage() {
           </Button>
           <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending}>
             {resending ? "Sending..." : "Resend email"}
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void handleViewScreenshot()}>
-            View payment proof
           </Button>
           <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
             {deleting ? "Deleting..." : "Delete registration"}
@@ -1242,9 +1217,6 @@ export default function AdminDashboardPage() {
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending}>
                       {resending ? "Sending..." : "Resend email"}
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => void handleViewScreenshot()}>
-                      View payment proof
                     </Button>
                     <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
                       {deleting ? "Deleting..." : "Delete registration"}

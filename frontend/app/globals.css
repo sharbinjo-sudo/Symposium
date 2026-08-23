@@ -7546,3 +7546,158 @@ textarea {
     font-size: 0.72rem;
   }
 }
+
+/* ===== Cashfree wizard styles ===== */
+.payment-info-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1.02rem, 1.45vw, 1.22rem);
+}
+
+.payment-action-area {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.payment-success-area {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.payment-success-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+
+.review-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1.02rem, 1.45vw, 1.22rem);
+}
+
+.review-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.review-row span {
+  color: var(--ink-soft);
+}
+
+.review-row strong {
+  color: var(--ink-strong);
+  text-align: right;
+  min-width: 0;
+}
+
+.review-break-all {
+  word-break: break-all;
+}
+
+.review-participants-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: clamp(1.02rem, 1.45vw, 1.22rem);
+}
+
+.review-section-head {
+  font-weight: 600;
+  color: var(--ink-strong);
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.review-participant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-participant:last-child {
+  border-bottom: none;
+}
+
+.review-participant-name {
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+
+.review-participant-detail {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.confirmation-panel {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.participant-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.participant-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wizard-participants-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.wizard-team-size-card {
+  padding: clamp(1.02rem, 1.45vw, 1.22rem);
+}
+
+@media (max-width: 720px) {
+  .review-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .review-row strong {
+    text-align: left;
+  }
+
+  .review-participant {
+    padding: 0.5rem 0;
+  }
+}

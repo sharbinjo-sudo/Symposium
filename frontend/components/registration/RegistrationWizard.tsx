@@ -1059,13 +1059,13 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               ) : null}
 
               {step === 2 ? (
-                <section className="wizard-stage wizard-two-column wizard-team-stage">
-                  <GlassPanel className="content-panel wizard-team-name-card" tone="soft">
+                <section className="wizard-stage wizard-team-stage">
+                  {currentEvent.maxTeamSize > 1 ? (
                     <div className="field">
                       <label htmlFor="teamName">Team name</label>
                       <input
                         id="teamName"
-                        placeholder={currentEvent.maxTeamSize > 1 ? "Example: Neural Ninjas" : "Optional for solo entries"}
+                        type="text"
                         value={teamName}
                         onChange={(event) => {
                           if (paymentLocked) {
@@ -1074,24 +1074,28 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           }
                           setTeamName(event.target.value);
                         }}
+                        placeholder="Enter team name"
+                        maxLength={100}
                       />
-                      <div className="helper">Helpful for organizer-side identification, especially for 2-member entries.</div>
                       {errors.teamName ? <div className="error">{errors.teamName}</div> : null}
+                      <div className="helper">Required for team events</div>
                     </div>
-                  </GlassPanel>
+                  ) : (
+                    <div className="helper">Solo event - no team name needed.</div>
+                  )}
 
-                  <GlassPanel className="summary-panel wizard-team-summary" tone="soft">
+                  <GlassPanel className="summary-panel" tone="soft">
                     <div className="summary-row">
                       <span>Event</span>
                       <strong>{currentEvent.name}</strong>
                     </div>
                     <div className="summary-row">
-                      <span>Leader</span>
-                      <strong>{participants[0]?.fullName || "Team leader"}</strong>
+                      <span>Team size</span>
+                      <strong>{formatMemberCount(teamSize)}</strong>
                     </div>
                     <div className="summary-row">
-                      <span>Prize highlight</span>
-                      <strong>{currentEvent.prizes[0]}</strong>
+                      <span>Total amount</span>
+                      <strong>Rs. {totalAmount}</strong>
                     </div>
                   </GlassPanel>
                 </section>
@@ -1122,7 +1126,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           I confirm my details are correct and I consent to the processing of my registration.
                         </span>
                       </label>
-                      {errors.consentGiven ? <div className="error-text">{errors.consentGiven}</div> : null}
+                      {errors.consentGiven ? <div className="error">{errors.consentGiven}</div> : null}
 
                       <Button
                         type="button"
@@ -1141,156 +1145,84 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     </div>
                   )}
 
-                  {errors.payment ? <div className="error-text">{errors.payment}</div> : null}
-                  {paymentMessage ? <div className="helper payment-message">{paymentMessage}</div> : null}
-                  {submitError ? <div className="error-text">{submitError}</div> : null}
+                  {errors.payment ? <div className="error">{errors.payment}</div> : null}
+                  {paymentMessage ? <div className="helper">{paymentMessage}</div> : null}
+                  {submitError ? <div className="error">{submitError}</div> : null}
                 </section>
               ) : null}
 
               {step === 4 ? (
                 <section className="wizard-stage wizard-review-stage">
-                  <GlassPanel className="summary-panel summary-panel-review wizard-review-summary" tone="soft">
-                    <div className="summary-row">
-                      <span>Event</span>
-                      <strong>{currentEvent.name}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Team</span>
-                      <strong>{teamLabel}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Participants</span>
-                      <strong>{participants.map((participant) => participant.fullName || "Participant").join(", ")}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Food preference</span>
-                      <strong>{participantFoodPreferences}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Payment gateway</span>
-                      <strong>Cashfree</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Payment reference</span>
-                      <strong>{checkoutState?.orderId ?? "Pending"}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Cashfree order</span>
-                      <strong>{checkoutState?.orderId ?? "Pending"}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Total</span>
-                      <strong>Rs. {totalAmount}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Payment completed</span>
-                      <strong>{checkoutState ? formatDisplayDate(checkoutState.paidAt) : "Not yet completed"}</strong>
+                  <GlassPanel className="review-panel" tone="soft">
+                    <div className="review-grid">
+                      <div className="review-row">
+                        <span>Event</span>
+                        <strong>{currentEvent.name}</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Team</span>
+                        <strong>{teamLabel}</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Team size</span>
+                        <strong>{formatMemberCount(teamSize)}</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Amount</span>
+                        <strong>Rs. {totalAmount}</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Payment</span>
+                        <strong>Paid via Cashfree</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Order ID</span>
+                        <strong className="review-break-all">{checkoutState?.orderId}</strong>
+                      </div>
                     </div>
                   </GlassPanel>
-                  {errors.form ? <div className="error">{errors.form}</div> : null}
+
+                  <GlassPanel className="review-participants-panel" tone="soft">
+                    <div className="review-section-head">
+                      <span>Participants ({teamSize})</span>
+                    </div>
+                    {participants.map((participant, index) => (
+                      <div key={index} className="review-participant">
+                        <span className="review-participant-name">
+                          #{index + 1} - {participant.fullName || "Participant"}
+                        </span>
+                        <span className="review-participant-detail">{participant.email}</span>
+                        <span className="review-participant-detail">{participant.collegeName}</span>
+                      </div>
+                    ))}
+                  </GlassPanel>
+
                   {submitError ? <div className="error">{submitError}</div> : null}
                 </section>
               ) : null}
 
               {step === 5 ? (
-                <section className="confirmation-card wizard-confirmation-stage">
-                  <GlassPanel className="confirmation-hero-card" tone="soft">
-                    <div className="section-eyebrow">Acknowledgement</div>
-                    <SuccessAnimation registrationCode={confirmation?.registrationCode ?? "CP26-PENDING"} />
-                    <h3>Acknowledgement ready</h3>
-                    <div className="confirmation-status-pill">
-                      Payment: {formatStatusLabel(confirmation?.paymentStatus)}
-                    </div>
-                    <p className="helper confirmation-hero-copy">
-                      Email status: {formatStatusLabel(confirmation?.emailStatus)}. Keep the PDF acknowledgement safe for
-                      event-day verification.
-                    </p>
-                  </GlassPanel>
-
-                  <GlassPanel className="confirmation-receipt-card" tone="soft">
-                    <div className="confirmation-receipt-head">
-                      <div>
-                        <div className="section-eyebrow">Confirmation</div>
-                        <h3>Registration submitted successfully</h3>
-                      </div>
-                      <div className="confirmation-receipt-badge">
-                        {confirmation?.registrationCode ?? "CP26-PENDING"}
+                <section className="wizard-stage wizard-confirm-stage">
+                  {confirmation ? (
+                    <div className="confirmation-panel">
+                      <SuccessAnimation registrationCode={confirmation.registrationCode} />
+                      <h3>Registration submitted!</h3>
+                      <p>
+                        Your registration code is <strong>{confirmation.registrationCode}</strong>.
+                      </p>
+                      <p>
+                        Payment status: <strong>{formatStatusLabel(confirmation.paymentStatus)}</strong>
+                      </p>
+                      <div className="confirmation-actions">
+                        <Button type="button" variant="primary" onClick={handleDownloadPdf}>
+                          Download PDF
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={() => assignWithLoading("/status")}>
+                          Check status
+                        </Button>
                       </div>
                     </div>
-                    <p className="card-copy">
-                      Your registration is now recorded. The payment was processed through{" "}
-                      <strong>{formatStatusLabel(confirmation?.paymentProvider)}</strong> and is currently{" "}
-                      <strong>{formatStatusLabel(confirmation?.paymentStatus)}</strong>.
-                    </p>
-
-                    <div className="confirmation-meta-grid">
-                      <div className="confirmation-meta-item">
-                        <span className="confirmation-meta-label">Event date</span>
-                        <strong className="confirmation-meta-value">{formatDisplayDate(siteConfig.eventDate)}</strong>
-                      </div>
-                      <div className="confirmation-meta-item">
-                        <span className="confirmation-meta-label">Venue</span>
-                        <strong className="confirmation-meta-value">{siteConfig.venueDetail}</strong>
-                      </div>
-                      <div className="confirmation-meta-item">
-                        <span className="confirmation-meta-label">Coordinator mail</span>
-                        <strong className="confirmation-meta-value">{coordinatorEmail}</strong>
-                      </div>
-                    </div>
-
-                    <div className="confirmation-detail-list">
-                      <div className="confirmation-detail-row">
-                        <span>Registration code</span>
-                        <strong>{confirmation?.registrationCode ?? "CP26-PENDING"}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Event</span>
-                        <strong>{currentEvent.name}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Team</span>
-                        <strong>{teamLabel}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Participants</span>
-                        <strong>{participantNames}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Food preference</span>
-                        <strong>{participantFoodPreferences}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Amount paid</span>
-                        <strong>Rs. {totalAmount}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Payment reference</span>
-                        <strong>{confirmation?.paymentReference ?? checkoutState?.orderId ?? "Pending"}</strong>
-                      </div>
-                      <div className="confirmation-detail-row">
-                        <span>Payment date</span>
-                        <strong>{formatDisplayDate(confirmation?.paymentDate ?? checkoutState?.paidAt ?? "")}</strong>
-                      </div>
-                    </div>
-
-                    <div className="cta-actions confirmation-actions">
-                      <Button variant="primary" onClick={handleDownloadPdf}>
-                        Download PDF
-                      </Button>
-                      <Button variant="secondary" onClick={() => assignWithLoading("/status")}>
-                        Check status
-                      </Button>
-                      <Button variant="accent" onClick={handleDownloadPdf}>
-                        Print acknowledgement
-                      </Button>
-                      <Button variant="secondary" onClick={() => assignWithLoading("/")}>
-                        Back to home
-                      </Button>
-                      <Button variant="secondary" onClick={() => window.location.reload()}>
-                        Start another registration
-                      </Button>
-                    </div>
-                  </GlassPanel>
+                  ) : null}
                 </section>
               ) : null}
             </motion.div>
@@ -1299,16 +1231,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
           {step < 5 ? (
             <div className="step-actions">
               {step > 0 ? (
-                <Button type="button" variant="secondary" onClick={previousStep} disabled={paymentLocked && step === 3}>
+                <Button type="button" variant="secondary" onClick={previousStep}>
                   Back
                 </Button>
               ) : null}
               {step < 4 ? (
-                <Button type="button" variant="primary" onClick={nextStep} magnetic>
+                <Button type="button" variant="primary" onClick={nextStep}>
                   Continue
                 </Button>
               ) : (
-                <Button type="button" variant="accent" onClick={handleSubmit} disabled={submitting} magnetic>
+                <Button type="button" variant="accent" onClick={handleSubmit} disabled={submitting}>
                   {submitting ? "Submitting..." : "Submit registration"}
                 </Button>
               )}

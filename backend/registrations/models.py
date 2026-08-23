@@ -30,10 +30,12 @@ class Registration(models.Model):
   ]
 
   EMAIL_PENDING = "pending"
+  EMAIL_SENDING = "sending"
   EMAIL_SENT = "sent"
   EMAIL_FAILED = "failed"
   EMAIL_STATUS_CHOICES = [
     (EMAIL_PENDING, "Pending"),
+    (EMAIL_SENDING, "Sending"),
     (EMAIL_SENT, "Sent"),
     (EMAIL_FAILED, "Failed")
   ]

@@ -30,13 +30,22 @@ def _missing_emailjs_settings() -> list[str]:
     missing.append("EMAILJS_SERVICE_ID")
   if not settings.EMAILJS_TEMPLATE_ID:
     missing.append("EMAILJS_TEMPLATE_ID")
+  if not settings.EMAILJS_ADMIN_TEMPLATE_ID:
+    missing.append("EMAILJS_ADMIN_TEMPLATE_ID")
   if not settings.EMAILJS_PUBLIC_KEY:
     missing.append("EMAILJS_PUBLIC_KEY")
   if not settings.EMAILJS_PRIVATE_KEY:
     missing.append("EMAILJS_PRIVATE_KEY")
   return missing
 
-def _send_emailjs_message(recipient_email: str, template_id: str, template_params: dict[str, str]) -> bool:
+
+def _send_emailjs_message(
+  recipient_email: str,
+  template_id: str,
+  template_params: dict[str, str],
+  purpose: str = "",
+) -> bool:
+  """Send one email via EmailJS. Logs template_id and recipient for diagnostics."""
   payload = json.dumps({
     "service_id": settings.EMAILJS_SERVICE_ID,
     "template_id": template_id,
@@ -54,6 +63,13 @@ def _send_emailjs_message(recipient_email: str, template_id: str, template_param
     }
   }).encode("utf-8")
 
+  logger.info(
+    "EMAILJS SEND [%s]: template=%s recipient=%s",
+    purpose or "unknown",
+    template_id,
+    recipient_email,
+  )
+
   req = request.Request(
     url="https://api.emailjs.com/api/v1.0/email/send",
     data=payload,
@@ -65,32 +81,54 @@ def _send_emailjs_message(recipient_email: str, template_id: str, template_param
   )
 
   try:
-    with request.urlopen(req, timeout=8) as response:
+    with request.urlopen(req, timeout=15) as response:
       body = response.read().decode("utf-8", errors="replace")
-      logger.info("EmailJS OK for %s: %s", recipient_email, body)
+      logger.info(
+        "EMAILJS OK [%s]: template=%s recipient=%s response=%s",
+        purpose, template_id, recipient_email, body
+      )
       return 200 <= response.status < 300
   except HTTPError as exc:
     try:
       error_body = exc.read().decode("utf-8", errors="replace")
     except Exception:
       error_body = "<unavailable>"
-    logger.warning("EmailJS FAILED for %s: %s %s", recipient_email, exc.code, error_body)
+    logger.warning(
+      "EMAILJS FAILED [%s]: template=%s recipient=%s status=%s body=%s",
+      purpose, template_id, recipient_email, exc.code, error_body
+    )
     return False
   except URLError as exc:
-    logger.warning("EmailJS NETWORK ERROR for %s: %s", recipient_email, exc.reason)
+    logger.warning(
+      "EMAILJS NETWORK ERROR [%s]: template=%s recipient=%s error=%s",
+      purpose, template_id, recipient_email, exc.reason
+    )
     return False
   except Exception as exc:
-    logger.exception("EmailJS UNKNOWN ERROR for %s: %s", recipient_email, exc)
+    logger.exception(
+      "EMAILJS UNKNOWN ERROR [%s]: template=%s recipient=%s error=%s",
+      purpose, template_id, recipient_email, exc
+    )
     return False
 
+
 def _get_admin_template_id() -> str:
-  return getattr(settings, "EMAILJS_ADMIN_TEMPLATE_ID", "").strip() or settings.EMAILJS_TEMPLATE_ID
+  """Return the admin template ID. No fallback to participant template."""
+  admin_id = getattr(settings, "EMAILJS_ADMIN_TEMPLATE_ID", "").strip()
+  if not admin_id:
+    logger.error(
+      "EMAILJS_ADMIN_TEMPLATE_ID is empty! Admin emails will be skipped. "
+      "Set this in your environment variables."
+    )
+  return admin_id
+
 
 def _event_date_label() -> str:
   event_date = getattr(settings, "EVENT_DATE", "")
   if event_date:
     return str(event_date)
   return "11 September 2026"
+
 
 def _build_participant_2_block(participants: list) -> str:
   participant_2 = None
@@ -110,6 +148,7 @@ def _build_participant_2_block(participants: list) -> str:
 <p><strong>Year:</strong> {participant_2.year_of_study}</p>
 <p><strong>Food Preference:</strong> {participant_2.get_food_preference_display()}</p>
 </div>"""
+
 
 def _build_participant_1_params(participants: list) -> dict[str, str]:
   participant_1 = None
@@ -136,6 +175,7 @@ def _build_participant_1_params(participants: list) -> dict[str, str]:
     "participant_1_year": participant_1.year_of_study,
     "participant_1_food_preference": participant_1.get_food_preference_display()
   }
+
 
 def _build_registration_template_params(registration, participant, recipient_email: str, audience: str) -> dict[str, str]:
   participant_email = participant.email.strip().lower()
@@ -186,9 +226,19 @@ def _build_registration_template_params(registration, participant, recipient_ema
   template_params["participant_2_block"] = _build_participant_2_block(all_participants)
   return template_params
 
+
 def send_registration_notifications(registration) -> bool:
+  participant_template_id = settings.EMAILJS_TEMPLATE_ID
+  admin_template_id = _get_admin_template_id()
+
+  logger.info(
+    "EMAIL DISPATCH START for %s: participant_template=%s admin_template=%s",
+    registration.registration_code,
+    participant_template_id,
+    admin_template_id or "(not configured)",
+  )
+
   # Atomic idempotency: claim the lock before doing any sending work.
-  # select_for_update() blocks concurrent callers until the first one commits.
   from django.db import transaction
   with transaction.atomic():
     locked = Registration.objects.select_for_update().get(pk=registration.pk)
@@ -256,14 +306,13 @@ def send_registration_notifications(registration) -> bool:
       participant_template_params = _build_registration_template_params(
         registration, participant, participant_email, "participant"
       )
-      sent = _send_emailjs_message(participant_email, settings.EMAILJS_TEMPLATE_ID, participant_template_params)
-      participant_results.append(sent)
-      logger.info(
-        "Participant email %s to %s: %s",
-        registration.registration_code,
+      sent = _send_emailjs_message(
         participant_email,
-        "sent" if sent else "FAILED"
+        participant_template_id,
+        participant_template_params,
+        purpose="PARTICIPANT",
       )
+      participant_results.append(sent)
 
     participant_sent = all(participant_results) if participant_results else True
 
@@ -272,23 +321,33 @@ def send_registration_notifications(registration) -> bool:
     admin_sent = True
     if not admin_email:
       logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
+    elif not admin_template_id:
+      logger.error(
+        "Admin notification skipped for %s: EMAILJS_ADMIN_TEMPLATE_ID is not configured.",
+        registration.registration_code
+      )
+      admin_sent = False
     else:
       admin_template_params = _build_registration_template_params(registration, lead_participant, admin_email, "admin")
-      admin_sent = _send_emailjs_message(admin_email, _get_admin_template_id(), admin_template_params)
-      logger.info(
-        "Admin email %s to %s: %s",
-        registration.registration_code,
+      admin_sent = _send_emailjs_message(
         admin_email,
-        "sent" if admin_sent else "FAILED"
+        admin_template_id,
+        admin_template_params,
+        purpose="ADMIN",
       )
 
     result = participant_sent and admin_sent
+
+    logger.info(
+      "EMAIL DISPATCH RESULT for %s: participant_sent=%s admin_sent=%s result=%s",
+      registration.registration_code, participant_sent, admin_sent, result
+    )
     return result
   finally:
     registration.refresh_from_db()
     registration.email_status = Registration.EMAIL_SENT if result else Registration.EMAIL_FAILED
     registration.save(update_fields=["email_status", "updated_at"])
     logger.info(
-      "Email summary for %s: result=%s",
-      registration.registration_code, result
+      "EMAIL STATUS for %s: %s",
+      registration.registration_code, registration.email_status
     )

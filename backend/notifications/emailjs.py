@@ -50,19 +50,21 @@ def _send_emailjs_message(recipient_email: str, template_id: str, template_param
 
   try:
     with request.urlopen(req, timeout=8) as response:
+      body = response.read().decode("utf-8", errors="replace")
+      logger.info("EmailJS OK for %s: %s", recipient_email, body)
       return 200 <= response.status < 300
   except HTTPError as exc:
     try:
       error_body = exc.read().decode("utf-8", errors="replace")
     except Exception:
       error_body = "<unavailable>"
-    logger.warning("EmailJS send failed for %s: %s %s", recipient_email, exc.code, error_body)
+    logger.warning("EmailJS FAILED for %s: %s %s", recipient_email, exc.code, error_body)
     return False
   except URLError as exc:
-    logger.warning("EmailJS network error for %s: %s", recipient_email, exc.reason)
+    logger.warning("EmailJS NETWORK ERROR for %s: %s", recipient_email, exc.reason)
     return False
   except Exception as exc:
-    logger.exception("Unexpected EmailJS error for %s: %s", recipient_email, exc)
+    logger.exception("EmailJS UNKNOWN ERROR for %s: %s", recipient_email, exc)
     return False
 
 def _get_admin_template_id() -> str:
@@ -105,7 +107,6 @@ def _build_participant_1_params(participants: list) -> dict[str, str]:
       "participant_1_email": "",
       "participant_1_phone": "",
       "participant_1_college": "",
-
       "participant_1_department": "",
       "participant_1_year": "",
       "participant_1_food_preference": ""
@@ -115,7 +116,6 @@ def _build_participant_1_params(participants: list) -> dict[str, str]:
     "participant_1_email": participant_1.email.strip().lower(),
     "participant_1_phone": participant_1.mobile_number,
     "participant_1_college": participant_1.college_name,
-
     "participant_1_department": participant_1.department,
     "participant_1_year": participant_1.year_of_study,
     "participant_1_food_preference": participant_1.get_food_preference_display()
@@ -219,7 +219,7 @@ def send_registration_notifications(registration) -> bool:
       "Participant email %s to %s: %s",
       registration.registration_code,
       participant_email,
-      "sent" if sent else "failed"
+      "sent" if sent else "FAILED"
     )
 
   participant_sent = bool(participant_results) and all(participant_results)
@@ -230,7 +230,6 @@ def send_registration_notifications(registration) -> bool:
   if not admin_email:
     logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
   elif admin_email in participant_recipient_emails:
-    # Admin is also a participant — they already got the participant email, skip admin duplicate
     logger.info(
       "Admin notification skipped for %s because admin email %s is also a participant.",
       registration.registration_code,
@@ -243,7 +242,13 @@ def send_registration_notifications(registration) -> bool:
       "Admin email %s to %s: %s",
       registration.registration_code,
       admin_email,
-      "sent" if admin_sent else "failed"
+      "sent" if admin_sent else "FAILED"
     )
 
+  logger.info(
+    "Email summary for %s: participants_ok=%s (results=%s), admin_ok=%s",
+    registration.registration_code,
+    participant_sent, participant_results,
+    admin_sent
+  )
   return participant_sent and admin_sent

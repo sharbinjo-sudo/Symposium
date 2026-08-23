@@ -10,6 +10,20 @@ from registrations.models import Registration
 
 logger = logging.getLogger(__name__)
 
+
+def _canonicalize_email(email: str) -> str:
+  """Normalizes an email so Gmail's dot/plus aliasing doesn't defeat comparisons.
+  sharbinjo@gmail.com, sharbin.jo@gmail.com, and sharbinjo+test@gmail.com
+  all deliver to the same inbox — this collapses them to one canonical form."""
+  email = email.strip().lower()
+  if "@" not in email:
+    return email
+  local, domain = email.split("@", 1)
+  if domain in ("gmail.com", "googlemail.com"):
+    local = local.split("+", 1)[0].replace(".", "")
+  return f"{local}@{domain}"
+
+
 def _missing_emailjs_settings() -> list[str]:
   missing: list[str] = []
   if not settings.EMAILJS_SERVICE_ID:
@@ -202,10 +216,13 @@ def send_registration_notifications(registration) -> bool:
       return False
 
     admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip().lower()
+    admin_email_canonical = _canonicalize_email(admin_email) if admin_email else ""
     participant_results: list[bool] = []
     participant_recipient_emails: set[str] = set()
 
-    # Step 1: Send participant confirmation to EACH participant (only their own email)
+    # Step 1: Send participant confirmation to EACH participant,
+    # but skip if the address canonically belongs to the admin
+    # (that inbox gets the admin notification in Step 2 instead).
     for participant in participants:
       participant_email = participant.email.strip().lower()
       if not participant_email:
@@ -226,6 +243,16 @@ def send_registration_notifications(registration) -> bool:
         continue
 
       participant_recipient_emails.add(participant_email)
+
+      if admin_email and _canonicalize_email(participant_email) == admin_email_canonical:
+        logger.info(
+          "Participant confirmation skipped for %s: %s belongs to admin, "
+          "admin notification will be sent instead.",
+          registration.registration_code,
+          participant_email
+        )
+        continue
+
       participant_template_params = _build_registration_template_params(
         registration, participant, participant_email, "participant"
       )
@@ -238,19 +265,13 @@ def send_registration_notifications(registration) -> bool:
         "sent" if sent else "FAILED"
       )
 
-    participant_sent = bool(participant_results) and all(participant_results)
+    participant_sent = all(participant_results) if participant_results else True
 
-    # Step 2: Send admin notification ONLY to admin email (never to participants)
+    # Step 2: Always send admin notification when admin email is configured.
     lead_participant = participants[0]
     admin_sent = True
     if not admin_email:
       logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
-    elif admin_email in participant_recipient_emails:
-      logger.info(
-        "Admin notification skipped for %s because admin email %s is also a participant.",
-        registration.registration_code,
-        admin_email
-      )
     else:
       admin_template_params = _build_registration_template_params(registration, lead_participant, admin_email, "admin")
       admin_sent = _send_emailjs_message(admin_email, _get_admin_template_id(), admin_template_params)

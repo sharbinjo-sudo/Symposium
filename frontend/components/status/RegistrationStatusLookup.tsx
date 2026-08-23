@@ -309,10 +309,6 @@ export function RegistrationStatusLookup() {
                       <strong>{result.paymentReference}</strong>
                     </div>
                     <div className="status-check-detail-row">
-                      <span>Attendance mark</span>
-                      <strong>{result.attendanceMarked ? "Marked" : "Not marked yet"}</strong>
-                    </div>
-                    <div className="status-check-detail-row">
                       <span>Submitted</span>
                       <strong>{formatDate(result.submittedAt, true)}</strong>
                     </div>

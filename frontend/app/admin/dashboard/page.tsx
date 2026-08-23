@@ -36,7 +36,6 @@ const emptySummary: DashboardSummary = {
   totalRegistrations: 0,
   pendingPayments: 0,
   verifiedPayments: 0,
-  attendanceMarked: 0,
   latestRegistration: null
 }
 
@@ -124,10 +123,6 @@ function registrationTone(status: string): ChipTone {
   return "neutral"
 }
 
-function attendanceTone(marked: boolean): ChipTone {
-  return marked ? "verified" : "pending"
-}
-
 function getReadableAdminError(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
     return error.message
@@ -211,7 +206,7 @@ export default function AdminDashboardPage() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [draftPaymentStatus, setDraftPaymentStatus] = useState("pending_verification")
   const [draftNote, setDraftNote] = useState("")
-  const [draftAttendance, setDraftAttendance] = useState(false)
+
   const [actionMessage, setActionMessage] = useState("")
   const [actionError, setActionError] = useState("")
   const [saving, setSaving] = useState(false)
@@ -229,7 +224,7 @@ export default function AdminDashboardPage() {
   const [createPaymentProvider, setCreatePaymentProvider] = useState("manual")
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
   const [createPaymentDate, setCreatePaymentDate] = useState(todayDateValue())
-  const [createAttendanceMarked, setCreateAttendanceMarked] = useState(false)
+
   const [createSendEmail, setCreateSendEmail] = useState(true)
   const [createAdminNote, setCreateAdminNote] = useState("")
   const [createParticipants, setCreateParticipants] = useState<ParticipantInput[]>(() =>
@@ -270,13 +265,11 @@ export default function AdminDashboardPage() {
     if (!selectedRegistration) {
       setDraftPaymentStatus("pending_verification")
       setDraftNote("")
-      setDraftAttendance(false)
       return
     }
 
     setDraftPaymentStatus(selectedRegistration.paymentStatus)
     setDraftNote(selectedRegistration.adminNote ?? "")
-    setDraftAttendance(selectedRegistration.attendanceMarked)
     setActionError("")
   }, [selectedRegistration])
 
@@ -367,7 +360,6 @@ export default function AdminDashboardPage() {
     setCreatePaymentProvider("manual")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
-    setCreateAttendanceMarked(false)
     setCreateSendEmail(true)
     setCreateAdminNote("")
     setCreateParticipants(Array.from({ length: nextEvent.minTeamSize }, (_, index) => emptyParticipant(index === 0)))
@@ -488,7 +480,6 @@ export default function AdminDashboardPage() {
       paymentStatus: createPaymentStatus,
       paymentDate: createPaymentDate,
       adminNote: createAdminNote.trim(),
-      attendanceMarked: createAttendanceMarked,
       sendEmail: createSendEmail,
       participants: createParticipants
     }
@@ -527,8 +518,7 @@ export default function AdminDashboardPage() {
     try {
       await updateAdminRegistration(selectedRegistration.registrationCode, {
         paymentStatus: draftPaymentStatus,
-        adminNote: draftNote.trim(),
-        attendanceMarked: draftAttendance
+        adminNote: draftNote.trim()
       })
       await refreshDashboard()
       setActionMessage("Registration details were updated successfully.")
@@ -718,10 +708,10 @@ export default function AdminDashboardPage() {
           </div>
           <div className="admin-detail-item">
             <span>Gateway check</span>
-            <strong>{registration.gatewayVerified ? "Verified by Razorpay" : "Manual admin record"}</strong>
+            <strong>{registration.gatewayVerified ? "Verified by Cashfree" : "Manual admin record"}</strong>
           </div>
           <div className="admin-detail-item">
-            <span>Razorpay order</span>
+            <span>Cashfree order</span>
             <strong>{registration.paymentOrderId || "Not stored"}</strong>
           </div>
         </div>
@@ -758,19 +748,8 @@ export default function AdminDashboardPage() {
               </option>
             ))}
           </select>
-        </div>
-
-        <label className="consent-row admin-checkbox-row">
-          <input
-            type="checkbox"
-            checked={draftAttendance}
-            onChange={(event) => setDraftAttendance(event.target.checked)}
-          />
-          <span>Attendance checked at venue</span>
-        </label>
-
-        <div className="field">
-          <label htmlFor="admin-note">Admin note</label>
+        </div>                  <div className="field">
+                    <label htmlFor="admin-note">Admin note</label>
           <textarea
             id="admin-note"
             rows={5}
@@ -809,13 +788,12 @@ export default function AdminDashboardPage() {
             <div className="section-eyebrow">Admin Dashboard</div>
             <h2>Verification and operations</h2>
             <p className="card-copy">
-              Manage Razorpay-backed registrations, create organizer-side entries, export records, and keep review work
+              Manage Cashfree-backed registrations, create organizer-side entries, export records, and keep review work
               fast and clean.
             </p>
             <div className="admin-sidebar-links">
               <span>Registrations</span>
               <span>Payments</span>
-              <span>Attendance</span>
               <span>Exports</span>
             </div>
             <div className="admin-sidebar-actions">
@@ -876,10 +854,7 @@ export default function AdminDashboardPage() {
               <div className="metric-label">Verified payments</div>
               <strong className="metric-value">{summary.verifiedPayments}</strong>
             </GlassPanel>
-            <GlassPanel className="dashboard-card" tone="soft">
-              <div className="metric-label">Attendance marked</div>
-              <strong className="metric-value">{summary.attendanceMarked}</strong>
-            </GlassPanel>
+
           </section>
 
           <section className="admin-section admin-workspace">
@@ -976,7 +951,7 @@ export default function AdminDashboardPage() {
                           </option>
                         ))}
                       </select>
-                      <div className="helper">Organizer-created records are marked manual. Razorpay records come only from checkout.</div>
+                      <div className="helper">Organizer-created records are marked manual. Cashfree records come only from checkout.</div>
                     </div>
 
                     <div className="field">
@@ -1010,14 +985,6 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="admin-create-checkboxes">
-                    <label className="consent-row admin-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={createAttendanceMarked}
-                        onChange={(event) => setCreateAttendanceMarked(event.target.checked)}
-                      />
-                      <span>Attendance already marked</span>
-                    </label>
                     <label className="consent-row admin-checkbox-row">
                       <input type="checkbox" checked={createSendEmail} onChange={(event) => setCreateSendEmail(event.target.checked)} />
                       <span>Send confirmation email to participant</span>
@@ -1213,10 +1180,10 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="admin-detail-item">
                       <span>Gateway check</span>
-                      <strong>{selectedRegistration.gatewayVerified ? "Verified by Razorpay" : "Manual admin record"}</strong>
+                      <strong>{selectedRegistration.gatewayVerified ? "Verified by Cashfree" : "Manual admin record"}</strong>
                     </div>
                     <div className="admin-detail-item">
-                      <span>Razorpay order</span>
+                      <span>Cashfree order</span>
                       <strong>{selectedRegistration.paymentOrderId || "Not stored"}</strong>
                     </div>
                   </div>
@@ -1254,15 +1221,6 @@ export default function AdminDashboardPage() {
                       ))}
                     </select>
                   </div>
-
-                  <label className="consent-row admin-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={draftAttendance}
-                      onChange={(event) => setDraftAttendance(event.target.checked)}
-                    />
-                    <span>Attendance checked at venue</span>
-                  </label>
 
                   <div className="field">
                     <label htmlFor="admin-note">Admin note</label>
@@ -1308,7 +1266,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <p className="card-copy">
                     Select a registration from the table below to open its full details, update payment status,
-                    attendance, notes, and email actions.
+                    notes, and email actions.
                   </p>
                   {actionMessage ? <div className="helper admin-action-message">{actionMessage}</div> : null}
                 </>
@@ -1360,7 +1318,7 @@ export default function AdminDashboardPage() {
                       <th>Event</th>
                       <th>Payment</th>
                       <th>Email</th>
-                      <th>Attendance</th>
+
                       <th>Submitted</th>
                     </tr>
                   </thead>
@@ -1397,7 +1355,7 @@ export default function AdminDashboardPage() {
                               {formatStatusLabel(registration.paymentStatus)}
                             </StatusChip>
                             <div className="table-subtext">
-                              {registration.gatewayVerified ? "Razorpay verified" : formatStatusLabel(registration.paymentProvider)}
+                              {registration.gatewayVerified ? "Cashfree verified" : formatStatusLabel(registration.paymentProvider)}
                             </div>
                           </td>
                           <td>
@@ -1405,11 +1363,7 @@ export default function AdminDashboardPage() {
                               {formatStatusLabel(registration.emailStatus)}
                             </StatusChip>
                           </td>
-                          <td>
-                            <StatusChip tone={attendanceTone(registration.attendanceMarked)}>
-                              {registration.attendanceMarked ? "Marked" : "Pending"}
-                            </StatusChip>
-                          </td>
+
                           <td>{formatAdminDate(registration.createdAt)}</td>
                         </tr>
                       ))

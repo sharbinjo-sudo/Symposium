@@ -20,6 +20,11 @@ from .models import Participant, PaymentAttempt, Registration
 
 UPLOAD_SIGNER = Signer(salt="payment-proof")
 
+CASHFREE_API_BASE = {
+    "sandbox": "https://sandbox.cashfree.com/pg",
+    "production": "https://api.cashfree.com/pg",
+}
+
 
 class DuplicateRegistrationError(Exception):
   pass
@@ -97,22 +102,31 @@ def build_payment_payload_fingerprint(validated_data: dict) -> str:
   return hashlib.sha256(fingerprint_payload.encode("utf-8")).hexdigest()
 
 
-def _get_razorpay_credentials() -> tuple[str, str]:
-  key_id = settings.RAZORPAY_KEY_ID.strip()
-  key_secret = settings.RAZORPAY_KEY_SECRET.strip()
+def _get_cashfree_credentials() -> tuple[str, str]:
+  app_id = settings.CASHFREE_APP_ID.strip()
+  secret_key = settings.CASHFREE_SECRET_KEY.strip()
 
-  if not key_id or not key_secret:
-    raise PaymentConfigurationError("Razorpay keys are not configured on the server.")
+  if not app_id or not secret_key:
+    raise PaymentConfigurationError("Cashfree API keys are not configured on the server.")
 
-  return key_id, key_secret
+  return app_id, secret_key
 
 
-def _razorpay_request(method: str, path: str, payload: dict | None = None) -> dict:
-  key_id, key_secret = _get_razorpay_credentials()
+def _get_cashfree_base_url() -> str:
+  env = getattr(settings, "CASHFREE_ENV", "sandbox").strip().lower()
+  return CASHFREE_API_BASE.get(env, CASHFREE_API_BASE["sandbox"])
+
+
+def _cashfree_request(method: str, path: str, payload: dict | None = None) -> dict:
+  app_id, secret_key = _get_cashfree_credentials()
+  base_url = _get_cashfree_base_url()
+  api_version = getattr(settings, "CASHFREE_API_VERSION", "2025-01-01")
+
   data = json.dumps(payload).encode("utf-8") if payload is not None else None
-  auth_token = b64encode(f"{key_id}:{key_secret}".encode("utf-8")).decode("utf-8")
   headers = {
-    "Authorization": f"Basic {auth_token}",
+    "X-Client-Id": app_id,
+    "X-Client-Secret": secret_key,
+    "X-Api-Version": api_version,
     "Accept": "application/json"
   }
 
@@ -120,7 +134,7 @@ def _razorpay_request(method: str, path: str, payload: dict | None = None) -> di
     headers["Content-Type"] = "application/json"
 
   req = request.Request(
-    url=f"https://api.razorpay.com/v1{path}",
+    url=f"{base_url}{path}",
     data=data,
     headers=headers,
     method=method.upper()
@@ -134,36 +148,37 @@ def _razorpay_request(method: str, path: str, payload: dict | None = None) -> di
       error_body = exc.read().decode("utf-8", errors="replace")
       error_payload = json.loads(error_body)
       message = (
-        error_payload.get("error", {}).get("description")
-        or error_payload.get("error", {}).get("reason")
+        error_payload.get("message")
+        or error_payload.get("error_description")
         or error_body
       )
     except Exception:
-      message = f"Razorpay rejected the request with status {exc.code}."
+      message = f"Cashfree rejected the request with status {exc.code}."
     raise PaymentGatewayError(message) from exc
   except URLError as exc:
-    raise PaymentGatewayError("Unable to reach Razorpay right now. Please try again shortly.") from exc
+    raise PaymentGatewayError("Unable to reach Cashfree right now. Please try again shortly.") from exc
 
   try:
     return json.loads(body)
   except json.JSONDecodeError as exc:
-    raise PaymentGatewayError("Razorpay returned an unexpected response.") from exc
+    raise PaymentGatewayError("Cashfree returned an unexpected response.") from exc
 
 
-def build_order_receipt(event_code: str, idempotency_key: str, payload_hash: str = "", nonce: str = "") -> str:
+def build_order_id(event_code: str, idempotency_key: str, payload_hash: str = "") -> str:
   idempotency_part = idempotency_key.replace("-", "")[:12]
   hash_part = payload_hash[:8] if payload_hash else "00000000"
-  nonce_part = nonce or uuid4().hex[:6]
-  receipt = f"cp26-{event_code.lower()}-{idempotency_part}-{hash_part}-{nonce_part}"
-  return receipt[:40]
+  nonce_part = uuid4().hex[:6]
+  order_id = f"cp26-{event_code.lower()}-{idempotency_part}-{hash_part}-{nonce_part}"
+  return order_id[:45]
 
 
-def _build_payment_order_response(key_id: str, event: Event, lead_participant: dict, order_payload: dict) -> dict:
+def _build_payment_order_response(app_id: str, event: Event, lead_participant: dict, order_payload: dict) -> dict:
   return {
-    "keyId": key_id,
-    "orderId": order_payload["id"],
-    "amount": order_payload["amount"],
-    "currency": order_payload["currency"],
+    "appId": app_id,
+    "orderId": order_payload["order_id"],
+    "paymentSessionId": order_payload.get("payment_session_id", ""),
+    "amount": order_payload["order_amount"],
+    "currency": order_payload["order_currency"],
     "name": "CYBERPUNK'26",
     "description": f"{event.event_name} registration",
     "prefill": {
@@ -177,10 +192,11 @@ def _build_payment_order_response(key_id: str, event: Event, lead_participant: d
 def create_payment_order(validated_data: dict) -> dict:
   event = validated_data["event"]
   lead_participant = validated_data["participants"][0]
-  key_id, _ = _get_razorpay_credentials()
+  app_id, _ = _get_cashfree_credentials()
   expected_amount = amount_to_subunits(validated_data["total_amount"])
   payload_hash = build_payment_payload_fingerprint(validated_data)
-  expected_receipt = build_order_receipt(event.event_code, validated_data["idempotencyKey"], payload_hash)
+  expected_order_id = build_order_id(event.event_code, validated_data["idempotencyKey"], payload_hash)
+
   existing_attempt = (
     PaymentAttempt.objects.filter(
       idempotency_key=validated_data["idempotencyKey"],
@@ -192,24 +208,40 @@ def create_payment_order(validated_data: dict) -> dict:
   )
   if existing_attempt:
     return _build_payment_order_response(
-      key_id,
+      app_id,
       event,
       lead_participant,
       {
-        "id": existing_attempt.order_id,
-        "amount": existing_attempt.amount,
-        "currency": existing_attempt.currency
+        "order_id": existing_attempt.order_id,
+        "order_amount": existing_attempt.amount / 100,
+        "order_currency": existing_attempt.currency
       }
     )
 
-  order_payload = _razorpay_request(
+  customer_phone = normalize_mobile(lead_participant["mobileNumber"]).lstrip("+")
+  customer_email = normalize_email(lead_participant["email"])
+  customer_name = lead_participant["fullName"].strip()
+  customer_id = f"cp26-{validated_data['idempotencyKey'][:16]}"
+
+  order_payload = _cashfree_request(
     "POST",
     "/orders",
     {
-      "amount": expected_amount,
-      "currency": "INR",
-      "receipt": expected_receipt,
-      "notes": {
+      "order_amount": float(Decimal(str(event.registration_fee * validated_data["teamSize"])) if event.registration_fee_type != Event.FEE_TYPE_PER_TEAM else event.registration_fee),
+      "order_currency": "INR",
+      "order_id": expected_order_id,
+      "customer_details": {
+        "customer_id": customer_id,
+        "customer_name": customer_name,
+        "customer_email": customer_email,
+        "customer_phone": customer_phone
+      },
+      "order_meta": {
+        "return_url": getattr(settings, "CASHFREE_RETURN_URL", "https://example.com/registration-complete?order_id={order_id}"),
+        "notify_url": getattr(settings, "CASHFREE_WEBHOOK_URL", "")
+      },
+      "order_note": f"CYBERPUNK'26 - {event.event_name} registration",
+      "order_tags": {
         "event_code": event.event_code,
         "idempotency_key": validated_data["idempotencyKey"],
         "payload_hash": payload_hash,
@@ -219,20 +251,20 @@ def create_payment_order(validated_data: dict) -> dict:
     }
   )
 
-  required_order_fields = {"id", "amount", "currency"}
+  required_order_fields = {"order_id", "order_amount", "order_currency", "payment_session_id"}
   if not required_order_fields.issubset(order_payload):
-    raise PaymentGatewayError("Razorpay order response was missing required fields.")
-  if order_payload.get("amount") != expected_amount:
-    raise PaymentGatewayError("Razorpay order amount did not match the registration fee.")
-  if order_payload.get("currency") != "INR":
-    raise PaymentGatewayError("Razorpay order currency did not match the registration currency.")
+    raise PaymentGatewayError("Cashfree order response was missing required fields.")
+  if float(order_payload.get("order_amount", 0)) * 100 != expected_amount:
+    raise PaymentGatewayError("Cashfree order amount did not match the registration fee.")
+  if order_payload.get("order_currency") != "INR":
+    raise PaymentGatewayError("Cashfree order currency did not match the registration currency.")
 
   PaymentAttempt.objects.update_or_create(
-    order_id=order_payload["id"],
+    order_id=order_payload["order_id"],
     defaults={
       "event": event,
       "idempotency_key": validated_data["idempotencyKey"],
-      "receipt": expected_receipt,
+      "receipt": expected_order_id,
       "payload_hash": payload_hash,
       "amount": expected_amount,
       "currency": "INR",
@@ -240,54 +272,55 @@ def create_payment_order(validated_data: dict) -> dict:
     }
   )
 
-  return _build_payment_order_response(key_id, event, lead_participant, order_payload)
+  return _build_payment_order_response(app_id, event, lead_participant, order_payload)
 
 
-def verify_payment_signature(order_id: str, payment_id: str, signature: str) -> None:
-  _, key_secret = _get_razorpay_credentials()
-  payload = f"{order_id}|{payment_id}".encode("utf-8")
-  expected_signature = hmac.new(key_secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
-
-  if not hmac.compare_digest(expected_signature, signature):
-    raise PaymentVerificationError("Payment signature verification failed.")
-
-
-def fetch_payment(payment_id: str) -> dict:
-  return _razorpay_request("GET", f"/payments/{payment_id}")
+def verify_webhook_signature(timestamp: str, raw_body: str, signature: str) -> bool:
+  """Verify Cashfree webhook signature using HMAC-SHA256."""
+  _, secret_key = _get_cashfree_credentials()
+  sign_str = timestamp + raw_body
+  expected_signature = b64encode(
+    hmac.new(secret_key.encode("utf-8"), sign_str.encode("utf-8"), hashlib.sha256).digest()
+  ).decode("utf-8")
+  return hmac.compare_digest(expected_signature, signature)
 
 
 def fetch_order(order_id: str) -> dict:
-  return _razorpay_request("GET", f"/orders/{order_id}")
+  return _cashfree_request("GET", f"/orders/{order_id}")
+
+
+def fetch_order_payments(order_id: str) -> list:
+  return _cashfree_request("GET", f"/orders/{order_id}/payments")
 
 
 def _as_notes_dict(value) -> dict:
   return value if isinstance(value, dict) else {}
 
 
-def _validate_razorpay_notes(notes: dict, validated_data: dict, source: str, required: bool = True) -> None:
-  event_code = str(notes.get("event_code") or "").strip().upper()
-  idempotency_key = str(notes.get("idempotency_key") or "").strip()
-  payload_hash = str(notes.get("payload_hash") or "").strip()
-  team_size = str(notes.get("team_size") or "").strip()
+def _validate_cashfree_order_tags(order_tags: dict, validated_data: dict, source: str) -> None:
+  event_code = str(order_tags.get("event_code") or "").strip().upper()
+  idempotency_key = str(order_tags.get("idempotency_key") or "").strip()
+  payload_hash = str(order_tags.get("payload_hash") or "").strip()
+  team_size = str(order_tags.get("team_size") or "").strip()
 
-  if required and not event_code:
-    raise PaymentVerificationError(f"Razorpay {source} notes are missing the event code.")
-  if required and not idempotency_key:
-    raise PaymentVerificationError(f"Razorpay {source} notes are missing the request key.")
-  if required and not payload_hash:
-    raise PaymentVerificationError(f"Razorpay {source} notes are missing the payload fingerprint.")
-  if required and not team_size:
-    raise PaymentVerificationError(f"Razorpay {source} notes are missing the team size.")
+  if not event_code:
+    raise PaymentVerificationError(f"Cashfree {source} tags are missing the event code.")
+  if not idempotency_key:
+    raise PaymentVerificationError(f"Cashfree {source} tags are missing the request key.")
+  if not payload_hash:
+    raise PaymentVerificationError(f"Cashfree {source} tags are missing the payload fingerprint.")
+  if not team_size:
+    raise PaymentVerificationError(f"Cashfree {source} tags are missing the team size.")
 
-  if event_code and event_code != validated_data["event"].event_code:
-    raise PaymentVerificationError(f"Razorpay {source} notes do not match the selected event.")
-  if idempotency_key and idempotency_key != validated_data["idempotencyKey"]:
-    raise PaymentVerificationError(f"Razorpay {source} notes do not match this request.")
+  if event_code != validated_data["event"].event_code:
+    raise PaymentVerificationError(f"Cashfree {source} tags do not match the selected event.")
+  if idempotency_key != validated_data["idempotencyKey"]:
+    raise PaymentVerificationError(f"Cashfree {source} tags do not match this request.")
   expected_payload_hash = build_payment_payload_fingerprint(validated_data)
-  if payload_hash and not hmac.compare_digest(payload_hash, expected_payload_hash):
-    raise PaymentVerificationError(f"Razorpay {source} notes do not match the submitted registration details.")
-  if team_size and team_size != str(validated_data["teamSize"]):
-    raise PaymentVerificationError(f"Razorpay {source} notes do not match the submitted team size.")
+  if not hmac.compare_digest(payload_hash, expected_payload_hash):
+    raise PaymentVerificationError(f"Cashfree {source} tags do not match the submitted registration details.")
+  if team_size != str(validated_data["teamSize"]):
+    raise PaymentVerificationError(f"Cashfree {source} tags do not match the submitted team size.")
 
 
 def _get_verified_payment_attempt(order_id: str, validated_data: dict, expected_amount: int) -> PaymentAttempt:
@@ -298,87 +331,105 @@ def _get_verified_payment_attempt(order_id: str, validated_data: dict, expected_
 
   expected_payload_hash = build_payment_payload_fingerprint(validated_data)
   if payment_attempt.event_id != validated_data["event"].id:
-    raise PaymentVerificationError("Stored Razorpay order event does not match this registration.")
+    raise PaymentVerificationError("Stored Cashfree order event does not match this registration.")
   if payment_attempt.idempotency_key != validated_data["idempotencyKey"]:
-    raise PaymentVerificationError("Stored Razorpay order request key does not match this registration.")
+    raise PaymentVerificationError("Stored Cashfree order request key does not match this registration.")
   if not hmac.compare_digest(payment_attempt.payload_hash, expected_payload_hash):
-    raise PaymentVerificationError("Stored Razorpay order details do not match this registration.")
+    raise PaymentVerificationError("Stored Cashfree order details do not match this registration.")
   if payment_attempt.amount != expected_amount:
-    raise PaymentVerificationError("Stored Razorpay order amount does not match this registration.")
+    raise PaymentVerificationError("Stored Cashfree order amount does not match this registration.")
   if payment_attempt.currency != "INR":
-    raise PaymentVerificationError("Stored Razorpay order currency does not match this registration.")
+    raise PaymentVerificationError("Stored Cashfree order currency does not match this registration.")
 
   return payment_attempt
 
 
 def resolve_verified_payment(validated_data: dict) -> dict:
-  order_id = validated_data["razorpayOrderId"].strip()
-  payment_id = normalize_transaction_id(validated_data["razorpayPaymentId"])
-  signature = validated_data["razorpaySignature"].strip()
+  order_id = validated_data["cashfreeOrderId"].strip()
   expected_amount = amount_to_subunits(validated_data["total_amount"])
   payment_attempt = _get_verified_payment_attempt(order_id, validated_data, expected_amount)
 
-  verify_payment_signature(order_id, payment_id, signature)
   order = fetch_order(order_id)
-  payment = fetch_payment(payment_id)
 
-  if order.get("id") != order_id:
-    raise PaymentVerificationError("Razorpay order ID could not be verified.")
+  if order.get("order_id") != order_id:
+    raise PaymentVerificationError("Cashfree order ID could not be verified.")
 
-  if order.get("amount") != expected_amount:
-    raise PaymentVerificationError("Razorpay order amount does not match the registration fee.")
+  order_amount_cents = int(float(order.get("order_amount", 0)) * 100)
+  if order_amount_cents != expected_amount:
+    raise PaymentVerificationError("Cashfree order amount does not match the registration fee.")
+  if order.get("order_currency") != "INR":
+    raise PaymentVerificationError("Cashfree order currency does not match the registration currency.")
 
-  if order.get("currency") != "INR":
-    raise PaymentVerificationError("Razorpay order currency does not match the registration currency.")
+  order_tags = _as_notes_dict(order.get("order_tags"))
+  if order_tags:
+    _validate_cashfree_order_tags(order_tags, validated_data, "order")
 
-  if order.get("receipt") != payment_attempt.receipt:
-    raise PaymentVerificationError("Razorpay order receipt does not match the stored payment attempt.")
+  order_status = order.get("order_status")
+  if order_status == "EXPIRED":
+    raise PaymentVerificationError("Cashfree order has expired.")
+  if order_status == "TERMINATED":
+    raise PaymentVerificationError("Cashfree order was terminated.")
 
-  _validate_razorpay_notes(_as_notes_dict(order.get("notes")), validated_data, "order")
+  payments = fetch_order_payments(order_id)
+  if not payments:
+    raise PaymentVerificationError("No payment was found for this Cashfree order.")
 
-  if payment.get("order_id") != order_id:
-    raise PaymentVerificationError("Razorpay order and payment IDs do not match.")
+  payment = payments[0] if isinstance(payments, list) else payments
+  cf_payment_id = payment.get("cf_payment_id", "")
+  payment_status = payment.get("payment_status")
 
-  if payment.get("amount") != expected_amount:
-    raise PaymentVerificationError("Razorpay amount does not match the registration fee.")
+  if payment_status not in {"SUCCESS", "CAPTURED"}:
+    raise PaymentVerificationError("Cashfree has not confirmed this payment yet.")
 
-  if payment.get("currency") != "INR":
-    raise PaymentVerificationError("Razorpay currency does not match the registration currency.")
-
-  payment_notes = _as_notes_dict(payment.get("notes"))
-  if payment_notes:
-    _validate_razorpay_notes(payment_notes, validated_data, "payment", required=False)
-
-  payment_status = payment.get("status")
-  if payment_status not in {"authorized", "captured"}:
-    payment_attempt.payment_id = payment_id
-    payment_attempt.status = PaymentAttempt.STATUS_FAILED
-    payment_attempt.save(update_fields=["payment_id", "status", "updated_at"])
-    raise PaymentVerificationError("Razorpay has not confirmed this payment yet.")
-
-  created_at = payment.get("created_at")
   payment_date = timezone.localdate()
-  if isinstance(created_at, int):
-    payment_date = datetime.fromtimestamp(created_at, tz=timezone.get_current_timezone()).date()
+  created_at = payment.get("payment_time") or payment.get("payment_completion_time")
+  if created_at:
+    try:
+      if isinstance(created_at, str):
+        payment_date = datetime.fromisoformat(created_at.replace("Z", "+00:00")).date()
+      elif isinstance(created_at, (int, float)):
+        payment_date = datetime.fromtimestamp(created_at, tz=timezone.get_current_timezone()).date()
+    except (ValueError, TypeError, OSError):
+      pass
 
   resolved_status = Registration.PAYMENT_VERIFIED
-  if payment_status == "authorized":
+  if payment_status == "AUTHORIZED":
     resolved_status = Registration.PAYMENT_PENDING
 
-  payment_attempt.payment_id = payment_id
-  payment_attempt.status = (
-    PaymentAttempt.STATUS_CAPTURED if payment_status == "captured" else PaymentAttempt.STATUS_AUTHORIZED
-  )
+  payment_attempt.payment_id = cf_payment_id
+  payment_attempt.status = PaymentAttempt.STATUS_CAPTURED
   payment_attempt.save(update_fields=["payment_id", "status", "updated_at"])
 
   return {
-    "normalized_transaction_id": payment_id,
-    "payment_provider": Registration.PAYMENT_PROVIDER_RAZORPAY,
+    "normalized_transaction_id": cf_payment_id,
+    "payment_provider": Registration.PAYMENT_PROVIDER_CASHFREE,
     "payment_order_id": order_id,
-    "payment_signature": signature,
+    "payment_session_id": "",
+    "payment_signature": "",
     "payment_date": payment_date,
     "payment_status": resolved_status,
     "payment_screenshot_path": ""
+  }
+
+
+def check_order_status(order_id: str) -> dict:
+  """Check order status without full verification - used for frontend polling."""
+  order = fetch_order(order_id)
+  order_status = order.get("order_status", "")
+  payments = fetch_order_payments(order_id)
+
+  cf_payment_id = ""
+  payment_status = ""
+  if payments:
+    payment = payments[0] if isinstance(payments, list) else payments
+    cf_payment_id = payment.get("cf_payment_id", "")
+    payment_status = payment.get("payment_status", "")
+
+  return {
+    "orderId": order_id,
+    "orderStatus": order_status,
+    "paymentStatus": payment_status,
+    "paymentId": cf_payment_id
   }
 
 
@@ -403,7 +454,7 @@ def ensure_duplicate_rules(
   if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
     raise DuplicateRegistrationError("This payment reference is already in use.")
   if payment_order_id and Registration.objects.filter(payment_order_id=payment_order_id).exists():
-    raise DuplicateRegistrationError("This Razorpay order has already been used.")
+    raise DuplicateRegistrationError("This Cashfree order has already been used.")
 
   for participant in participants:
     email = normalize_email(participant["email"])
@@ -452,6 +503,7 @@ def create_registration(validated_data: dict) -> Registration:
       transaction_id=validated_data["normalized_transaction_id"],
       payment_provider=validated_data.get("payment_provider", Registration.PAYMENT_PROVIDER_MANUAL),
       payment_order_id=validated_data.get("payment_order_id", ""),
+      payment_session_id=validated_data.get("payment_session_id", ""),
       payment_signature=validated_data.get("payment_signature", ""),
       payment_date=validated_data["payment_date"],
       payment_screenshot_path=validated_data.get("payment_screenshot_path", ""),
@@ -464,21 +516,19 @@ def create_registration(validated_data: dict) -> Registration:
 
   participant_rows = []
   for index, participant in enumerate(validated_data["participants"], start=1):
-    participant_rows.append(
-      Participant(
-        registration=registration,
-        participant_number=index,
-        full_name=participant["fullName"].strip(),
-        college_name=participant["collegeName"].strip(),
-        roll_number=participant["rollNumber"].strip(),
-        mobile_number=normalize_mobile(participant["mobileNumber"]),
-        email=normalize_email(participant["email"]),
-        department=participant["department"].strip(),
-        year_of_study=participant["yearOfStudy"].strip(),
-        food_preference=participant["foodPreference"],
-        is_team_leader=participant["isTeamLeader"]
-      )
-    )
+    participant_rows.append(Participant(
+      registration=registration,
+      participant_number=index,
+      full_name=participant["fullName"].strip(),
+      college_name=participant["collegeName"].strip(),
+      roll_number=participant["rollNumber"].strip(),
+      mobile_number=normalize_mobile(participant["mobileNumber"]),
+      email=normalize_email(participant["email"]),
+      department=participant["department"].strip(),
+      year_of_study=participant["yearOfStudy"].strip(),
+      food_preference=participant["foodPreference"],
+      is_team_leader=participant["isTeamLeader"]
+    ))
 
   Participant.objects.bulk_create(participant_rows)
   return registration

@@ -24,6 +24,7 @@ from .services import (
   PaymentConfigurationError,
   PaymentGatewayError,
   PaymentVerificationError,
+  check_order_status,
   create_payment_order,
   create_registration,
   ensure_duplicate_rules,
@@ -55,6 +56,27 @@ class RegistrationPaymentOrderView(APIView):
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY))
 
     return apply_no_store(Response(order_payload, status=status.HTTP_201_CREATED))
+
+
+class RegistrationOrderStatusView(APIView):
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "status_lookup"
+
+  def post(self, request):
+    order_id = request.data.get("orderId", "").strip()
+    idempotency_key = request.data.get("idempotencyKey", "").strip()
+
+    if not order_id or not idempotency_key:
+      return apply_no_store(
+        Response({"detail": "Order ID and idempotency key are required."}, status=status.HTTP_400_BAD_REQUEST)
+      )
+
+    try:
+      result = check_order_status(order_id)
+    except PaymentGatewayError as exc:
+      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY))
+
+    return apply_no_store(Response(result, status=status.HTTP_200_OK))
 
 
 class RegistrationCreateView(APIView):

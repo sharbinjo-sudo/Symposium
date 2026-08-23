@@ -3,9 +3,7 @@ import type { EventConfig } from "@/lib/types";
 
 const fullNamePattern = /^(?!.*@)(?!.*\d)[A-Za-z]+(?:[ .'-][A-Za-z]+)*$/;
 const indianMobileHint = "Enter a valid Indian mobile number, like +91XXXXXXXXXX.";
-const razorpayOrderIdPattern = /^order_[A-Za-z0-9]+$/;
-const razorpayPaymentIdPattern = /^pay_[A-Za-z0-9]+$/;
-const razorpaySignaturePattern = /^[A-Fa-f0-9]{64}$/;
+const cashfreeOrderIdPattern = /^[A-Za-z0-9_-]{3,45}$/;
 
 function isValidIndianMobile(value: string) {
   const compactValue = value.replace(/[()\s-]+/g, "");
@@ -74,21 +72,11 @@ export function createRegistrationSchema(event: EventConfig | undefined) {
       .int()
       .min(event?.minTeamSize ?? 1)
       .max(event?.maxTeamSize ?? 2),
-    razorpayOrderId: z
+    cashfreeOrderId: z
       .string()
       .trim()
-      .min(1, "Razorpay order ID is required.")
-      .regex(razorpayOrderIdPattern, "Enter a valid Razorpay order ID."),
-    razorpayPaymentId: z
-      .string()
-      .trim()
-      .min(1, "Razorpay payment ID is required.")
-      .regex(razorpayPaymentIdPattern, "Enter a valid Razorpay payment ID."),
-    razorpaySignature: z
-      .string()
-      .trim()
-      .min(1, "Razorpay signature is required.")
-      .regex(razorpaySignaturePattern, "Enter a valid Razorpay signature."),
+      .min(1, "Cashfree order ID is required.")
+      .regex(cashfreeOrderIdPattern, "Enter a valid Cashfree order ID."),
     consentGiven: z.literal(true, {
       errorMap: () => ({ message: "Please confirm the privacy note to continue." })
     }),

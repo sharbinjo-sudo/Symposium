@@ -196,7 +196,6 @@ class AdminDashboardSummaryView(APIView):
         "totalRegistrations": Registration.objects.count(),
         "pendingPayments": Registration.objects.filter(payment_status=Registration.PAYMENT_PENDING).count(),
         "verifiedPayments": Registration.objects.filter(payment_status=Registration.PAYMENT_VERIFIED).count(),
-        "attendanceMarked": Registration.objects.filter(attendance_marked=True).count(),
         "latestRegistration": latest_payload
       }
     ))
@@ -236,9 +235,6 @@ class AdminRegistrationActionView(APIView):
     if "adminNote" in data:
       registration.admin_note = data["adminNote"]
       update_fields.append("admin_note")
-    if "attendanceMarked" in data:
-      registration.attendance_marked = data["attendanceMarked"]
-      update_fields.append("attendance_marked")
 
     registration.save(update_fields=update_fields)
     log_admin_action(
@@ -286,10 +282,9 @@ class AdminRegistrationCreateView(APIView):
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
 
     registration.admin_note = data.get("adminNote", "").strip() or None
-    registration.attendance_marked = data.get("attendanceMarked", False)
     if data.get("sendEmail", True):
       registration.email_status = Registration.EMAIL_SENT if send_registration_notifications(registration) else Registration.EMAIL_FAILED
-    registration.save(update_fields=["admin_note", "attendance_marked", "email_status", "updated_at"])
+    registration.save(update_fields=["admin_note", "email_status", "updated_at"])
 
     log_admin_action(
       admin=admin,
@@ -384,10 +379,9 @@ class AdminRegistrationExportView(APIView):
       "Amount",
       "Transaction ID",
       "Payment Provider",
-      "Razorpay Order ID",
+      "Cashfree Order ID",
       "Gateway Verified",
       "Payment Status",
-      "Attendance Marked",
       "Email Status",
       "Created At"
     ])
@@ -407,12 +401,11 @@ class AdminRegistrationExportView(APIView):
           registration.payment_provider,
           registration.payment_order_id,
           "Yes" if (
-            registration.payment_provider == Registration.PAYMENT_PROVIDER_RAZORPAY
+            registration.payment_provider == Registration.PAYMENT_PROVIDER_CASHFREE
             and registration.payment_order_id
             and registration.payment_signature
           ) else "No",
           registration.payment_status,
-          "Yes" if registration.attendance_marked else "No",
           registration.email_status,
           registration.created_at.isoformat()
         ]

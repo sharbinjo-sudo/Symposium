@@ -13,7 +13,7 @@ class ScreenshotUploadView(APIView):
   def post(self, request):
     return apply_no_store(
       Response(
-        {"detail": "Payment proof uploads are disabled. Please complete payment through Razorpay checkout."},
+        {"detail": "Payment proof uploads are disabled. Please complete payment through Cashfree checkout."},
         status=status.HTTP_410_GONE
       )
     )

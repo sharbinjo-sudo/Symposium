@@ -5,10 +5,10 @@ from events.models import Event
 
 class Registration(models.Model):
   PAYMENT_PROVIDER_MANUAL = "manual"
-  PAYMENT_PROVIDER_RAZORPAY = "razorpay"
+  PAYMENT_PROVIDER_CASHFREE = "cashfree"
   PAYMENT_PROVIDER_CHOICES = [
     (PAYMENT_PROVIDER_MANUAL, "Manual"),
-    (PAYMENT_PROVIDER_RAZORPAY, "Razorpay")
+    (PAYMENT_PROVIDER_CASHFREE, "Cashfree")
   ]
 
   PAYMENT_PENDING = "pending_verification"
@@ -51,6 +51,7 @@ class Registration(models.Model):
     db_index=True
   )
   payment_order_id = models.CharField(max_length=100, blank=True, default="", db_index=True)
+  payment_session_id = models.CharField(max_length=255, blank=True, default="")
   payment_signature = models.CharField(max_length=255, blank=True, default="")
   payment_date = models.DateField()
   payment_screenshot_path = models.CharField(max_length=500, blank=True, default="")
@@ -60,7 +61,6 @@ class Registration(models.Model):
   email_status = models.CharField(max_length=16, choices=EMAIL_STATUS_CHOICES, default=EMAIL_PENDING)
   idempotency_key = models.CharField(max_length=64, unique=True)
   consent_given = models.BooleanField(default=False)
-  attendance_marked = models.BooleanField(default=False)
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   updated_at = models.DateTimeField(auto_now=True)
 

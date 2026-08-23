@@ -11,9 +11,8 @@ from .services import compute_total_amount
 
 FULL_NAME_ERROR = "Enter a valid name without numbers, phone numbers, or email addresses."
 INDIAN_MOBILE_ERROR = "Enter a valid Indian mobile number, like +91XXXXXXXXXX."
-RAZORPAY_ORDER_ID_PATTERN = re.compile(r"^order_[A-Za-z0-9]+$")
-RAZORPAY_PAYMENT_ID_PATTERN = re.compile(r"^pay_[A-Za-z0-9]+$")
-RAZORPAY_SIGNATURE_PATTERN = re.compile(r"^[A-Fa-f0-9]{64}$")
+# Cashfree order IDs: alphanumeric, hyphens, underscores, 3-45 chars
+CASHFREE_ORDER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,45}$")
 
 
 class ParticipantInputSerializer(serializers.Serializer):
@@ -154,33 +153,15 @@ class RegistrationPaymentOrderSerializer(RegistrationBaseSerializer):
 
 
 class RegistrationSubmitSerializer(RegistrationBaseSerializer):
-  razorpayOrderId = serializers.CharField(max_length=100)
-  razorpayPaymentId = serializers.CharField(max_length=100)
-  razorpaySignature = serializers.CharField(max_length=255)
+  cashfreeOrderId = serializers.CharField(max_length=100)
   consentGiven = serializers.BooleanField()
 
-  def validate_razorpayOrderId(self, value: str) -> str:
+  def validate_cashfreeOrderId(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
-      raise serializers.ValidationError("Razorpay order ID is required.")
-    if not RAZORPAY_ORDER_ID_PATTERN.fullmatch(trimmed_value):
-      raise serializers.ValidationError("Enter a valid Razorpay order ID.")
-    return trimmed_value
-
-  def validate_razorpayPaymentId(self, value: str) -> str:
-    trimmed_value = value.strip()
-    if not trimmed_value:
-      raise serializers.ValidationError("Razorpay payment ID is required.")
-    if not RAZORPAY_PAYMENT_ID_PATTERN.fullmatch(trimmed_value):
-      raise serializers.ValidationError("Enter a valid Razorpay payment ID.")
-    return trimmed_value
-
-  def validate_razorpaySignature(self, value: str) -> str:
-    trimmed_value = value.strip()
-    if not trimmed_value:
-      raise serializers.ValidationError("Razorpay signature is required.")
-    if not RAZORPAY_SIGNATURE_PATTERN.fullmatch(trimmed_value):
-      raise serializers.ValidationError("Enter a valid Razorpay signature.")
+      raise serializers.ValidationError("Cashfree order ID is required.")
+    if not CASHFREE_ORDER_ID_PATTERN.fullmatch(trimmed_value):
+      raise serializers.ValidationError("Enter a valid Cashfree order ID.")
     return trimmed_value
 
   def validate(self, attrs):
@@ -225,7 +206,6 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
   )
   paymentDate = serializers.DateField()
   adminNote = serializers.CharField(required=False, allow_blank=True, max_length=1000)
-  attendanceMarked = serializers.BooleanField(required=False, default=False)
   sendEmail = serializers.BooleanField(required=False, default=True)
 
   def validate_transactionId(self, value: str) -> str:
@@ -235,8 +215,8 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
     return trimmed_value
 
   def validate_paymentProvider(self, value: str) -> str:
-    if value == Registration.PAYMENT_PROVIDER_RAZORPAY:
-      raise serializers.ValidationError("Razorpay records must be created through checkout verification.")
+    if value == Registration.PAYMENT_PROVIDER_CASHFREE:
+      raise serializers.ValidationError("Cashfree records must be created through checkout verification.")
     return value
 
   def validate_paymentDate(self, value):
@@ -282,7 +262,6 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   paymentReference = serializers.CharField(source="transaction_id")
   paymentProvider = serializers.CharField(source="payment_provider")
   paymentDate = serializers.DateField(source="payment_date")
-  attendanceMarked = serializers.BooleanField(source="attendance_marked")
   submittedAt = serializers.DateTimeField(source="created_at")
   updatedAt = serializers.DateTimeField(source="updated_at")
 
@@ -326,7 +305,6 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
       "paymentReference",
       "paymentProvider",
       "paymentDate",
-      "attendanceMarked",
       "submittedAt",
       "updatedAt"
     ]
@@ -351,7 +329,6 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   registrationStatus = serializers.CharField(source="registration_status")
   emailStatus = serializers.CharField(source="email_status")
   adminNote = serializers.CharField(source="admin_note", allow_blank=True, allow_null=True, required=False)
-  attendanceMarked = serializers.BooleanField(source="attendance_marked")
   screenshotAvailable = serializers.SerializerMethodField()
   createdAt = serializers.DateTimeField(source="created_at", format="%Y-%m-%d %H:%M")
 
@@ -378,9 +355,8 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
 
   def get_gatewayVerified(self, obj):
     return bool(
-      obj.payment_provider == Registration.PAYMENT_PROVIDER_RAZORPAY
+      obj.payment_provider == Registration.PAYMENT_PROVIDER_CASHFREE
       and obj.payment_order_id
-      and obj.payment_signature
       and obj.transaction_id
     )
 
@@ -405,7 +381,6 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
       "registrationStatus",
       "emailStatus",
       "adminNote",
-      "attendanceMarked",
       "screenshotAvailable",
       "createdAt"
     ]
@@ -414,4 +389,3 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
 class RegistrationActionSerializer(serializers.Serializer):
   paymentStatus = serializers.ChoiceField(choices=Registration.PAYMENT_STATUS_CHOICES, required=False)
   adminNote = serializers.CharField(required=False, allow_blank=True, max_length=1000)
-  attendanceMarked = serializers.BooleanField(required=False)

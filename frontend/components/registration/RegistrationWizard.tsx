@@ -16,75 +16,29 @@ import type { EventConfig, ParticipantInput, RegistrationPaymentOrder, Registrat
 
 const steps = ["Event", "Participants", "Team", "Payment", "Review", "Confirm"];
 
-type RazorpayCheckoutResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
-
-type RazorpayFailureResponse = {
-  error?: {
-    description?: string;
-  };
-};
-
-type RazorpayCheckoutState = {
+type CashfreeCheckoutState = {
   orderId: string;
-  paymentId: string;
-  signature: string;
   paidAt: string;
 };
 
-type RazorpayOptions = {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayCheckoutResponse) => void;
-  config?: {
-    display?: {
-      blocks?: Record<
-        string,
-        {
-          name: string;
-          instruments: Array<{
-            method: string;
-          }>;
-        }
-      >;
-      sequence?: string[];
-      preferences?: {
-        show_default_blocks?: boolean;
-      };
-    };
-  };
-  prefill?: {
-    name?: string;
-    email?: string;
-    contact?: string;
-  };
-  theme?: {
-    color?: string;
-  };
-  modal?: {
-    ondismiss?: () => void;
-  };
-};
-
-type RazorpayInstance = {
-  open: () => void;
-  on: (event: "payment.failed", callback: (response: RazorpayFailureResponse) => void) => void;
+type CashfreePaymentResult = {
+  orderId: string;
+  orderStatus: string;
+  paymentStatus: string;
 };
 
 declare global {
   interface Window {
-    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+    Cashfree?: (config: { mode: string }) => {
+      checkout: (options: {
+        paymentSessionId: string;
+        redirectTarget?: string;
+      }) => Promise<CashfreePaymentResult | null>;
+    };
   }
 }
 
-let razorpayScriptPromise: Promise<void> | null = null;
+let cashfreeScriptPromise: Promise<void> | null = null;
 
 function getReadableUiError(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
@@ -101,51 +55,51 @@ function getReadableUiError(error: unknown, fallbackMessage: string) {
     return "Unable to connect right now. Please check your internet connection and try again.";
   }
 
-  if (message === "Razorpay checkout is only available in the browser.") {
+  if (message === "Cashfree checkout is only available in the browser.") {
     return "Payment can only be completed in a browser window.";
   }
 
-  if (message === "Unable to load Razorpay checkout." || message === "Razorpay checkout is not available right now.") {
+  if (message === "Unable to load Cashfree checkout." || message === "Cashfree checkout is not available right now.") {
     return "Unable to open secure payment right now. Please try again.";
   }
 
-  if (message === "Razorpay checkout was closed before payment completed.") {
+  if (message === "Cashfree checkout was closed before payment completed.") {
     return "Payment was not completed. You can try again.";
   }
 
-  if (message === "Complete the Razorpay payment before submitting.") {
+  if (message === "Complete the Cashfree payment before submitting.") {
     return "Complete the payment before submitting your registration.";
   }
 
-  if (message === "Razorpay could not complete the payment.") {
+  if (message === "Cashfree could not complete the payment.") {
     return "Payment could not be completed. Please try again.";
   }
 
-  if (message === "Razorpay returned an incomplete payment response.") {
+  if (message === "Cashfree returned an incomplete payment response.") {
     return "Payment response was incomplete. Please try again.";
   }
 
   return message;
 }
 
-function loadRazorpayScript() {
+function loadCashfreeScript() {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("Razorpay checkout is only available in the browser."));
+    return Promise.reject(new Error("Cashfree checkout is only available in the browser."));
   }
 
-  if (window.Razorpay) {
+  if (window.Cashfree) {
     return Promise.resolve();
   }
 
-  if (!razorpayScriptPromise) {
-    razorpayScriptPromise = new Promise<void>((resolve, reject) => {
-      const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+  if (!cashfreeScriptPromise) {
+    cashfreeScriptPromise = new Promise<void>((resolve, reject) => {
+      const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
       const rejectAndAllowRetry = () => {
-        razorpayScriptPromise = null;
-        reject(new Error("Unable to load Razorpay checkout."));
+        cashfreeScriptPromise = null;
+        reject(new Error("Unable to load Cashfree checkout."));
       };
       const resolveIfReady = (scriptToRemove?: HTMLScriptElement) => {
-        if (window.Razorpay) {
+        if (window.Cashfree) {
           resolve();
           return;
         }
@@ -154,7 +108,7 @@ function loadRazorpayScript() {
       };
 
       if (existingScript) {
-        if (window.Razorpay) {
+        if (window.Cashfree) {
           resolve();
           return;
         }
@@ -181,13 +135,13 @@ function loadRazorpayScript() {
         }
       }
 
-      if (window.Razorpay) {
+      if (window.Cashfree) {
         resolve();
         return;
       }
 
       const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
       script.async = true;
       script.onload = () => {
         script.dataset.loaded = "true";
@@ -201,7 +155,7 @@ function loadRazorpayScript() {
     });
   }
 
-  return razorpayScriptPromise;
+  return cashfreeScriptPromise;
 }
 
 function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
@@ -257,86 +211,50 @@ function formatYearOfStudy(value: string) {
   return yearLabels[value] ?? (value || "Not provided");
 }
 
-function openRazorpayCheckout(order: RegistrationPaymentOrder): Promise<RazorpayCheckoutState> {
-  if (typeof window === "undefined" || !window.Razorpay) {
-    return Promise.reject(new Error("Razorpay checkout is not available right now."));
+async function openCashfreeCheckout(order: RegistrationPaymentOrder): Promise<CashfreeCheckoutState> {
+  if (typeof window === "undefined" || !window.Cashfree) {
+    throw new Error("Cashfree checkout is not available right now.");
   }
 
-  const RazorpayCheckout = window.Razorpay;
-
-  return new Promise<RazorpayCheckoutState>((resolve, reject) => {
-    let settled = false;
-
-    const finishResolve = (value: RazorpayCheckoutState) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve(value);
-    };
-
-    const finishReject = (error: Error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      reject(error);
-    };
-
-    const instance = new RazorpayCheckout({
-      key: order.keyId,
-      amount: order.amount,
-      currency: order.currency,
-      name: order.name,
-      description: order.description,
-      order_id: order.orderId,
-      config: {
-        display: {
-          blocks: {
-            preferredUpi: {
-              name: "UPI Apps",
-              instruments: [
-                {
-                  method: "upi"
-                }
-              ]
-            }
-          },
-          sequence: ["block.preferredUpi"],
-          preferences: {
-            show_default_blocks: true
-          }
-        }
-      },
-      prefill: order.prefill,
-      theme: { color: "#b62642" },
-      modal: {
-        ondismiss: () => finishReject(new Error("Razorpay checkout was closed before payment completed."))
-      },
-      handler: (response) => {
-        if (!response.razorpay_order_id || !response.razorpay_payment_id || !response.razorpay_signature) {
-          finishReject(new Error("Razorpay returned an incomplete payment response."));
-          return;
-        }
-        finishResolve({
-          orderId: response.razorpay_order_id,
-          paymentId: response.razorpay_payment_id,
-          signature: response.razorpay_signature,
-          paidAt: new Date().toISOString()
-        });
-      }
-    });
-
-    instance.on("payment.failed", (response) => {
-      finishReject(new Error(response.error?.description ?? "Razorpay could not complete the payment."));
-    });
-
-    try {
-      instance.open();
-    } catch (error) {
-      finishReject(error instanceof Error ? error : new Error("Razorpay checkout is not available right now."));
-    }
+  const cashfreeInstance = window.Cashfree({
+    mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === "production" ? "production" : "sandbox"
   });
+
+  if (!cashfreeInstance) {
+    throw new Error("Cashfree checkout is not available right now.");
+  }
+
+  try {
+    const result = await cashfreeInstance.checkout({
+      paymentSessionId: order.paymentSessionId,
+      redirectTarget: "_modal"
+    });
+
+    if (!result) {
+      throw new Error("Cashfree checkout was closed before payment completed.");
+    }
+
+    if (result.paymentStatus === "SUCCESS" || result.orderStatus === "PAID") {
+      return {
+        orderId: result.orderId || order.orderId,
+        paidAt: new Date().toISOString()
+      };
+    }
+
+    if (result.paymentStatus === "FAILED" || result.orderStatus === "TERMINATED") {
+      throw new Error("Payment could not be completed. Please try again.");
+    }
+
+    return {
+      orderId: result.orderId || order.orderId,
+      paidAt: new Date().toISOString()
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Cashfree")) {
+      throw error;
+    }
+    throw new Error("Cashfree checkout was closed before payment completed.");
+  }
 }
 
 type RegistrationWizardProps = {
@@ -356,7 +274,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const [eventCode, setEventCode] = useState(initialEvent?.code ?? "");
   const [teamSize, setTeamSize] = useState(initialEvent?.minTeamSize ?? 1);
   const [teamName, setTeamName] = useState("");
-  const [checkoutState, setCheckoutState] = useState<RazorpayCheckoutState | null>(null);
+  const [checkoutState, setCheckoutState] = useState<CashfreeCheckoutState | null>(null);
   const [consentGiven, setConsentGiven] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInput[]>(() =>
     Array.from({ length: initialEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
@@ -420,9 +338,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     setErrors((current) => {
       const next = { ...current };
       delete next.payment;
-      delete next.razorpayOrderId;
-      delete next.razorpayPaymentId;
-      delete next.razorpaySignature;
+      delete next.cashfreeOrderId;
       return next;
     });
   }
@@ -526,7 +442,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
     if (step === 3) {
       if (!checkoutState) {
-        nextErrors.payment = "Complete the Razorpay payment to continue.";
+        nextErrors.payment = "Complete the Cashfree payment to continue.";
       }
       if (!consentGiven) {
         nextErrors.consentGiven = "Please confirm the privacy note to continue.";
@@ -539,9 +455,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
         eventCode,
         teamName,
         teamSize,
-        razorpayOrderId: checkoutState?.orderId ?? "",
-        razorpayPaymentId: checkoutState?.paymentId ?? "",
-        razorpaySignature: checkoutState?.signature ?? "",
+        cashfreeOrderId: checkoutState?.orderId ?? "",
         consentGiven,
         participants
       });
@@ -608,7 +522,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     startTransition(() => {
       void (async () => {
         try {
-          await loadRazorpayScript();
+          await loadCashfreeScript();
           const order = await createRegistrationPaymentOrder({
             eventCode,
             teamName: currentEvent.maxTeamSize > 1 ? teamName.trim() : "",
@@ -616,7 +530,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
             participants,
             idempotencyKey
           });
-          const nextCheckoutState = await openRazorpayCheckout(order);
+          const nextCheckoutState = await openCashfreeCheckout(order);
           setCheckoutState(nextCheckoutState);
           setPaymentMessage("Payment received. Review your details and submit the registration.");
           setErrors((current) => {
@@ -650,16 +564,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       void (async () => {
         try {
           if (!checkoutState) {
-            throw new Error("Complete the Razorpay payment before submitting.");
+            throw new Error("Complete the Cashfree payment before submitting.");
           }
 
           const response = await submitRegistration({
             eventCode,
             teamName: currentEvent.maxTeamSize > 1 ? teamName : "",
             teamSize,
-            razorpayOrderId: checkoutState.orderId,
-            razorpayPaymentId: checkoutState.paymentId,
-            razorpaySignature: checkoutState.signature,
+            cashfreeOrderId: checkoutState.orderId,
             consentGiven,
             participants,
             idempotencyKey
@@ -858,7 +770,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           </tr>
                           <tr>
                             <th>Payment reference</th>
-                            <td>{confirmation.paymentReference || checkoutState?.paymentId || "Pending"}</td>
+                            <td>{confirmation.paymentReference || checkoutState?.orderId || "Pending"}</td>
                           </tr>
                           <tr>
                             <th>Payment status</th>
@@ -1186,98 +1098,52 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               ) : null}
 
               {step === 3 ? (
-                <section className="wizard-stage wizard-two-column payment-stage wizard-payment-stage">
-                  <div className="payment-column">
-                    <GlassPanel className="payment-qr-card" tone="strong">
-                      <div className="section-eyebrow">Payment Gateway</div>
-                      <h3>Pay securely through Razorpay</h3>
-                      <div className="tag-row">
-                        <span className="tag">Live checkout</span>
-                        <span className="tag">Server order</span>
-                        <span className="tag">Signature verified</span>
-                      </div>
-                      <div className="helper">
-                        A fresh order is created on the server for this registration. After checkout, the payment
-                        signature is verified before your submission is stored.
-                      </div>
-                      <div className="cta-actions">
-                        <Button
-                          type="button"
-                          variant="accent"
-                          onClick={handleStartPayment}
-                          disabled={paymentProcessing || paymentLocked}
-                          magnetic
-                        >
-                          {paymentProcessing
-                            ? "Preparing Razorpay..."
-                            : checkoutState
-                              ? "Payment received"
-                              : "Pay with Razorpay"}
-                        </Button>
-                      </div>
-                    </GlassPanel>
+                <section className="wizard-stage wizard-payment-stage">
+                  <GlassPanel className="payment-info-panel" tone="soft">
+                    <div className="summary-row">
+                      <span>Amount to pay</span>
+                      <strong>Rs. {totalAmount}</strong>
+                    </div>
+                    <div className="summary-row">
+                      <span>Payment method</span>
+                      <strong>Cashfree - UPI / Cards / Net Banking</strong>
+                    </div>
+                  </GlassPanel>
 
-                    <GlassPanel className="content-panel" tone="soft">
-                      <div className="summary-row">
-                        <span>Selected event</span>
-                        <strong>{currentEvent.name}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Billing mode</span>
-                        <strong>{billingModeLabel}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Total payable</span>
-                        <strong>Rs. {totalAmount}</strong>
-                      </div>
-                    </GlassPanel>
-                  </div>
-
-                  <div className="payment-column">
-                    <GlassPanel className="summary-panel wizard-payment-summary" tone="soft">
-                      <div className="summary-row">
-                        <span>Amount due</span>
-                        <strong>Rs. {totalAmount}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Verification</span>
-                        <strong>Razorpay signature check</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Gateway</span>
-                        <strong>Standard Checkout</strong>
-                      </div>
+                  {!checkoutState ? (
+                    <div className="payment-action-area">
                       <label className="consent-row">
                         <input
                           type="checkbox"
                           checked={consentGiven}
                           onChange={(event) => setConsentGiven(event.target.checked)}
                         />
-                        <span>I confirm that the participant and payment details may be processed to complete the registration.</span>
+                        <span>
+                          I confirm my details are correct and I consent to the processing of my registration.
+                        </span>
                       </label>
-                      {errors.consentGiven ? <div className="error">{errors.consentGiven}</div> : null}
-                      {errors.payment ? <div className="error">{errors.payment}</div> : null}
-                      {paymentMessage ? <div className="helper">{paymentMessage}</div> : null}
-                      {submitError ? <div className="error">{submitError}</div> : null}
-                    </GlassPanel>
+                      {errors.consentGiven ? <div className="error-text">{errors.consentGiven}</div> : null}
 
-                    {checkoutState ? (
-                      <GlassPanel className="summary-panel wizard-review-summary" tone="soft">
-                        <div className="summary-row">
-                          <span>Razorpay order</span>
-                          <strong>{checkoutState.orderId}</strong>
-                        </div>
-                        <div className="summary-row">
-                          <span>Payment reference</span>
-                          <strong>{checkoutState.paymentId}</strong>
-                        </div>
-                        <div className="summary-row">
-                          <span>Paid on</span>
-                          <strong>{formatDisplayDate(checkoutState.paidAt)}</strong>
-                        </div>
-                      </GlassPanel>
-                    ) : null}
-                  </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleStartPayment}
+                        disabled={paymentProcessing || !consentGiven}
+                      >
+                        {paymentProcessing ? "Opening payment..." : "Pay Rs. " + totalAmount}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="payment-success-area">
+                      <SuccessAnimation registrationCode={confirmation?.registrationCode ?? "CP26-PENDING"} />
+                      <p className="payment-success-text">Payment received successfully!</p>
+                      <p className="helper">Order ID: {checkoutState.orderId}</p>
+                    </div>
+                  )}
+
+                  {errors.payment ? <div className="error-text">{errors.payment}</div> : null}
+                  {paymentMessage ? <div className="helper payment-message">{paymentMessage}</div> : null}
+                  {submitError ? <div className="error-text">{submitError}</div> : null}
                 </section>
               ) : null}
 
@@ -1302,14 +1168,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     </div>
                     <div className="summary-row">
                       <span>Payment gateway</span>
-                      <strong>Razorpay</strong>
+                      <strong>Cashfree</strong>
                     </div>
                     <div className="summary-row">
                       <span>Payment reference</span>
-                      <strong>{checkoutState?.paymentId ?? "Pending"}</strong>
+                      <strong>{checkoutState?.orderId ?? "Pending"}</strong>
                     </div>
                     <div className="summary-row">
-                      <span>Razorpay order</span>
+                      <span>Cashfree order</span>
                       <strong>{checkoutState?.orderId ?? "Pending"}</strong>
                     </div>
                     <div className="summary-row">
@@ -1399,7 +1265,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                       </div>
                       <div className="confirmation-detail-row">
                         <span>Payment reference</span>
-                        <strong>{confirmation?.paymentReference ?? checkoutState?.paymentId ?? "Pending"}</strong>
+                        <strong>{confirmation?.paymentReference ?? checkoutState?.orderId ?? "Pending"}</strong>
                       </div>
                       <div className="confirmation-detail-row">
                         <span>Payment date</span>

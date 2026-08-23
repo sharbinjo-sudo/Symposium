@@ -60,9 +60,7 @@ export type RegistrationPayload = {
   eventCode: string;
   teamName: string;
   teamSize: number;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+  cashfreeOrderId: string;
   consentGiven: boolean;
   participants: ParticipantInput[];
   idempotencyKey: string;
@@ -77,8 +75,9 @@ export type RegistrationPaymentOrderPayload = {
 };
 
 export type RegistrationPaymentOrder = {
-  keyId: string;
+  appId: string;
   orderId: string;
+  paymentSessionId: string;
   amount: number;
   currency: string;
   name: string;
@@ -88,6 +87,13 @@ export type RegistrationPaymentOrder = {
     email: string;
     contact: string;
   };
+};
+
+export type CashfreeOrderStatusResponse = {
+  orderId: string;
+  orderStatus: string;
+  paymentStatus: string;
+  paymentId: string;
 };
 
 export type RegistrationResponse = {
@@ -121,7 +127,6 @@ export type RegistrationStatusResponse = {
   paymentReference: string;
   paymentProvider: string;
   paymentDate: string;
-  attendanceMarked: boolean;
   submittedAt: string;
   updatedAt: string;
 };
@@ -130,7 +135,6 @@ export type DashboardSummary = {
   totalRegistrations: number;
   pendingPayments: number;
   verifiedPayments: number;
-  attendanceMarked: number;
   latestRegistration: null | {
     registrationCode: string;
     eventName: string;
@@ -161,7 +165,6 @@ export type AdminRegistrationRow = {
   registrationStatus: string;
   emailStatus: string;
   adminNote: string | null;
-  attendanceMarked: boolean;
   screenshotAvailable: boolean;
   createdAt: string;
 };
@@ -175,7 +178,6 @@ export type AdminRegistrationFilters = {
 export type AdminRegistrationActionPayload = {
   paymentStatus?: string;
   adminNote?: string;
-  attendanceMarked?: boolean;
 };
 
 export type AdminRegistrationCreatePayload = {
@@ -187,7 +189,6 @@ export type AdminRegistrationCreatePayload = {
   paymentStatus: string;
   paymentDate: string;
   adminNote?: string;
-  attendanceMarked?: boolean;
   sendEmail?: boolean;
   participants: ParticipantInput[];
 };

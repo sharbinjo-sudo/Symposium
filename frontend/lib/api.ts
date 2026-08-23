@@ -4,6 +4,7 @@ import type {
   AdminRegistrationCreatePayload,
   AdminRegistrationFilters,
   AdminRegistrationRow,
+  CashfreeOrderStatusResponse,
   DashboardSummary,
   EventConfig,
   RegistrationPaymentOrder,
@@ -511,6 +512,16 @@ export async function openAdminRegistrationScreenshot(registrationCode: string) 
 export async function deleteAdminRegistration(registrationCode: string): Promise<{ ok: boolean }> {
   return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/`, {
     method: "DELETE"
+  });
+}
+
+export async function checkCashfreeOrderStatus(
+  orderId: string,
+  idempotencyKey: string
+): Promise<CashfreeOrderStatusResponse> {
+  return requestJson<CashfreeOrderStatusResponse>("/api/registrations/order-status/", {
+    method: "POST",
+    body: JSON.stringify({ orderId, idempotencyKey })
   });
 }
 

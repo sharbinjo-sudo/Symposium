@@ -51,7 +51,7 @@ Render service settings:
    - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_ADMIN_TEMPLATE_ID`
    - `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`
    - `ADMIN_NOTIFICATION_EMAIL`
-   - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`
+   - `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION`, `CASHFREE_ENV`
 4. Render will run `bash build.sh`, which installs dependencies, collects static files, and applies migrations.
 5. The app starts with `gunicorn config.wsgi:application`.
 

@@ -18,7 +18,7 @@ CASHFREE_ORDER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,45}$")
 class ParticipantInputSerializer(serializers.Serializer):
   fullName = serializers.CharField(max_length=150)
   collegeName = serializers.CharField(max_length=200)
-  rollNumber = serializers.CharField(max_length=50)
+  rollNumber = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
   mobileNumber = serializers.CharField(max_length=16)
   email = serializers.CharField(max_length=254)
   department = serializers.CharField(max_length=100)
@@ -50,12 +50,6 @@ class ParticipantInputSerializer(serializers.Serializer):
     trimmed_value = value.strip()
     if len(trimmed_value) < 2:
       raise serializers.ValidationError("College name is required.")
-    return trimmed_value
-
-  def validate_rollNumber(self, value: str) -> str:
-    trimmed_value = value.strip()
-    if len(trimmed_value) < 2:
-      raise serializers.ValidationError("Roll number is required.")
     return trimmed_value
 
   def validate_mobileNumber(self, value: str) -> str:

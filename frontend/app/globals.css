@@ -7701,3 +7701,53 @@ textarea {
     padding: 0.5rem 0;
   }
 }
+
+/* == Registration Complete Page == */
+.registration-complete-page {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.registration-complete-card {
+  max-width: 540px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 40px 32px;
+}
+.registration-complete-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.registration-complete-card h1 {
+  margin: 0 0 12px;
+}
+.registration-complete-order {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+}
+.registration-complete-order .section-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+}
+.order-id-display {
+  font-family: monospace;
+  font-size: 15px;
+  color: var(--accent);
+  word-break: break-all;
+}
+.registration-complete-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 24px 0 16px;
+  flex-wrap: wrap;
+}
+.registration-complete-note {
+  color: var(--text-secondary, #888);
+  font-size: 13px;
+  margin-top: 8px;
+}

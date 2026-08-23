@@ -98,14 +98,6 @@ export function AdminLoginForm() {
         return;
       }
 
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-        try {
-          await Notification.requestPermission();
-        } catch {
-          // Ignore permission prompt failures and continue to the dashboard.
-        }
-      }
-
       navigateWithLoading(router, getSafeAdminRedirect());
     } catch (error) {
       if (error instanceof ApiError) {

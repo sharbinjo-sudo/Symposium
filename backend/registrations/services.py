@@ -90,7 +90,7 @@ def build_payment_payload_fingerprint(validated_data: dict) -> str:
         "full_name": participant["fullName"].strip(),
         "is_team_leader": bool(participant["isTeamLeader"]),
         "mobile_number": normalize_mobile(participant["mobileNumber"]),
-        "roll_number": participant["rollNumber"].strip(),
+
         "year_of_study": participant["yearOfStudy"].strip()
       }
       for participant in validated_data["participants"]
@@ -449,24 +449,25 @@ def ensure_duplicate_rules(
   event: Event,
   participants: list[dict],
   transaction_id: str | None = None,
-  payment_order_id: str | None = None
+  payment_order_id: str | None = None,
+  team_name: str | None = None
 ) -> None:
   if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
     raise DuplicateRegistrationError("This payment reference is already in use.")
   if payment_order_id and Registration.objects.filter(payment_order_id=payment_order_id).exists():
     raise DuplicateRegistrationError("This Cashfree order has already been used.")
 
+  if team_name and Registration.objects.filter(event=event, team_name__iexact=team_name).exists():
+    raise DuplicateRegistrationError("A team with this name is already registered for this event.")
+
   for participant in participants:
     email = normalize_email(participant["email"])
     mobile = normalize_mobile(participant["mobileNumber"])
-    roll_number = participant["rollNumber"].strip()
 
-    if Participant.objects.filter(registration__event=event, email=email).exists():
-      raise DuplicateRegistrationError("A participant email is already registered for this event.")
-    if Participant.objects.filter(registration__event=event, mobile_number=mobile).exists():
-      raise DuplicateRegistrationError("A participant mobile number is already registered for this event.")
-    if Participant.objects.filter(registration__event=event, roll_number=roll_number).exists():
-      raise DuplicateRegistrationError("A participant roll number is already registered for this event.")
+    if Participant.objects.filter(email=email).exists():
+      raise DuplicateRegistrationError("A participant email is already registered.")
+    if Participant.objects.filter(mobile_number=mobile).exists():
+      raise DuplicateRegistrationError("A participant mobile number is already registered.")
 
 
 @transaction.atomic
@@ -482,7 +483,8 @@ def create_registration(validated_data: dict) -> Registration:
     event,
     validated_data["participants"],
     validated_data["normalized_transaction_id"],
-    validated_data.get("payment_order_id")
+    validated_data.get("payment_order_id"),
+    team_name=validated_data.get("teamName")
   )
 
   latest = Registration.objects.select_for_update().filter(event=event).order_by("-id").first()
@@ -521,7 +523,7 @@ def create_registration(validated_data: dict) -> Registration:
       participant_number=index,
       full_name=participant["fullName"].strip(),
       college_name=participant["collegeName"].strip(),
-      roll_number=participant["rollNumber"].strip(),
+      roll_number="",
       mobile_number=normalize_mobile(participant["mobileNumber"]),
       email=normalize_email(participant["email"]),
       department=participant["department"].strip(),

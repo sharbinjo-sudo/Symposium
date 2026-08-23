@@ -94,7 +94,7 @@ def get_admin_registration_queryset(request):
       | Q(transaction_id__icontains=search)
       | Q(participants__full_name__icontains=search)
       | Q(participants__email__icontains=search)
-      | Q(participants__roll_number__icontains=search)
+
       | Q(participants__mobile_number__icontains=search)
     )
 

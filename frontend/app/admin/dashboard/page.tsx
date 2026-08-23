@@ -147,7 +147,6 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
   return {
     fullName: "",
     collegeName: "",
-    rollNumber: "",
     mobileNumber: "",
     email: "",
     department: "",
@@ -1008,17 +1007,6 @@ export default function AdminDashboardPage() {
                             ) : null}
                           </div>
                           <div className="field">
-                            <label htmlFor={`create-roll-${index}`}>Roll number</label>
-                            <input
-                              id={`create-roll-${index}`}
-                              value={participant.rollNumber}
-                              onChange={(event) => handleCreateParticipantChange(index, "rollNumber", event.target.value)}
-                            />
-                            {createErrors[`participant-${index}-rollNumber`] ? (
-                              <div className="error">{createErrors[`participant-${index}-rollNumber`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
                             <label htmlFor={`create-mobile-${index}`}>Mobile number</label>
                             <input
                               id={`create-mobile-${index}`}
@@ -1119,9 +1107,14 @@ export default function AdminDashboardPage() {
                       <div className="section-eyebrow">Registration Detail</div>
                       <h3>{selectedRegistration!.registrationCode}</h3>
                     </div>
-                    <StatusChip tone={registrationTone(selectedRegistration.registrationStatus)}>
-                      {formatStatusLabel(selectedRegistration.registrationStatus)}
-                    </StatusChip>
+                    <div className="admin-detail-head-actions">
+                      <StatusChip tone={registrationTone(selectedRegistration.registrationStatus)}>
+                        {formatStatusLabel(selectedRegistration.registrationStatus)}
+                      </StatusChip>
+                      <Button type="button" variant="secondary" onClick={() => setSelectedCode(null)}>
+                        Close
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="admin-detail-grid">

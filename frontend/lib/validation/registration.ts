@@ -38,7 +38,6 @@ const requiredText = (label: string) =>
 export const participantSchema = z.object({
   fullName: participantFullNameSchema,
   collegeName: requiredText("College name"),
-  rollNumber: z.string().trim().min(2, "Roll number is required."),
   mobileNumber: z
     .string()
     .trim()

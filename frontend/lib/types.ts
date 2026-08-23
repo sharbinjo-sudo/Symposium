@@ -47,7 +47,6 @@ export type SiteConfig = {
 export type ParticipantInput = {
   fullName: string;
   collegeName: string;
-  rollNumber: string;
   mobileNumber: string;
   email: string;
   department: string;

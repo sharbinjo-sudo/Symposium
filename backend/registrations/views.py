@@ -46,7 +46,7 @@ class RegistrationPaymentOrderView(APIView):
       )
 
     try:
-      ensure_duplicate_rules(serializer.validated_data["event"], serializer.validated_data["participants"])
+      ensure_duplicate_rules(serializer.validated_data["event"], serializer.validated_data["participants"], team_name=serializer.validated_data.get("teamName"))
       order_payload = create_payment_order(serializer.validated_data)
     except DuplicateRegistrationError as exc:
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))

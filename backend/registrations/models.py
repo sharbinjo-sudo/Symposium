@@ -114,7 +114,7 @@ class Participant(models.Model):
   participant_number = models.PositiveSmallIntegerField()
   full_name = models.CharField(max_length=150)
   college_name = models.CharField(max_length=200)
-  roll_number = models.CharField(max_length=50, db_index=True)
+  roll_number = models.CharField(max_length=50, blank=True, default="")
   mobile_number = models.CharField(max_length=15, db_index=True)
   email = models.EmailField(db_index=True)
   department = models.CharField(max_length=100)

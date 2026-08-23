@@ -88,7 +88,6 @@ def _build_participant_2_block(participants: list) -> str:
 <p><strong>Email:</strong> {participant_2.email.strip().lower()}</p>
 <p><strong>Phone:</strong> {participant_2.mobile_number}</p>
 <p><strong>College:</strong> {participant_2.college_name}</p>
-<p><strong>Roll Number:</strong> {participant_2.roll_number}</p>
 <p><strong>Department:</strong> {participant_2.department}</p>
 <p><strong>Year:</strong> {participant_2.year_of_study}</p>
 <p><strong>Food Preference:</strong> {participant_2.get_food_preference_display()}</p>
@@ -106,7 +105,7 @@ def _build_participant_1_params(participants: list) -> dict[str, str]:
       "participant_1_email": "",
       "participant_1_phone": "",
       "participant_1_college": "",
-      "participant_1_roll_number": "",
+
       "participant_1_department": "",
       "participant_1_year": "",
       "participant_1_food_preference": ""
@@ -116,7 +115,7 @@ def _build_participant_1_params(participants: list) -> dict[str, str]:
     "participant_1_email": participant_1.email.strip().lower(),
     "participant_1_phone": participant_1.mobile_number,
     "participant_1_college": participant_1.college_name,
-    "participant_1_roll_number": participant_1.roll_number,
+
     "participant_1_department": participant_1.department,
     "participant_1_year": participant_1.year_of_study,
     "participant_1_food_preference": participant_1.get_food_preference_display()

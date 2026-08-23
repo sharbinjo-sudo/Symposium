@@ -162,7 +162,6 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
   return {
     fullName: "",
     collegeName: "",
-    rollNumber: "",
     mobileNumber: "",
     email: "",
     department: "",
@@ -398,11 +397,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
         if (!participant.foodPreference) {
           nextErrors[`participant-${index}-foodPreference`] = "Choose Veg or Non-Veg food preference.";
-        }
-
-        const trimmedRollNumber = participant.rollNumber.trim();
-        if (!trimmedRollNumber) {
-          nextErrors[`participant-${index}-rollNumber`] = "Roll number is required.";
         }
 
         const trimmedCollege = participant.collegeName.trim();
@@ -717,10 +711,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                                 <td>{leadParticipant.collegeName || "College not provided"}</td>
                               </tr>
                               <tr>
-                                <th>Roll number</th>
-                                <td>{leadParticipant.rollNumber || "Not provided"}</td>
-                              </tr>
-                              <tr>
                                 <th>Department</th>
                                 <td>{leadParticipant.department || "Department not provided"}</td>
                               </tr>
@@ -967,18 +957,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                             />
                             {errors[`participant-${index}-collegeName`] ? (
                               <div className="error">{errors[`participant-${index}-collegeName`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`roll-${index}`}>Roll number</label>
-                            <input
-                              id={`roll-${index}`}
-                              placeholder="Example: 22AI001"
-                              value={participant.rollNumber}
-                              onChange={(event) => handleParticipantChange(index, "rollNumber", event.target.value)}
-                            />
-                            {errors[`participant-${index}-rollNumber`] ? (
-                              <div className="error">{errors[`participant-${index}-rollNumber`]}</div>
                             ) : null}
                           </div>
                           <div className="field">

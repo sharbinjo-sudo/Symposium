@@ -6,6 +6,8 @@ from urllib.error import HTTPError, URLError
 from django.conf import settings
 from django.utils import timezone
 
+from registrations.models import Registration
+
 logger = logging.getLogger(__name__)
 
 def _missing_emailjs_settings() -> list[str]:
@@ -171,6 +173,11 @@ def _build_registration_template_params(registration, participant, recipient_ema
   return template_params
 
 def send_registration_notifications(registration) -> bool:
+  # Idempotency: skip if emails were already sent for this registration
+  if registration.email_status == Registration.EMAIL_SENT:
+    logger.info("Email already sent for %s, skipping.", registration.registration_code)
+    return True
+
   missing_settings = _missing_emailjs_settings()
   if missing_settings:
     logger.warning(

@@ -13,6 +13,7 @@ import {
   downloadAdminRegistrationsCsv,
   getAdminRegistrations,
   getAdminSummary,
+  openAdminRegistrationScreenshot,
   resendAdminRegistrationEmail,
   updateAdminRegistration
 } from "@/lib/api"
@@ -209,6 +210,7 @@ export default function AdminDashboardPage() {
   const [actionError, setActionError] = useState("")
   const [saving, setSaving] = useState(false)
   const [resending, setResending] = useState(false)
+  const [openingScreenshot, setOpeningScreenshot] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -223,7 +225,7 @@ export default function AdminDashboardPage() {
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
   const [createPaymentDate, setCreatePaymentDate] = useState(todayDateValue())
 
-  const [createSendEmail, setCreateSendEmail] = useState(true)
+  const [createSendEmail, setCreateSendEmail] = useState(false)
   const [createAdminNote, setCreateAdminNote] = useState("")
   const [createParticipants, setCreateParticipants] = useState<ParticipantInput[]>(() =>
     Array.from({ length: defaultEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
@@ -241,6 +243,7 @@ export default function AdminDashboardPage() {
   }
 
   const selectedRegistration = registrations.find((registration) => registration.registrationCode === selectedCode) ?? null
+  const canSendSelectedEmail = selectedRegistration?.paymentStatus === "verified"
   const createEvent =
     siteConfig.technicalEvents.find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
 
@@ -358,7 +361,7 @@ export default function AdminDashboardPage() {
     setCreatePaymentProvider("manual")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
-    setCreateSendEmail(true)
+    setCreateSendEmail(false)
     setCreateAdminNote("")
     setCreateParticipants(Array.from({ length: nextEvent.minTeamSize }, (_, index) => emptyParticipant(index === 0)))
   }
@@ -553,9 +556,34 @@ export default function AdminDashboardPage() {
         return
       }
 
-      setActionError(getReadableAdminError(resendError, "We couldn't resend the participant email right now."))
+      setActionError(getReadableAdminError(resendError, "We couldn't send the participant email right now."))
     } finally {
       setResending(false)
+    }
+  }
+
+  async function handleOpenScreenshot() {
+    if (!selectedRegistration || !selectedRegistration.screenshotAvailable) {
+      return
+    }
+
+    setOpeningScreenshot(true)
+    setActionMessage("")
+    setActionError("")
+
+    try {
+      const objectUrl = await openAdminRegistrationScreenshot(selectedRegistration.registrationCode)
+      window.open(objectUrl, "_blank", "noopener,noreferrer")
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+    } catch (screenshotError) {
+      if (isAdminAuthError(screenshotError)) {
+        redirectToAdminLogin()
+        return
+      }
+
+      setActionError(getReadableAdminError(screenshotError, "We couldn't open the payment proof right now."))
+    } finally {
+      setOpeningScreenshot(false)
     }
   }
 
@@ -725,8 +753,10 @@ export default function AdminDashboardPage() {
               </option>
             ))}
           </select>
-        </div>                  <div className="field">
-                    <label htmlFor="admin-note">Admin note</label>
+        </div>
+
+        <div className="field">
+          <label htmlFor="admin-note">Admin note</label>
           <textarea
             id="admin-note"
             rows={5}
@@ -743,8 +773,16 @@ export default function AdminDashboardPage() {
           <Button type="button" variant="primary" onClick={() => void handleSaveChanges()} disabled={saving}>
             {saving ? "Saving..." : "Save changes"}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending}>
-            {resending ? "Sending..." : "Resend email"}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void handleOpenScreenshot()}
+            disabled={openingScreenshot || !registration.screenshotAvailable}
+          >
+            {openingScreenshot ? "Opening..." : "View proof"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending || !canSendSelectedEmail}>
+            {resending ? "Sending..." : "Send email"}
           </Button>
           <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
             {deleting ? "Deleting..." : "Delete registration"}
@@ -961,7 +999,7 @@ export default function AdminDashboardPage() {
                   <div className="admin-create-checkboxes">
                     <label className="consent-row admin-checkbox-row">
                       <input type="checkbox" checked={createSendEmail} onChange={(event) => setCreateSendEmail(event.target.checked)} />
-                      <span>Send confirmation email to participant</span>
+                      <span>Send confirmation email now</span>
                     </label>
                   </div>
 
@@ -1166,9 +1204,9 @@ export default function AdminDashboardPage() {
                         <strong>{(selectedRegistration.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
                       </div>
                       <div className="summary-row">
-                      <span>Team size</span>
-                      <strong>{selectedRegistration.teamSize}</strong>
-                    </div>
+                        <span>Team size</span>
+                        <strong>{selectedRegistration.teamSize}</strong>
+                      </div>
                     <div className="summary-row">
                       <span>Email delivery</span>
                       <strong>{formatStatusLabel(selectedRegistration.emailStatus)}</strong>
@@ -1208,8 +1246,16 @@ export default function AdminDashboardPage() {
                     <Button type="button" variant="primary" onClick={() => void handleSaveChanges()} disabled={saving}>
                       {saving ? "Saving..." : "Save changes"}
                     </Button>
-                    <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending}>
-                      {resending ? "Sending..." : "Resend email"}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => void handleOpenScreenshot()}
+                      disabled={openingScreenshot || !selectedRegistration.screenshotAvailable}
+                    >
+                      {openingScreenshot ? "Opening..." : "View proof"}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending || !canSendSelectedEmail}>
+                      {resending ? "Sending..." : "Send email"}
                     </Button>
                     <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
                       {deleting ? "Deleting..." : "Delete registration"}
@@ -1290,11 +1336,11 @@ export default function AdminDashboardPage() {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={7}>Loading registrations...</td>
+                        <td colSpan={6}>Loading registrations...</td>
                       </tr>
                     ) : registrations.length === 0 ? (
                       <tr>
-                        <td colSpan={7}>No registrations match the current filters.</td>
+                        <td colSpan={6}>No registrations match the current filters.</td>
                       </tr>
                     ) : (
                       registrations.map((registration) => (

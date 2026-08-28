@@ -38,10 +38,12 @@ export type SiteConfig = {
   about: string;
   facilitiesNote: string;
   contacts: Array<{ label: string; value: string }>;
+  paymentScannerImage: string;
+  paymentReceiverName: string;
   highlights: string[];
   heroStats: Array<{ value: string; label: string }>;
   technicalEvents: EventConfig[];
-  nonTechnicalEvents: Array<{ name: string; summary: string }>;
+  nonTechnicalEvents: EventConfig[];
 };
 
 export type ParticipantInput = {
@@ -59,7 +61,9 @@ export type RegistrationPayload = {
   eventCode: string;
   teamName: string;
   teamSize: number;
-  cashfreeOrderId: string;
+  transactionId: string;
+  paymentDate: string;
+  paymentUploadToken: string;
   consentGiven: boolean;
   participants: ParticipantInput[];
   idempotencyKey: string;
@@ -71,28 +75,6 @@ export type RegistrationPaymentOrderPayload = {
   teamSize: number;
   participants: ParticipantInput[];
   idempotencyKey: string;
-};
-
-export type RegistrationPaymentOrder = {
-  appId: string;
-  orderId: string;
-  paymentSessionId: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  prefill: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-};
-
-export type CashfreeOrderStatusResponse = {
-  orderId: string;
-  orderStatus: string;
-  paymentStatus: string;
-  paymentId: string;
 };
 
 export type RegistrationResponse = {
@@ -156,10 +138,8 @@ export type AdminRegistrationRow = {
   teamSize: number;
   amountPaid: string;
   transactionId: string;
-  paymentOrderId: string;
   paymentStatus: string;
   paymentProvider: string;
-  gatewayVerified: boolean;
   paymentDate: string;
   registrationStatus: string;
   emailStatus: string;

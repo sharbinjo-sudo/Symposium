@@ -6,14 +6,12 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from config.security import apply_no_store
-from notifications.emailjs import send_registration_notifications
 from .models import Registration
 
 # Security: Constant time delay to prevent timing attacks on status lookup
 STATUS_LOOKUP_MIN_DELAY = 0.1  # 100ms minimum delay
 
 from .serializers import (
-  RegistrationPaymentOrderSerializer,
   RegistrationResponseSerializer,
   RegistrationStatusLookupSerializer,
   RegistrationStatusResponseSerializer,
@@ -21,62 +19,8 @@ from .serializers import (
 )
 from .services import (
   DuplicateRegistrationError,
-  PaymentConfigurationError,
-  PaymentGatewayError,
-  PaymentVerificationError,
-  check_order_status,
-  create_payment_order,
-  create_registration,
-  ensure_duplicate_rules,
-  resolve_verified_payment
+  create_registration
 )
-
-
-class RegistrationPaymentOrderView(APIView):
-  throttle_classes = [ScopedRateThrottle]
-  throttle_scope = "registration_submit"
-
-  def post(self, request):
-    serializer = RegistrationPaymentOrderSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    if Registration.objects.filter(idempotency_key=serializer.validated_data["idempotencyKey"]).exists():
-      return apply_no_store(
-        Response({"detail": "This registration has already been submitted."}, status=status.HTTP_409_CONFLICT)
-      )
-
-    try:
-      ensure_duplicate_rules(serializer.validated_data["event"], serializer.validated_data["participants"], team_name=serializer.validated_data.get("teamName"))
-      order_payload = create_payment_order(serializer.validated_data)
-    except DuplicateRegistrationError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
-    except PaymentConfigurationError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE))
-    except PaymentGatewayError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY))
-
-    return apply_no_store(Response(order_payload, status=status.HTTP_201_CREATED))
-
-
-class RegistrationOrderStatusView(APIView):
-  throttle_classes = [ScopedRateThrottle]
-  throttle_scope = "status_lookup"
-
-  def post(self, request):
-    order_id = request.data.get("orderId", "").strip()
-    idempotency_key = request.data.get("idempotencyKey", "").strip()
-
-    if not order_id or not idempotency_key:
-      return apply_no_store(
-        Response({"detail": "Order ID and idempotency key are required."}, status=status.HTTP_400_BAD_REQUEST)
-      )
-
-    try:
-      result = check_order_status(order_id)
-    except PaymentGatewayError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY))
-
-    return apply_no_store(Response(result, status=status.HTTP_200_OK))
 
 
 class RegistrationCreateView(APIView):
@@ -95,21 +39,9 @@ class RegistrationCreateView(APIView):
       return apply_no_store(Response(response_serializer.data, status=status.HTTP_200_OK))
 
     try:
-      serializer.validated_data.update(resolve_verified_payment(serializer.validated_data))
       registration = create_registration(serializer.validated_data)
     except DuplicateRegistrationError as exc:
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
-    except PaymentConfigurationError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE))
-    except PaymentVerificationError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
-    except PaymentGatewayError as exc:
-      return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY))
-
-    registration.email_status = (
-      "sent" if send_registration_notifications(registration) else registration.EMAIL_FAILED
-    )
-    registration.save(update_fields=["email_status", "updated_at"])
 
     response_serializer = RegistrationResponseSerializer(registration)
     return apply_no_store(Response(response_serializer.data, status=status.HTTP_201_CREATED))

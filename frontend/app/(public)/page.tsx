@@ -13,7 +13,7 @@ const homePageLinks = [
   {
     href: "/non-technical-events",
     label: "Non-Tech Events",
-    copy: "Guess the Lyrics, Bioscope, and Word Battle."
+    copy: "Expression Challenge, Mystery Quest, Connection Challenge, and Visual Insight."
   },
   {
     href: "/prizes",

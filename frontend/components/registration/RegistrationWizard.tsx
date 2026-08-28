@@ -7,38 +7,15 @@ import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
-import { ApiError, createIdempotencyKey, createRegistrationPaymentOrder, submitRegistration } from "@/lib/api";
+import { UploadDropzone } from "@/components/ui/UploadDropzone";
+import { ApiError, createIdempotencyKey, submitRegistration, uploadScreenshot } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
 import { formatFoodPreference, formatMemberCount, formatTeamRange } from "@/lib/format";
 import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
-import type { EventConfig, ParticipantInput, RegistrationPaymentOrder, RegistrationResponse } from "@/lib/types";
+import type { EventConfig, ParticipantInput, RegistrationResponse } from "@/lib/types";
 
 const steps = ["Event", "Participants", "Team", "Payment", "Review", "Confirm"];
-
-type CashfreeCheckoutState = {
-  orderId: string;
-  paidAt: string;
-};
-
-type CashfreePaymentResult = {
-  orderId: string;
-  orderStatus: string;
-  paymentStatus: string;
-};
-
-declare global {
-  interface Window {
-    Cashfree?: (config: { mode: string }) => {
-      checkout: (options: {
-        paymentSessionId: string;
-        redirectTarget?: string;
-      }) => Promise<CashfreePaymentResult | null>;
-    };
-  }
-}
-
-let cashfreeScriptPromise: Promise<void> | null = null;
 
 function getReadableUiError(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
@@ -55,107 +32,7 @@ function getReadableUiError(error: unknown, fallbackMessage: string) {
     return "Unable to connect right now. Please check your internet connection and try again.";
   }
 
-  if (message === "Cashfree checkout is only available in the browser.") {
-    return "Payment can only be completed in a browser window.";
-  }
-
-  if (message === "Unable to load Cashfree checkout." || message === "Cashfree checkout is not available right now.") {
-    return "Unable to open secure payment right now. Please try again.";
-  }
-
-  if (message === "Cashfree checkout was closed before payment completed.") {
-    return "Payment was not completed. You can try again.";
-  }
-
-  if (message === "Complete the Cashfree payment before submitting.") {
-    return "Complete the payment before submitting your registration.";
-  }
-
-  if (message === "Cashfree could not complete the payment.") {
-    return "Payment could not be completed. Please try again.";
-  }
-
-  if (message === "Cashfree returned an incomplete payment response.") {
-    return "Payment response was incomplete. Please try again.";
-  }
-
   return message;
-}
-
-function loadCashfreeScript() {
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("Cashfree checkout is only available in the browser."));
-  }
-
-  if (window.Cashfree) {
-    return Promise.resolve();
-  }
-
-  if (!cashfreeScriptPromise) {
-    cashfreeScriptPromise = new Promise<void>((resolve, reject) => {
-      const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
-      const rejectAndAllowRetry = () => {
-        cashfreeScriptPromise = null;
-        reject(new Error("Unable to load Cashfree checkout."));
-      };
-      const resolveIfReady = (scriptToRemove?: HTMLScriptElement) => {
-        if (window.Cashfree) {
-          resolve();
-          return;
-        }
-        scriptToRemove?.remove();
-        rejectAndAllowRetry();
-      };
-
-      if (existingScript) {
-        if (window.Cashfree) {
-          resolve();
-          return;
-        }
-        if (existingScript.dataset.loaded === "true") {
-          existingScript.remove();
-        } else {
-          existingScript.addEventListener(
-            "load",
-            () => {
-              existingScript.dataset.loaded = "true";
-              resolveIfReady(existingScript);
-            },
-            { once: true }
-          );
-          existingScript.addEventListener(
-            "error",
-            () => {
-              existingScript.remove();
-              rejectAndAllowRetry();
-            },
-            { once: true }
-          );
-          return;
-        }
-      }
-
-      if (window.Cashfree) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      script.async = true;
-      script.onload = () => {
-        script.dataset.loaded = "true";
-        resolveIfReady(script);
-      };
-      script.onerror = () => {
-        script.remove();
-        rejectAndAllowRetry();
-      };
-      document.body.appendChild(script);
-    });
-  }
-
-  return cashfreeScriptPromise;
 }
 
 function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
@@ -210,52 +87,6 @@ function formatYearOfStudy(value: string) {
   return yearLabels[value] ?? (value || "Not provided");
 }
 
-async function openCashfreeCheckout(order: RegistrationPaymentOrder): Promise<CashfreeCheckoutState> {
-  if (typeof window === "undefined" || !window.Cashfree) {
-    throw new Error("Cashfree checkout is not available right now.");
-  }
-
-  const cashfreeInstance = window.Cashfree({
-    mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === "production" ? "production" : "sandbox"
-  });
-
-  if (!cashfreeInstance) {
-    throw new Error("Cashfree checkout is not available right now.");
-  }
-
-  try {
-    const result = await cashfreeInstance.checkout({
-      paymentSessionId: order.paymentSessionId,
-      redirectTarget: "_modal"
-    });
-
-    if (!result) {
-      throw new Error("Cashfree checkout was closed before payment completed.");
-    }
-
-    if (result.paymentStatus === "SUCCESS" || result.orderStatus === "PAID") {
-      return {
-        orderId: result.orderId || order.orderId,
-        paidAt: new Date().toISOString()
-      };
-    }
-
-    if (result.paymentStatus === "FAILED" || result.orderStatus === "TERMINATED") {
-      throw new Error("Payment could not be completed. Please try again.");
-    }
-
-    return {
-      orderId: result.orderId || order.orderId,
-      paidAt: new Date().toISOString()
-    };
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Cashfree")) {
-      throw error;
-    }
-    throw new Error("Cashfree checkout was closed before payment completed.");
-  }
-}
-
 type RegistrationWizardProps = {
   events?: EventConfig[];
   initialEventCode?: string;
@@ -273,13 +104,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const [eventCode, setEventCode] = useState(initialEvent?.code ?? "");
   const [teamSize, setTeamSize] = useState(initialEvent?.minTeamSize ?? 1);
   const [teamName, setTeamName] = useState("");
-  const [checkoutState, setCheckoutState] = useState<CashfreeCheckoutState | null>(null);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
+  const [paymentUploadToken, setPaymentUploadToken] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInput[]>(() =>
     Array.from({ length: initialEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<RegistrationResponse | null>(null);
   const [acknowledgementOpen, setAcknowledgementOpen] = useState(false);
@@ -300,9 +134,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     .map((participant) => formatFoodPreference(participant.foodPreference))
     .join(", ");
   const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Mail ID")?.value ?? "Organizer email";
-  const paymentLocked = Boolean(checkoutState);
+  const paymentLocked = Boolean(paymentUploadToken);
   const paymentLockedMessage =
-    "Payment is already received. Submit this registration, or start another registration if you need to change details.";
+    "Payment proof is already uploaded. Submit this registration, or remove the proof if you need to change details.";
 
   useEffect(() => {
     const isAcknowledgementVisible = Boolean(confirmation && acknowledgementOpen);
@@ -331,13 +165,18 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   function resetPaymentState() {
-    setCheckoutState(null);
+    setPaymentReference("");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentScreenshot(null);
+    setPaymentUploadToken("");
     setPaymentMessage("");
     setSubmitError("");
     setErrors((current) => {
       const next = { ...current };
       delete next.payment;
-      delete next.cashfreeOrderId;
+      delete next.transactionId;
+      delete next.paymentDate;
+      delete next.paymentUploadToken;
       return next;
     });
   }
@@ -435,8 +274,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     }
 
     if (step === 3) {
-      if (!checkoutState) {
-        nextErrors.payment = "Complete the Cashfree payment to continue.";
+      if (!paymentReference.trim()) {
+        nextErrors.transactionId = "Payment reference is required.";
+      }
+      if (!paymentDate) {
+        nextErrors.paymentDate = "Payment date is required.";
+      }
+      if (!paymentUploadToken) {
+        nextErrors.paymentUploadToken = "Upload the payment screenshot to continue.";
       }
       if (!consentGiven) {
         nextErrors.consentGiven = "Please confirm the privacy note to continue.";
@@ -449,7 +294,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
         eventCode,
         teamName,
         teamSize,
-        cashfreeOrderId: checkoutState?.orderId ?? "",
+        transactionId: paymentReference,
+        paymentDate,
+        paymentUploadToken,
         consentGiven,
         participants
       });
@@ -489,62 +336,47 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     setStep(nextStepIndex);
   }
 
-  function handleStartPayment() {
-    if (paymentProcessing) {
-      return;
-    }
-
-    if (checkoutState) {
-      setPaymentMessage("Payment is already received. Continue to review and submit your registration.");
-      return;
-    }
-
-    const nextErrors: Record<string, string> = {};
-    if (!consentGiven) {
-      nextErrors.consentGiven = "Please confirm the privacy note to continue.";
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors((current) => ({ ...current, ...nextErrors }));
-      return;
-    }
-
-    setPaymentProcessing(true);
+  async function handlePaymentScreenshotChange(file: File | null) {
+    setPaymentScreenshot(file);
+    setPaymentUploadToken("");
     setPaymentMessage("");
     setSubmitError("");
-
-    startTransition(() => {
-      void (async () => {
-        try {
-          await loadCashfreeScript();
-          const order = await createRegistrationPaymentOrder({
-            eventCode,
-            teamName: currentEvent.maxTeamSize > 1 ? teamName.trim() : "",
-            teamSize,
-            participants,
-            idempotencyKey
-          });
-          const nextCheckoutState = await openCashfreeCheckout(order);
-          setCheckoutState(nextCheckoutState);
-          setPaymentMessage("Payment received. Review your details and submit the registration.");
-          setErrors((current) => {
-            const next = { ...current };
-            delete next.payment;
-            delete next.consentGiven;
-            return next;
-          });
-        } catch (error) {
-          if (error instanceof ApiError) {
-            setErrors((current) => ({ ...current, ...error.fieldErrors }));
-            setSubmitError(getReadableUiError(error, "Unable to start secure payment right now. Please try again."));
-          } else {
-            setSubmitError(getReadableUiError(error, "Unable to start secure payment right now. Please try again."));
-          }
-        } finally {
-          setPaymentProcessing(false);
-        }
-      })();
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.payment;
+      delete next.paymentUploadToken;
+      return next;
     });
+
+    if (!file) {
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((current) => ({
+        ...current,
+        paymentUploadToken: "The selected file is too large. Please choose a file under 5 MB."
+      }));
+      return;
+    }
+
+    setUploadingScreenshot(true);
+    try {
+      const uploadToken = await uploadScreenshot(file);
+      setPaymentUploadToken(uploadToken);
+      setPaymentMessage("Payment screenshot uploaded. The organizers will verify it manually.");
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.payment;
+        delete next.paymentUploadToken;
+        return next;
+      });
+    } catch (error) {
+      setPaymentScreenshot(null);
+      setSubmitError(getReadableUiError(error, "We couldn't upload that screenshot. Please try again."));
+    } finally {
+      setUploadingScreenshot(false);
+    }
   }
 
   function handleSubmit() {
@@ -557,15 +389,17 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     startTransition(() => {
       void (async () => {
         try {
-          if (!checkoutState) {
-            throw new Error("Complete the Cashfree payment before submitting.");
+          if (!paymentUploadToken) {
+            throw new Error("Upload the payment screenshot before submitting.");
           }
 
           const response = await submitRegistration({
             eventCode,
             teamName: currentEvent.maxTeamSize > 1 ? teamName : "",
             teamSize,
-            cashfreeOrderId: checkoutState.orderId,
+            transactionId: paymentReference.trim(),
+            paymentDate,
+            paymentUploadToken,
             consentGiven,
             participants,
             idempotencyKey
@@ -635,7 +469,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                     <div className="ack-document-meta">
                       <span>Generated on</span>
-                      <strong>{formatDisplayDate(confirmation.paymentDate || checkoutState?.paidAt || new Date().toISOString())}</strong>
+                      <strong>{formatDisplayDate(confirmation.paymentDate || new Date().toISOString())}</strong>
                       <span>Official acknowledgement</span>
                     </div>
                   </header>
@@ -760,7 +594,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           </tr>
                           <tr>
                             <th>Payment reference</th>
-                            <td>{confirmation.paymentReference || checkoutState?.orderId || "Pending"}</td>
+                            <td>{confirmation.paymentReference || "Pending"}</td>
                           </tr>
                           <tr>
                             <th>Payment status</th>
@@ -1081,47 +915,105 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
               {step === 3 ? (
                 <section className="wizard-stage wizard-payment-stage">
-                  <GlassPanel className="payment-info-panel" tone="soft">
-                    <div className="summary-row">
-                      <span>Amount to pay</span>
-                      <strong>Rs. {totalAmount}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Payment method</span>
-                      <strong>Cashfree - UPI / Cards / Net Banking</strong>
-                    </div>
-                  </GlassPanel>
+                  <div className="payment-stage">
+                    <GlassPanel className="payment-qr-card" tone="soft">
+                      <div className="payment-card-head">
+                        <span className="section-eyebrow">Scan & Pay</span>
+                        <h3>Pay Rs. {totalAmount}</h3>
+                      </div>
 
-                  {!checkoutState ? (
-                    <div className="payment-action-area">
+                      {siteConfig.paymentScannerImage ? (
+                        <div className="payment-scanner-frame">
+                          <img src={siteConfig.paymentScannerImage} alt="Payment scanner" />
+                        </div>
+                      ) : (
+                        <div className="qr-placeholder" aria-label="Default payment scanner placeholder">
+                          <span className="qr-grid-mark" />
+                          <span className="qr-grid-mark" />
+                          <span className="qr-grid-mark" />
+                          <strong>Payment Scanner</strong>
+                          <small>Scan, pay the exact amount, and upload the proof.</small>
+                        </div>
+                      )}
+
+                      <div className="summary-row">
+                        <span>Payee</span>
+                        <strong>{siteConfig.paymentReceiverName}</strong>
+                      </div>
+                      <div className="summary-row">
+                        <span>Verification</span>
+                        <strong>Manual admin check</strong>
+                      </div>
+                    </GlassPanel>
+
+                    <GlassPanel className="payment-info-panel" tone="soft">
+                      <div className="summary-row">
+                        <span>Payment method</span>
+                        <strong>Scan the code and upload proof</strong>
+                      </div>
+
+                      <div className="form-grid two">
+                        <div className="field">
+                          <label htmlFor="paymentReference">UPI / transaction reference</label>
+                          <input
+                            id="paymentReference"
+                            value={paymentReference}
+                            onChange={(event) => {
+                              setPaymentReference(event.target.value);
+                              setErrors((current) => ({ ...current, transactionId: "" }));
+                            }}
+                            placeholder="Enter transaction ID"
+                            maxLength={100}
+                          />
+                          {errors.transactionId ? <div className="error">{errors.transactionId}</div> : null}
+                        </div>
+
+                        <div className="field">
+                          <label htmlFor="paymentDate">Payment date</label>
+                          <input
+                            id="paymentDate"
+                            type="date"
+                            value={paymentDate}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={(event) => {
+                              setPaymentDate(event.target.value);
+                              setErrors((current) => ({ ...current, paymentDate: "" }));
+                            }}
+                          />
+                          {errors.paymentDate ? <div className="error">{errors.paymentDate}</div> : null}
+                        </div>
+                      </div>
+
+                      <UploadDropzone
+                        file={paymentScreenshot}
+                        onFileChange={(file) => void handlePaymentScreenshotChange(file)}
+                        error={errors.paymentUploadToken}
+                      />
+
                       <label className="consent-row">
                         <input
                           type="checkbox"
                           checked={consentGiven}
-                          onChange={(event) => setConsentGiven(event.target.checked)}
+                          onChange={(event) => {
+                            setConsentGiven(event.target.checked);
+                            setErrors((current) => ({ ...current, consentGiven: "" }));
+                          }}
                         />
                         <span>
-                          I confirm my details are correct and I consent to the processing of my registration.
+                          I confirm my details are correct and I consent to manual verification of my registration.
                         </span>
                       </label>
                       {errors.consentGiven ? <div className="error">{errors.consentGiven}</div> : null}
 
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={handleStartPayment}
-                        disabled={paymentProcessing || !consentGiven}
-                      >
-                        {paymentProcessing ? "Opening payment..." : "Pay Rs. " + totalAmount}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="payment-success-area">
-                      <SuccessAnimation registrationCode={confirmation?.registrationCode ?? "CP26-PENDING"} />
-                      <p className="payment-success-text">Payment received successfully!</p>
-                      <p className="helper">Order ID: {checkoutState.orderId}</p>
-                    </div>
-                  )}
+                      {uploadingScreenshot ? <div className="helper">Uploading payment screenshot...</div> : null}
+                      {paymentUploadToken ? (
+                        <div className="payment-success-area">
+                          <p className="payment-success-text">Payment proof uploaded successfully.</p>
+                          <p className="helper">Submit the registration so the organizers can verify it.</p>
+                        </div>
+                      ) : null}
+                    </GlassPanel>
+                  </div>
 
                   {errors.payment ? <div className="error">{errors.payment}</div> : null}
                   {paymentMessage ? <div className="helper">{paymentMessage}</div> : null}
@@ -1151,11 +1043,15 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                       </div>
                       <div className="review-row">
                         <span>Payment</span>
-                        <strong>Paid via Cashfree</strong>
+                        <strong>Manual proof uploaded</strong>
                       </div>
                       <div className="review-row">
-                        <span>Order ID</span>
-                        <strong className="review-break-all">{checkoutState?.orderId}</strong>
+                        <span>Reference ID</span>
+                        <strong className="review-break-all">{paymentReference}</strong>
+                      </div>
+                      <div className="review-row">
+                        <span>Payment status</span>
+                        <strong>Pending manual verification</strong>
                       </div>
                     </div>
                   </GlassPanel>
@@ -1189,7 +1085,8 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                         Your registration code is <strong>{confirmation.registrationCode}</strong>.
                       </p>
                       <p>
-                        Payment status: <strong>{formatStatusLabel(confirmation.paymentStatus)}</strong>
+                        Payment status: <strong>{formatStatusLabel(confirmation.paymentStatus)}</strong>. The
+                        confirmation email will be sent after organizer verification.
                       </p>
                       <div className="confirmation-actions">
                         <Button type="button" variant="primary" onClick={handleDownloadPdf}>
@@ -1214,8 +1111,8 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                 </Button>
               ) : null}
               {step < 4 ? (
-                <Button type="button" variant="primary" onClick={nextStep}>
-                  Continue
+                <Button type="button" variant="primary" onClick={nextStep} disabled={uploadingScreenshot}>
+                  {uploadingScreenshot ? "Uploading..." : "Continue"}
                 </Button>
               ) : (
                 <Button type="button" variant="accent" onClick={handleSubmit} disabled={submitting}>

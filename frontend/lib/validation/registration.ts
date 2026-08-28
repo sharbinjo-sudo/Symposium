@@ -3,7 +3,6 @@ import type { EventConfig } from "@/lib/types";
 
 const fullNamePattern = /^(?!.*@)(?!.*\d)[A-Za-z]+(?:[ .'-][A-Za-z]+)*$/;
 const indianMobileHint = "Enter a valid Indian mobile number, like +91XXXXXXXXXX.";
-const cashfreeOrderIdPattern = /^[A-Za-z0-9_-]{3,45}$/;
 
 function isValidIndianMobile(value: string) {
   const compactValue = value.replace(/[()\s-]+/g, "");
@@ -71,11 +70,13 @@ export function createRegistrationSchema(event: EventConfig | undefined) {
       .int()
       .min(event?.minTeamSize ?? 1)
       .max(event?.maxTeamSize ?? 2),
-    cashfreeOrderId: z
+    transactionId: z
       .string()
       .trim()
-      .min(1, "Cashfree order ID is required.")
-      .regex(cashfreeOrderIdPattern, "Enter a valid Cashfree order ID."),
+      .min(2, "Payment reference is required.")
+      .max(100, "Payment reference is too long."),
+    paymentDate: z.string().trim().min(1, "Payment date is required."),
+    paymentUploadToken: z.string().trim().min(1, "Payment screenshot is required."),
     consentGiven: z.literal(true, {
       errorMap: () => ({ message: "Please confirm the privacy note to continue." })
     }),

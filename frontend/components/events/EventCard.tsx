@@ -3,18 +3,69 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { WaterRippleCard } from "@/components/ui/WaterRippleCard";
 import { cn } from "@/lib/cn";
 import { formatTeamRange } from "@/lib/format";
 import type { EventConfig } from "@/lib/types";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 type EventCardProps = {
   event: EventConfig;
+  showRegister?: boolean;
+  showImportantNotes?: boolean;
+  showTags?: boolean;
 };
 
 function renderGraphic(event: EventConfig) {
+  if (event.code === "EC") {
+    return (
+      <div className="event-graphic event-graphic-expression" aria-hidden="true">
+        <span className="expression-stage" />
+        <span className="expression-actor" />
+        <span className="expression-guesser" />
+        <span className="expression-gesture expression-gesture-one" />
+        <span className="expression-gesture expression-gesture-two" />
+      </div>
+    );
+  }
+
+  if (event.code === "MQ") {
+    return (
+      <div className="event-graphic event-graphic-mystery" aria-hidden="true">
+        <span className="mystery-card mystery-card-one" />
+        <span className="mystery-card mystery-card-two" />
+        <span className="mystery-line mystery-line-one" />
+        <span className="mystery-line mystery-line-two" />
+        <span className="mystery-question">?</span>
+      </div>
+    );
+  }
+
+  if (event.code === "CC") {
+    return (
+      <div className="event-graphic event-graphic-connect" aria-hidden="true">
+        <span className="connect-tile connect-tile-one" />
+        <span className="connect-tile connect-tile-two" />
+        <span className="connect-tile connect-tile-three" />
+        <span className="connect-thread connect-thread-one" />
+        <span className="connect-thread connect-thread-two" />
+      </div>
+    );
+  }
+
+  if (event.code === "VI") {
+    return (
+      <div className="event-graphic event-graphic-visual" aria-hidden="true">
+        <span className="visual-frame" />
+        <span className="visual-sun" />
+        <span className="visual-mountain visual-mountain-one" />
+        <span className="visual-mountain visual-mountain-two" />
+        <span className="visual-story-line" />
+      </div>
+    );
+  }
+
   if (event.code === "PP") {
     return (
       <div className="event-graphic event-graphic-paper" aria-hidden="true">
@@ -66,9 +117,14 @@ function renderGraphic(event: EventConfig) {
   );
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, showRegister = true, showImportantNotes = true, showTags = true }: EventCardProps) {
   const [open, setOpen] = useState(false);
-  const leadNote = event.importantNotes[0];
+  const leadNote = showImportantNotes ? event.importantNotes[0] : undefined;
+  const statusLabel = showRegister
+    ? event.registrationOpen
+      ? "Registration Open"
+      : "Registration Closed"
+    : "Offline Entry";
 
   return (
     <WaterRippleCard className={cn("event-card", `event-card-${event.code.toLowerCase()}`)} accent={event.accent}>
@@ -76,11 +132,9 @@ export function EventCard({ event }: EventCardProps) {
         <div className="event-card-topline">
           <div className="event-card-labels">
             <span className="event-card-number">0{event.order}</span>
-            <span className="event-card-track">Technical Event</span>
+            <span className="event-card-track">{event.track} Event</span>
           </div>
-          <StatusChip tone={event.registrationOpen ? "verified" : "pending"}>
-            {event.registrationOpen ? "Registration Open" : "Registration Closed"}
-          </StatusChip>
+          <StatusChip tone={event.registrationOpen ? "verified" : "pending"}>{statusLabel}</StatusChip>
         </div>
 
         <div className="event-card-main">
@@ -107,15 +161,17 @@ export function EventCard({ event }: EventCardProps) {
           </div>
         ) : null}
 
-        <div className="event-taglist">
-          {event.visualTags.map((item) => (
-            <span key={item} className="event-tag">
-              {item}
-            </span>
-          ))}
-        </div>
+        {showTags ? (
+          <div className="event-taglist">
+            {event.visualTags.map((item) => (
+              <span key={item} className="event-tag">
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="card-actions card-actions-split">
+        <div className={cn("card-actions", showRegister ? "card-actions-split" : "card-actions-single")}>
           <Button
             type="button"
             variant="secondary"
@@ -125,9 +181,11 @@ export function EventCard({ event }: EventCardProps) {
           >
             {open ? "Hide Rules" : "View Rules"}
           </Button>
-          <ButtonLink href={`/registration?event=${encodeURIComponent(event.code)}`} variant="primary" magnetic>
-            Register
-          </ButtonLink>
+          {showRegister ? (
+            <ButtonLink href={`/registration?event=${encodeURIComponent(event.code)}`} variant="primary" magnetic>
+              Register
+            </ButtonLink>
+          ) : null}
         </div>
 
         <AnimatePresence initial={false}>
@@ -140,7 +198,7 @@ export function EventCard({ event }: EventCardProps) {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="rules-panel">
+              <div className={cn("rules-panel", !showImportantNotes && "rules-panel-single")}>
                 <div className="rules-column">
                   <h4>Rules</h4>
                   <ol className="rule-list numbered">
@@ -149,17 +207,19 @@ export function EventCard({ event }: EventCardProps) {
                     ))}
                   </ol>
                 </div>
-                <div className="rules-column">
-                  <h4>Important notes</h4>
-                  <div className="note-stack">
-                    {event.importantNotes.map((note) => (
-                      <div key={note.title} className={cn("note-card", `note-card-${note.tone}`)}>
-                        <strong>{note.title}</strong>
-                        <p>{note.description}</p>
-                      </div>
-                    ))}
+                {showImportantNotes ? (
+                  <div className="rules-column">
+                    <h4>Important notes</h4>
+                    <div className="note-stack">
+                      {event.importantNotes.map((note) => (
+                        <div key={note.title} className={cn("note-card", `note-card-${note.tone}`)}>
+                          <strong>{note.title}</strong>
+                          <p>{note.description}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
             </motion.div>
           ) : null}

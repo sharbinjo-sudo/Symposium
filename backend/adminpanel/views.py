@@ -263,6 +263,15 @@ class AdminRegistrationCreateView(APIView):
     )
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
+    payment_status = data.get("paymentStatus", Registration.PAYMENT_VERIFIED)
+
+    if data.get("sendEmail", False) and payment_status != Registration.PAYMENT_VERIFIED:
+      return apply_no_store(
+        Response(
+          {"detail": "Verify the payment before sending the confirmation email."},
+          status=status.HTTP_400_BAD_REQUEST
+        )
+      )
 
     try:
       registration = create_registration(
@@ -270,11 +279,9 @@ class AdminRegistrationCreateView(APIView):
           **data,
           "normalized_transaction_id": normalize_transaction_id(data["transactionId"]),
           "payment_provider": data.get("paymentProvider", Registration.PAYMENT_PROVIDER_MANUAL),
-          "payment_order_id": "",
-          "payment_signature": "",
           "payment_date": data["paymentDate"],
           "payment_screenshot_path": "",
-          "payment_status": data.get("paymentStatus", Registration.PAYMENT_VERIFIED),
+          "payment_status": payment_status,
           "consentGiven": True
         }
       )
@@ -282,7 +289,7 @@ class AdminRegistrationCreateView(APIView):
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
 
     registration.admin_note = data.get("adminNote", "").strip() or None
-    if data.get("sendEmail", True):
+    if data.get("sendEmail", False):
       registration.email_status = Registration.EMAIL_SENT if send_registration_notifications(registration) else Registration.EMAIL_FAILED
     registration.save(update_fields=["admin_note", "email_status", "updated_at"])
 
@@ -294,7 +301,7 @@ class AdminRegistrationCreateView(APIView):
       metadata={
         "eventCode": data["eventCode"],
         "teamSize": data["teamSize"],
-        "paymentStatus": data.get("paymentStatus", Registration.PAYMENT_VERIFIED)
+        "paymentStatus": payment_status
       }
     )
 
@@ -347,6 +354,14 @@ class AdminResendEmailView(APIView):
     except Registration.DoesNotExist:
       return apply_no_store(Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND))
 
+    if registration.payment_status != Registration.PAYMENT_VERIFIED:
+      return apply_no_store(
+        Response(
+          {"detail": "Verify the payment before sending the confirmation email."},
+          status=status.HTTP_400_BAD_REQUEST
+        )
+      )
+
     sent = send_registration_notifications(registration)
     registration.email_status = Registration.EMAIL_SENT if sent else Registration.EMAIL_FAILED
     registration.save(update_fields=["email_status", "updated_at"])
@@ -379,8 +394,6 @@ class AdminRegistrationExportView(APIView):
       "Amount",
       "Transaction ID",
       "Payment Provider",
-      "Cashfree Order ID",
-      "Gateway Verified",
       "Payment Status",
       "Email Status",
       "Created At"
@@ -399,12 +412,6 @@ class AdminRegistrationExportView(APIView):
           registration.total_amount,
           registration.transaction_id,
           registration.payment_provider,
-          registration.payment_order_id,
-          "Yes" if (
-            registration.payment_provider == Registration.PAYMENT_PROVIDER_CASHFREE
-            and registration.payment_order_id
-            and registration.payment_signature
-          ) else "No",
           registration.payment_status,
           registration.email_status,
           registration.created_at.isoformat()

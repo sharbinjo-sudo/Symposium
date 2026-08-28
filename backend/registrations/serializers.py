@@ -7,12 +7,10 @@ import re
 from events.models import Event
 
 from .models import Participant, Registration
-from .services import compute_total_amount
+from .services import compute_total_amount, normalize_transaction_id, resolve_upload_token
 
 FULL_NAME_ERROR = "Enter a valid name without numbers, phone numbers, or email addresses."
 INDIAN_MOBILE_ERROR = "Enter a valid Indian mobile number, like +91XXXXXXXXXX."
-# Cashfree order IDs: alphanumeric, hyphens, underscores, 3-45 chars
-CASHFREE_ORDER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,45}$")
 
 
 class ParticipantInputSerializer(serializers.Serializer):
@@ -142,27 +140,44 @@ class RegistrationBaseSerializer(serializers.Serializer):
     return attrs
 
 
-class RegistrationPaymentOrderSerializer(RegistrationBaseSerializer):
-  pass
-
-
 class RegistrationSubmitSerializer(RegistrationBaseSerializer):
-  cashfreeOrderId = serializers.CharField(max_length=100)
+  transactionId = serializers.CharField(max_length=100)
+  paymentDate = serializers.DateField(required=False)
+  paymentUploadToken = serializers.CharField(max_length=700)
   consentGiven = serializers.BooleanField()
 
-  def validate_cashfreeOrderId(self, value: str) -> str:
+  def validate_transactionId(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
-      raise serializers.ValidationError("Cashfree order ID is required.")
-    if not CASHFREE_ORDER_ID_PATTERN.fullmatch(trimmed_value):
-      raise serializers.ValidationError("Enter a valid Cashfree order ID.")
+      raise serializers.ValidationError("Payment reference is required.")
     return trimmed_value
+
+  def validate_paymentDate(self, value):
+    if value > timezone.localdate():
+      raise serializers.ValidationError("Payment date cannot be in the future.")
+    return value
+
+  def validate_paymentUploadToken(self, value: str) -> str:
+    trimmed_value = value.strip()
+    if not trimmed_value:
+      raise serializers.ValidationError("Payment screenshot is required.")
+
+    try:
+      return resolve_upload_token(trimmed_value)
+    except ValueError as exc:
+      raise serializers.ValidationError(str(exc)) from exc
 
   def validate(self, attrs):
     attrs = super().validate(attrs)
 
     if not attrs["consentGiven"]:
       raise serializers.ValidationError({"consentGiven": "Consent is required."})
+
+    attrs["normalized_transaction_id"] = normalize_transaction_id(attrs["transactionId"])
+    attrs["payment_provider"] = Registration.PAYMENT_PROVIDER_MANUAL
+    attrs["payment_date"] = attrs.get("paymentDate") or timezone.localdate()
+    attrs["payment_screenshot_path"] = attrs["paymentUploadToken"]
+    attrs["payment_status"] = Registration.PAYMENT_PENDING
 
     return attrs
 
@@ -200,7 +215,7 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
   )
   paymentDate = serializers.DateField()
   adminNote = serializers.CharField(required=False, allow_blank=True, max_length=1000)
-  sendEmail = serializers.BooleanField(required=False, default=True)
+  sendEmail = serializers.BooleanField(required=False, default=False)
 
   def validate_transactionId(self, value: str) -> str:
     trimmed_value = value.strip()
@@ -209,8 +224,6 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
     return trimmed_value
 
   def validate_paymentProvider(self, value: str) -> str:
-    if value == Registration.PAYMENT_PROVIDER_CASHFREE:
-      raise serializers.ValidationError("Cashfree records must be created through checkout verification.")
     return value
 
   def validate_paymentDate(self, value):
@@ -309,14 +322,12 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   participantFoodPreferences = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
   leadParticipantEmail = serializers.SerializerMethodField()
-  gatewayVerified = serializers.SerializerMethodField()
   registrationCode = serializers.CharField(source="registration_code")
   eventName = serializers.CharField(source="event.event_name")
   teamName = serializers.CharField(source="team_name", allow_null=True, required=False)
   teamSize = serializers.IntegerField(source="team_size")
   amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
   transactionId = serializers.CharField(source="transaction_id")
-  paymentOrderId = serializers.CharField(source="payment_order_id")
   paymentStatus = serializers.CharField(source="payment_status")
   paymentProvider = serializers.CharField(source="payment_provider")
   paymentDate = serializers.DateField(source="payment_date", format="%Y-%m-%d")
@@ -347,13 +358,6 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   def get_screenshotAvailable(self, obj):
     return bool(obj.payment_screenshot_path)
 
-  def get_gatewayVerified(self, obj):
-    return bool(
-      obj.payment_provider == Registration.PAYMENT_PROVIDER_CASHFREE
-      and obj.payment_order_id
-      and obj.transaction_id
-    )
-
   class Meta:
     model = Registration
     fields = [
@@ -367,10 +371,8 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
       "teamSize",
       "amountPaid",
       "transactionId",
-      "paymentOrderId",
       "paymentStatus",
       "paymentProvider",
-      "gatewayVerified",
       "paymentDate",
       "registrationStatus",
       "emailStatus",

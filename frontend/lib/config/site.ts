@@ -22,6 +22,8 @@ export const siteConfig: SiteConfig = {
     { label: "Event Contact", value: "8056591486" },
     { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
   ],
+  paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
+  paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "CYBERPUNK'26 Registration",
   highlights: [
     "National-level technical symposium hosted by the Department of AI & DS",
     "Open to all engineering students",
@@ -31,7 +33,7 @@ export const siteConfig: SiteConfig = {
   ],
   heroStats: [
     { value: "04", label: "Technical events" },
-    { value: "03", label: "Non-technical events" },
+    { value: "04", label: "Non-technical events" },
     { value: "250", label: "Registration fee" }
   ],
   technicalEvents: [
@@ -52,9 +54,14 @@ export const siteConfig: SiteConfig = {
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Solo participation is supported.",
-        "Bring a concise slide deck and a focused abstract or topic note.",
-        "Judging weighs originality, delivery, and practical relevance."
+        "This is a solo event. Each participant must register individually for Paper Presentation.",
+        "Participants should prepare a clear slide deck based on a technical idea, project, research concept, or innovation.",
+        "The presentation must be concise and should cover the problem statement, proposed solution, methodology, outcome, and practical relevance.",
+        "Participants must carry the final presentation file on a pen drive and should also keep a backup copy in email or cloud storage.",
+        "Each participant will be given a fixed presentation slot followed by questions from the judging panel.",
+        "Judging will be based on originality, technical depth, presentation clarity, confidence, time management, and relevance of the topic.",
+        "Content copied directly from online sources without proper understanding may lead to score reduction.",
+        "Participants must report to the event venue before the allotted time and follow the instructions given by the coordinators."
       ],
       importantNotes: [
         {
@@ -86,9 +93,14 @@ export const siteConfig: SiteConfig = {
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Solo entries and 2-member teams are allowed.",
-        "Languages and platform instructions are shared on event day.",
-        "Any external assistance leads to disqualification."
+        "Solo entries and teams of 2 members are allowed.",
+        "The event will include programming, debugging, logic-building, and problem-solving challenges.",
+        "Programming languages, platform details, input-output format, and submission instructions will be shared by the coordinators on event day.",
+        "Participants must complete each challenge within the announced time limit.",
+        "Solutions will be evaluated based on correctness, efficiency, logic, code clarity, and successful execution.",
+        "Use of phones, internet search, AI tools, external devices, or outside collaboration is strictly prohibited during the contest.",
+        "Any form of malpractice, sharing answers, or copying code from another participant or team will lead to disqualification.",
+        "The final score may consider solved problems, test-case success, execution time, and tie-breaker criteria announced by the organizers."
       ],
       importantNotes: [
         {
@@ -120,9 +132,14 @@ export const siteConfig: SiteConfig = {
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "One or two participants per team.",
-        "Judging covers UI quality, responsiveness, and completeness.",
-        "Teams must present their final output to the panel."
+        "Solo participants and teams of 2 members are allowed.",
+        "Participants will be given a web development task, theme, or problem statement during the event.",
+        "The final output should be functional, readable, responsive, and aligned with the given task.",
+        "Teams may use standard frontend technologies and tools permitted by the coordinators on event day.",
+        "The interface should work properly on common screen sizes and should avoid broken layouts, unreadable text, and incomplete navigation.",
+        "Judging will cover UI quality, responsiveness, usability, creativity, completeness, code organization, and presentation of the final output.",
+        "Participants must be ready to demonstrate the working project and explain their design and implementation decisions to the panel.",
+        "Submissions made after the announced deadline may not be considered for evaluation."
       ],
       importantNotes: [
         {
@@ -154,9 +171,14 @@ export const siteConfig: SiteConfig = {
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Use charts intentionally and explain your decisions.",
-        "Submission quality matters as much as accuracy.",
-        "Teams must stay within the announced participant limit for the event."
+        "Solo participants and teams of 2 members are allowed.",
+        "Participants will work with a dataset, prompt, or analytics scenario provided during the event.",
+        "The goal is to convert raw information into meaningful visual insights using charts, dashboards, summaries, or visual stories.",
+        "Charts must be selected intentionally and should match the type of data and insight being communicated.",
+        "Participants should avoid overcrowded dashboards and should focus on clarity, accuracy, and a strong insight flow.",
+        "Judging will be based on data understanding, visual clarity, correctness, storytelling, design choices, and explanation of the final output.",
+        "Teams must be able to explain why they chose specific charts, metrics, filters, or visual structures.",
+        "Any misleading representation of data, unsupported conclusions, or external assistance during restricted time may affect scoring."
       ],
       importantNotes: [
         {
@@ -175,16 +197,168 @@ export const siteConfig: SiteConfig = {
   ],
   nonTechnicalEvents: [
     {
-      name: "Guess the Lyrics",
-      summary: "A lively music-based stage event where participants identify songs from lyric clues and quick prompts."
+      order: 1,
+      code: "EC",
+      name: "Expression Challenge",
+      track: "Non-Technical",
+      summary: "A silent acting and guessing stage event for coordinated two-member teams.",
+      description:
+        "One teammate acts out a song title, movie name, famous dialogue, personality, or topic using only body language while the other guesses within the time limit.",
+      visualTitle: "Stage gestures and quick guesses",
+      accent: "blue-violet",
+      visualTags: ["Silent acting", "Fast guesses", "Team coordination"],
+      minTeamSize: 2,
+      maxTeamSize: 2,
+      feeType: "per_team",
+      feeAmount: 0,
+      prizes: [],
+      rules: [
+        "Exactly 2 members per team: one actor and one guesser.",
+        "Strictly no speaking, lip-syncing, mouthing words, spelling, letter gestures, or direct clues.",
+        "Each round has a fixed time limit.",
+        "Teams earn points for every correct answer.",
+        "Winners are decided by the highest correct answers in the shortest time."
+      ],
+      importantNotes: [
+        {
+          tone: "prohibited",
+          title: "No direct clues",
+          description: "Actors must use only body language. Speech, lip movement, spelling, and letter hints are not allowed."
+        },
+        {
+          tone: "required",
+          title: "Two-member team",
+          description: "Each team must have one actor and one guesser."
+        }
+      ],
+      registrationOpen: false
     },
     {
-      name: "Bioscope",
-      summary: "A cinema-inspired campus activity built around visual clues, quick recognition, and audience energy."
+      order: 2,
+      code: "MQ",
+      name: "Mystery Quest",
+      track: "Non-Technical",
+      summary: "Decode words through sketching and one-word clues across two quick rounds.",
+      description:
+        "Teams use creativity, communication, quick thinking, and teamwork to solve visual and verbal clue challenges under pressure.",
+      visualTitle: "Clue cards and hidden answers",
+      accent: "cyan-blue",
+      visualTags: ["Sketch Sprint", "Clue Cascade", "Team decoding"],
+      minTeamSize: 2,
+      maxTeamSize: 2,
+      feeType: "per_team",
+      feeAmount: 0,
+      prizes: [],
+      rules: [
+        "Each team has 2 members: one clue-giver and one guesser. Roles may switch between rounds.",
+        "Round 1, Sketch Sprint: one member draws the given word while the other guesses.",
+        "Sketch Sprint allows 60 seconds per word with multiple attempts.",
+        "Sketch Sprint is drawing only. Speaking, letters, numbers, and symbols are not allowed.",
+        "Round 2, Clue Cascade: one member gives one-word verbal clues for the secret word.",
+        "Clue Cascade allows 60 seconds per team.",
+        "No gestures, spelling, rhyming, direct translations, or parts of the answer are allowed.",
+        "Invalid clues skip the word and score 0 points.",
+        "Each correct guess earns 10 points. There is no negative marking.",
+        "Combined scores determine winners. Ties use a tie-breaker round."
+      ],
+      importantNotes: [
+        {
+          tone: "warning",
+          title: "Two different rounds",
+          description: "Teams should be ready for both drawing-based and one-word verbal clue formats."
+        },
+        {
+          tone: "prohibited",
+          title: "No symbols or answer parts",
+          description: "Letters, numbers, symbols, rhymes, translations, and answer fragments are treated as violations."
+        }
+      ],
+      registrationOpen: false
     },
     {
-      name: "Word Battle",
-      summary: "A fast word-play challenge that tests vocabulary, presence of mind, and friendly competitive spirit."
+      order: 3,
+      code: "CC",
+      name: "Connection Challenge",
+      track: "Non-Technical",
+      summary: "Find the common word that connects multiple images shown on screen.",
+      description:
+        "An individual visual puzzle challenge where participants interpret two or more images and identify the single connecting word.",
+      visualTitle: "Linked image tiles and answer paths",
+      accent: "violet-teal",
+      visualTags: ["Visual puzzles", "Rapid Connect", "Challenge Connect"],
+      minTeamSize: 1,
+      maxTeamSize: 1,
+      feeType: "per_participant",
+      feeAmount: 0,
+      prizes: [],
+      rules: [
+        "This is an individual event.",
+        "Round 1, Rapid Connect: image-based questions are displayed to all participants.",
+        "Participants must raise their hands to answer; the first raised hand gets the opportunity.",
+        "Correct answers in Round 1 earn points and help qualify for Round 2.",
+        "Round 2, Challenge Connect: shortlisted participants answer individually.",
+        "Participants may pass if they do not know the answer.",
+        "Other participants may challenge a passed question.",
+        "Correct direct answers earn full points.",
+        "Wrong direct answers receive -1 mark.",
+        "Wrong challenger answers receive -2 marks.",
+        "Correct challenger answers earn points.",
+        "Electronic devices and external assistance are strictly prohibited.",
+        "The highest total score determines the winner."
+      ],
+      importantNotes: [
+        {
+          tone: "info",
+          title: "Individual challenge",
+          description: "Participants compete solo through rapid visual connection rounds."
+        },
+        {
+          tone: "warning",
+          title: "Challenge carefully",
+          description: "Wrong challenger answers carry a larger penalty than direct wrong answers."
+        }
+      ],
+      registrationOpen: false
+    },
+    {
+      order: 4,
+      code: "VI",
+      name: "Visual Insight",
+      track: "Non-Technical",
+      summary: "Build and present an original story from a picture under a short time limit.",
+      description:
+        "Participants observe a displayed image, craft a compelling short story, and present it with imagination, clarity, and connection to the picture.",
+      visualTitle: "Picture frame and story line",
+      accent: "teal-blue",
+      visualTags: ["Picture prompt", "Storytelling", "Creative stage"],
+      minTeamSize: 1,
+      maxTeamSize: 2,
+      feeType: "per_participant",
+      feeAmount: 0,
+      prizes: [],
+      rules: [
+        "A random image is displayed on screen for 30 seconds.",
+        "Participants get 2 to 3 minutes to construct their short story.",
+        "Each participant or team gets 1 to 2 minutes to present the story on stage.",
+        "All teams share the same image, but each must adopt a different narrative style or genre such as Mystery, Comedy, or Drama.",
+        "Stories must directly relate to the displayed image.",
+        "Presentations must strictly follow the allotted time limit.",
+        "Electronic devices and external help are prohibited during preparation.",
+        "Scoring is based on creativity, imagination, presentation, and connection to the picture."
+      ],
+      importantNotes: [
+        {
+          tone: "required",
+          title: "Stay connected to the image",
+          description: "The story should clearly grow from the displayed picture, not from an unrelated idea."
+        },
+        {
+          tone: "info",
+          title: "Genre twist",
+          description: "Teams may receive different narrative styles even when the image is the same."
+        }
+      ],
+      registrationOpen: false
     }
   ]
 };

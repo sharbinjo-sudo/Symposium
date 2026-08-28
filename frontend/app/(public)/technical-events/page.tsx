@@ -31,7 +31,7 @@ export default async function TechnicalEventsPage() {
         <div className="event-grid">
           {events.map((event) => (
             <Reveal key={event.code} delay={event.order * 0.06}>
-              <EventCard event={event} />
+              <EventCard event={event} showImportantNotes={false} />
             </Reveal>
           ))}
         </div>

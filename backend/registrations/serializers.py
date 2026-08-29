@@ -149,7 +149,9 @@ class RegistrationSubmitSerializer(RegistrationBaseSerializer):
   def validate_transactionId(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
-      raise serializers.ValidationError("Payment reference is required.")
+      raise serializers.ValidationError("UPI transaction ID is required.")
+    if not re.fullmatch(r"\d{12}", trimmed_value):
+      raise serializers.ValidationError("Enter the 12-digit UPI transaction ID.")
     return trimmed_value
 
   def validate_paymentDate(self, value):
@@ -180,6 +182,36 @@ class RegistrationSubmitSerializer(RegistrationBaseSerializer):
     attrs["payment_status"] = Registration.PAYMENT_PENDING
 
     return attrs
+
+
+class PrecheckParticipantSerializer(serializers.Serializer):
+  email = serializers.EmailField(max_length=254, required=False, allow_blank=True)
+  mobileNumber = serializers.CharField(max_length=16, required=False, allow_blank=True)
+
+  def validate_email(self, value: str) -> str:
+    return value.strip().lower()
+
+  def validate_mobileNumber(self, value: str) -> str:
+    return value.strip()
+
+
+class RegistrationPrecheckSerializer(serializers.Serializer):
+  eventCode = serializers.CharField(max_length=4, required=False, allow_blank=True)
+  teamName = serializers.CharField(max_length=100, required=False, allow_blank=True)
+  transactionId = serializers.CharField(max_length=100, required=False, allow_blank=True)
+  participants = PrecheckParticipantSerializer(many=True, required=False)
+
+  def validate_eventCode(self, value: str) -> str:
+    return value.strip().upper()
+
+  def validate_teamName(self, value: str) -> str:
+    return value.strip()
+
+  def validate_transactionId(self, value: str) -> str:
+    trimmed_value = value.strip()
+    if trimmed_value and not re.fullmatch(r"\d{12}", trimmed_value):
+      raise serializers.ValidationError("Enter the 12-digit UPI transaction ID.")
+    return trimmed_value
 
 
 class RegistrationStatusLookupSerializer(serializers.Serializer):
@@ -220,7 +252,9 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
   def validate_transactionId(self, value: str) -> str:
     trimmed_value = value.strip()
     if not trimmed_value:
-      raise serializers.ValidationError("Payment reference is required.")
+      raise serializers.ValidationError("UPI transaction ID is required.")
+    if not re.fullmatch(r"\d{12}", trimmed_value):
+      raise serializers.ValidationError("Enter the 12-digit UPI transaction ID.")
     return trimmed_value
 
   def validate_paymentProvider(self, value: str) -> str:

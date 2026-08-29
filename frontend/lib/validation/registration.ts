@@ -73,8 +73,8 @@ export function createRegistrationSchema(event: EventConfig | undefined) {
     transactionId: z
       .string()
       .trim()
-      .min(2, "Payment reference is required.")
-      .max(100, "Payment reference is too long."),
+      .min(1, "UPI transaction ID is required.")
+      .regex(/^\d{12}$/, "Enter the 12-digit UPI transaction ID."),
     paymentDate: z.string().trim().min(1, "Payment date is required."),
     paymentUploadToken: z.string().trim().min(1, "Payment screenshot is required."),
     consentGiven: z.literal(true, {

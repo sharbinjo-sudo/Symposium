@@ -8,7 +8,7 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { UploadDropzone } from "@/components/ui/UploadDropzone";
-import { ApiError, createIdempotencyKey, submitRegistration, uploadScreenshot } from "@/lib/api";
+import { ApiError, createIdempotencyKey, precheckRegistration, submitRegistration, uploadScreenshot } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
 import { formatFoodPreference, formatMemberCount, formatTeamRange } from "@/lib/format";
 import { assignWithLoading } from "@/lib/navigation-transition";
@@ -16,6 +16,11 @@ import { createRegistrationSchema, participantSchema } from "@/lib/validation/re
 import type { EventConfig, ParticipantInput, RegistrationResponse } from "@/lib/types";
 
 const steps = ["Event", "Participants", "Team", "Payment", "Review", "Confirm"];
+
+const paymentQrCards: Record<number, string> = {
+  250: "/suriya_qr_250_scan.png",
+  500: "/suriya_qr_500_scan.png"
+};
 
 function getReadableUiError(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
@@ -50,6 +55,10 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
 
 function calculateTotal(feeAmount: number, feeType: string, teamSize: number) {
   return feeType === "per_team" ? feeAmount : feeAmount * teamSize;
+}
+
+function getPaymentQrCard(totalAmount: number) {
+  return paymentQrCards[totalAmount] ?? siteConfig.paymentScannerImage;
 }
 
 function formatDisplayDate(value: string) {
@@ -114,6 +123,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<RegistrationResponse | null>(null);
   const [acknowledgementOpen, setAcknowledgementOpen] = useState(false);
@@ -124,6 +134,8 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const currentEvent = availableEvents.find((item) => item.code === eventCode) ?? availableEvents[0];
 
   const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
+  const paymentQrCard = getPaymentQrCard(totalAmount);
+  const paymentQrLabel = totalAmount === 500 ? "Team payment QR" : totalAmount === 250 ? "Solo payment QR" : "Payment QR";
   const registrationFeeLabel =
     currentEvent.feeType === "per_team" ? `₹${currentEvent.feeAmount} per team` : `₹${currentEvent.feeAmount} per member`;
   const billingModeLabel = currentEvent.feeType === "per_team" ? "Per team" : "Per member";
@@ -207,6 +219,12 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
         participantIndex === index ? { ...participant, [field]: value } : participant
       )
     );
+    setSubmitError("");
+    setErrors((current) => {
+      const next = { ...current };
+      delete next[`participant-${index}-${field}`];
+      return next;
+    });
   }
 
   function validateStep() {
@@ -275,7 +293,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
     if (step === 3) {
       if (!paymentReference.trim()) {
-        nextErrors.transactionId = "Payment reference is required.";
+        nextErrors.transactionId = "UPI transaction ID is required.";
+      } else if (!/^\d{12}$/.test(paymentReference.trim())) {
+        nextErrors.transactionId = "Enter the 12-digit UPI transaction ID.";
       }
       if (!paymentDate) {
         nextErrors.paymentDate = "Payment date is required.";
@@ -312,10 +332,70 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     return Object.keys(nextErrors).length === 0;
   }
 
-  function nextStep() {
+  async function runDuplicatePrecheck() {
+    try {
+      if (step === 1) {
+        await precheckRegistration({
+          participants: participants.map((participant) => ({
+            email: participant.email,
+            mobileNumber: participant.mobileNumber
+          }))
+        });
+      }
+
+      if (step === 2 && currentEvent.maxTeamSize > 1) {
+        await precheckRegistration({
+          eventCode,
+          teamName
+        });
+      }
+
+      if (step === 3) {
+        await precheckRegistration({
+          transactionId: paymentReference.trim()
+        });
+      }
+
+      if (step === 4) {
+        await precheckRegistration({
+          eventCode,
+          teamName: currentEvent.maxTeamSize > 1 ? teamName : "",
+          transactionId: paymentReference.trim(),
+          participants: participants.map((participant) => ({
+            email: participant.email,
+            mobileNumber: participant.mobileNumber
+          }))
+        });
+      }
+
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrors((current) => ({ ...current, ...error.fieldErrors }));
+        setSubmitError(getReadableUiError(error, "Please fix the duplicate details before continuing."));
+      } else {
+        setSubmitError(getReadableUiError(error, "We couldn't check duplicate details right now. Please try again."));
+      }
+
+      return false;
+    }
+  }
+
+  async function nextStep() {
     if (!validateStep()) {
       return;
     }
+
+    setCheckingDuplicates(true);
+    setSubmitError("");
+    try {
+      if (!(await runDuplicatePrecheck())) {
+        return;
+      }
+    } finally {
+      setCheckingDuplicates(false);
+    }
+
     setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
@@ -391,6 +471,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
         try {
           if (!paymentUploadToken) {
             throw new Error("Upload the payment screenshot before submitting.");
+          }
+
+          if (!(await runDuplicatePrecheck())) {
+            return;
           }
 
           const response = await submitRegistration({
@@ -922,9 +1006,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                         <h3>Pay Rs. {totalAmount}</h3>
                       </div>
 
-                      {siteConfig.paymentScannerImage ? (
+                      {paymentQrCard ? (
                         <div className="payment-scanner-frame">
-                          <img src={siteConfig.paymentScannerImage} alt="Payment scanner" />
+                          <img src={paymentQrCard} alt={`${paymentQrLabel} for Rs. ${totalAmount}`} />
                         </div>
                       ) : (
                         <div className="qr-placeholder" aria-label="Default payment scanner placeholder">
@@ -954,16 +1038,19 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                       <div className="form-grid two">
                         <div className="field">
-                          <label htmlFor="paymentReference">UPI / transaction reference</label>
+                          <label htmlFor="paymentReference">UPI transaction ID</label>
                           <input
                             id="paymentReference"
                             value={paymentReference}
                             onChange={(event) => {
-                              setPaymentReference(event.target.value);
+                              setPaymentReference(event.target.value.replace(/\D/g, "").slice(0, 12));
                               setErrors((current) => ({ ...current, transactionId: "" }));
                             }}
-                            placeholder="Enter transaction ID"
-                            maxLength={100}
+                            placeholder="Enter 12-digit ID"
+                            inputMode="numeric"
+                            pattern="\d{12}"
+                            autoComplete="off"
+                            maxLength={12}
                           />
                           {errors.transactionId ? <div className="error">{errors.transactionId}</div> : null}
                         </div>
@@ -1111,8 +1198,8 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                 </Button>
               ) : null}
               {step < 4 ? (
-                <Button type="button" variant="primary" onClick={nextStep} disabled={uploadingScreenshot}>
-                  {uploadingScreenshot ? "Uploading..." : "Continue"}
+                <Button type="button" variant="primary" onClick={() => void nextStep()} disabled={uploadingScreenshot || checkingDuplicates}>
+                  {uploadingScreenshot ? "Uploading..." : checkingDuplicates ? "Checking..." : "Continue"}
                 </Button>
               ) : (
                 <Button type="button" variant="accent" onClick={handleSubmit} disabled={submitting}>

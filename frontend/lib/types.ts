@@ -69,6 +69,13 @@ export type RegistrationPayload = {
   idempotencyKey: string;
 };
 
+export type RegistrationPrecheckPayload = {
+  eventCode?: string;
+  teamName?: string;
+  transactionId?: string;
+  participants?: Array<Pick<ParticipantInput, "email" | "mobileNumber">>;
+};
+
 export type RegistrationResponse = {
   registrationCode: string;
   paymentStatus: string;

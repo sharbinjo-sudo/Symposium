@@ -7,6 +7,7 @@ import type {
   DashboardSummary,
   EventConfig,
   RegistrationPayload,
+  RegistrationPrecheckPayload,
   RegistrationResponse,
   RegistrationStatusLookupPayload,
   RegistrationStatusResponse
@@ -378,6 +379,13 @@ export async function getEvents(): Promise<EventConfig[]> {
 
 export async function submitRegistration(payload: RegistrationPayload): Promise<RegistrationResponse> {
   return requestJson<RegistrationResponse>("/api/registrations/", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function precheckRegistration(payload: RegistrationPrecheckPayload): Promise<{ ok: boolean }> {
+  return requestJson<{ ok: boolean }>("/api/registrations/precheck/", {
     method: "POST",
     body: JSON.stringify(payload)
   });

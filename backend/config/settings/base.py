@@ -144,6 +144,7 @@ REST_FRAMEWORK = {
   "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
   "DEFAULT_THROTTLE_RATES": {
     "registration_submit": "12/hour",
+    "registration_precheck": "60/hour",
     "status_lookup": "30/hour",
     "upload_submit": "24/hour",
     "admin_login": "20/hour",

@@ -461,7 +461,9 @@ export default function AdminDashboardPage() {
     }
 
     if (!createTransactionId.trim()) {
-      nextErrors.transactionId = "Payment reference is required."
+      nextErrors.transactionId = "UPI transaction ID is required."
+    } else if (!/^\d{12}$/.test(createTransactionId.trim())) {
+      nextErrors.transactionId = "Enter the 12-digit UPI transaction ID."
     }
 
     if (!createPaymentDate) {
@@ -1038,14 +1040,19 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="field">
-                      <label htmlFor="create-transaction">Payment reference</label>
+                      <label htmlFor="create-transaction">UPI transaction ID</label>
                       <input
                         id="create-transaction"
                         value={createTransactionId}
                         onChange={(event) => {
-                          setCreateTransactionId(event.target.value)
+                          setCreateTransactionId(event.target.value.replace(/\D/g, "").slice(0, 12))
                           setCreateErrors((current) => ({ ...current, transactionId: "" }))
                         }}
+                        placeholder="Enter 12-digit ID"
+                        inputMode="numeric"
+                        pattern="\d{12}"
+                        autoComplete="off"
+                        maxLength={12}
                       />
                       {createErrors.transactionId ? <div className="error">{createErrors.transactionId}</div> : null}
                     </div>

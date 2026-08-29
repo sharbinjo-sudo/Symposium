@@ -8,11 +8,13 @@ from rest_framework.views import APIView
 from config.security import apply_no_store
 from notifications.emailjs import send_admin_registration_notification
 from .models import Registration
+from .models import Participant
 
 # Security: Constant time delay to prevent timing attacks on status lookup
 STATUS_LOOKUP_MIN_DELAY = 0.1  # 100ms minimum delay
 
 from .serializers import (
+  RegistrationPrecheckSerializer,
   RegistrationResponseSerializer,
   RegistrationStatusLookupSerializer,
   RegistrationStatusResponseSerializer,
@@ -20,8 +22,11 @@ from .serializers import (
 )
 from .services import (
   DuplicateRegistrationError,
-  create_registration
+  create_registration,
+  normalize_email,
+  normalize_mobile
 )
+from events.models import Event
 
 
 class RegistrationCreateView(APIView):
@@ -48,6 +53,70 @@ class RegistrationCreateView(APIView):
 
     response_serializer = RegistrationResponseSerializer(registration)
     return apply_no_store(Response(response_serializer.data, status=status.HTTP_201_CREATED))
+
+
+class RegistrationPrecheckView(APIView):
+  throttle_classes = [ScopedRateThrottle]
+  throttle_scope = "registration_precheck"
+
+  def post(self, request):
+    serializer = RegistrationPrecheckSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    field_errors: dict[str, str] = {}
+
+    event_code = data.get("eventCode", "")
+    team_name = data.get("teamName", "")
+    if event_code and team_name:
+      event = Event.objects.filter(event_code=event_code).first()
+      if event is None:
+        field_errors["eventCode"] = "Selected event does not exist."
+      elif Registration.objects.filter(event=event, team_name__iexact=team_name).exists():
+        field_errors["teamName"] = "A team with this name is already registered for this event."
+
+    transaction_id = data.get("transactionId", "")
+    if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
+      field_errors["transactionId"] = "This UPI transaction ID is already registered."
+
+    seen_emails: dict[str, int] = {}
+    seen_mobiles: dict[str, int] = {}
+    for index, participant in enumerate(data.get("participants", [])):
+      email = normalize_email(participant.get("email", ""))
+      mobile = normalize_mobile(participant.get("mobileNumber", ""))
+
+      if email:
+        email_key = f"participant-{index}-email"
+        if email in seen_emails:
+          field_errors[email_key] = "This email is repeated in the same registration."
+          field_errors.setdefault(f"participant-{seen_emails[email]}-email", "This email is repeated in the same registration.")
+        elif Participant.objects.filter(email=email).exists():
+          field_errors[email_key] = "This email is already registered."
+        seen_emails[email] = index
+
+      if mobile:
+        mobile_key = f"participant-{index}-mobileNumber"
+        if mobile in seen_mobiles:
+          field_errors[mobile_key] = "This mobile number is repeated in the same registration."
+          field_errors.setdefault(
+            f"participant-{seen_mobiles[mobile]}-mobileNumber",
+            "This mobile number is repeated in the same registration."
+          )
+        elif Participant.objects.filter(mobile_number=mobile).exists():
+          field_errors[mobile_key] = "This mobile number is already registered."
+        seen_mobiles[mobile] = index
+
+    if field_errors:
+      return apply_no_store(
+        Response(
+          {
+            **field_errors,
+            "detail": "Please fix the duplicate registration details before continuing."
+          },
+          status=status.HTTP_400_BAD_REQUEST
+        )
+      )
+
+    return apply_no_store(Response({"ok": True}, status=status.HTTP_200_OK))
 
 
 class RegistrationStatusLookupView(APIView):

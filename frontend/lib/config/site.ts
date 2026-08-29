@@ -23,7 +23,7 @@ export const siteConfig: SiteConfig = {
     { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
   ],
   paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
-  paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "CYBERPUNK'26 Registration",
+  paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "Suriya L",
   highlights: [
     "National-level technical symposium hosted by the Department of AI & DS",
     "Open to all engineering students",

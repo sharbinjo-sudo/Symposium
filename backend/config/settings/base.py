@@ -50,6 +50,10 @@ INSTALLED_APPS = [
   "adminpanel"
 ]
 
+BACKBLAZE_B2_ENABLED = os.getenv("BACKBLAZE_B2_ENABLED", "false").lower() == "true"
+if BACKBLAZE_B2_ENABLED:
+  INSTALLED_APPS.append("storages")
+
 MIDDLEWARE = [
   "django.middleware.security.SecurityMiddleware",
   "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -187,12 +191,52 @@ EMAILJS_ADMIN_TEMPLATE_ID = os.getenv("EMAILJS_ADMIN_TEMPLATE_ID", "")
 EMAILJS_PUBLIC_KEY = os.getenv("EMAILJS_PUBLIC_KEY", "")
 EMAILJS_PRIVATE_KEY = os.getenv("EMAILJS_PRIVATE_KEY", "")
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", os.getenv("EMAILJS_ADMIN_RECEIVER", ""))
-CASHFREE_APP_ID = os.getenv("CASHFREE_APP_ID", "")
-CASHFREE_SECRET_KEY = os.getenv("CASHFREE_SECRET_KEY", "")
-CASHFREE_API_VERSION = os.getenv("CASHFREE_API_VERSION", "2025-01-01")
-CASHFREE_ENV = os.getenv("CASHFREE_ENV", "sandbox")  # sandbox or production
-CASHFREE_RETURN_URL = os.getenv("CASHFREE_RETURN_URL", "")
-CASHFREE_WEBHOOK_URL = os.getenv("CASHFREE_WEBHOOK_URL", "")
+
+BACKBLAZE_B2_BUCKET_NAME = os.getenv("BACKBLAZE_B2_BUCKET_NAME", "")
+BACKBLAZE_B2_KEY_ID = os.getenv("BACKBLAZE_B2_KEY_ID", "")
+BACKBLAZE_B2_APPLICATION_KEY = os.getenv("BACKBLAZE_B2_APPLICATION_KEY", "")
+BACKBLAZE_B2_ENDPOINT_URL = os.getenv("BACKBLAZE_B2_ENDPOINT_URL", "")
+BACKBLAZE_B2_REGION = os.getenv("BACKBLAZE_B2_REGION", "")
+BACKBLAZE_B2_CUSTOM_DOMAIN = os.getenv("BACKBLAZE_B2_CUSTOM_DOMAIN", "")
+
+if BACKBLAZE_B2_ENABLED:
+  missing_backblaze_settings = [
+    name
+    for name, value in {
+      "BACKBLAZE_B2_BUCKET_NAME": BACKBLAZE_B2_BUCKET_NAME,
+      "BACKBLAZE_B2_KEY_ID": BACKBLAZE_B2_KEY_ID,
+      "BACKBLAZE_B2_APPLICATION_KEY": BACKBLAZE_B2_APPLICATION_KEY,
+      "BACKBLAZE_B2_ENDPOINT_URL": BACKBLAZE_B2_ENDPOINT_URL
+    }.items()
+    if not value
+  ]
+  if missing_backblaze_settings:
+    raise ImproperlyConfigured(
+      "Backblaze B2 storage is enabled, but these settings are missing: "
+      + ", ".join(missing_backblaze_settings)
+    )
+
+  STORAGES = {
+    "default": {
+      "BACKEND": "storages.backends.s3.S3Storage",
+      "OPTIONS": {
+        "access_key": BACKBLAZE_B2_KEY_ID,
+        "secret_key": BACKBLAZE_B2_APPLICATION_KEY,
+        "bucket_name": BACKBLAZE_B2_BUCKET_NAME,
+        "endpoint_url": BACKBLAZE_B2_ENDPOINT_URL,
+        "region_name": BACKBLAZE_B2_REGION or None,
+        "custom_domain": BACKBLAZE_B2_CUSTOM_DOMAIN or None,
+        "signature_version": "s3v4",
+        "addressing_style": "virtual",
+        "default_acl": "private",
+        "file_overwrite": False,
+        "querystring_auth": True
+      }
+    },
+    "staticfiles": {
+      "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    }
+  }
 
 # Logging configuration
 LOGGING = {

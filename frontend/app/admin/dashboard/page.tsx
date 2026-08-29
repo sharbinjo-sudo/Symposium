@@ -708,16 +708,12 @@ export default function AdminDashboardPage() {
             <strong>{formatAdminDate(registration.paymentDate)}</strong>
           </div>
           <div className="admin-detail-item">
-            <span>Gateway</span>
+            <span>Payment mode</span>
             <strong>{formatStatusLabel(registration.paymentProvider)}</strong>
           </div>
           <div className="admin-detail-item">
-            <span>Gateway check</span>
-            <strong>{registration.gatewayVerified ? "Verified by Cashfree" : "Manual admin record"}</strong>
-          </div>
-          <div className="admin-detail-item">
-            <span>Cashfree order</span>
-            <strong>{registration.paymentOrderId || "Not stored"}</strong>
+            <span>Proof</span>
+            <strong>{registration.screenshotAvailable ? "Screenshot uploaded" : "No screenshot stored"}</strong>
           </div>
         </div>
 
@@ -800,7 +796,7 @@ export default function AdminDashboardPage() {
             <div className="section-eyebrow">Admin Dashboard</div>
             <h2>Verification and operations</h2>
             <p className="card-copy">
-              Manage Cashfree-backed registrations, create organizer-side entries, export records, and keep review work
+              Manage manual-payment registrations, create organizer-side entries, export records, and keep review work
               fast and clean.
             </p>
             <div className="admin-sidebar-links">
@@ -963,7 +959,7 @@ export default function AdminDashboardPage() {
                           </option>
                         ))}
                       </select>
-                      <div className="helper">Organizer-created records are marked manual. Cashfree records come only from checkout.</div>
+                      <div className="helper">Organizer-created records are marked manual.</div>
                     </div>
 
                     <div className="field">
@@ -1181,16 +1177,12 @@ export default function AdminDashboardPage() {
                       <strong>{formatAdminDate(selectedRegistration.paymentDate)}</strong>
                     </div>
                     <div className="admin-detail-item">
-                      <span>Gateway</span>
+                      <span>Payment mode</span>
                       <strong>{formatStatusLabel(selectedRegistration.paymentProvider)}</strong>
                     </div>
                     <div className="admin-detail-item">
-                      <span>Gateway check</span>
-                      <strong>{selectedRegistration.gatewayVerified ? "Verified by Cashfree" : "Manual admin record"}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Cashfree order</span>
-                      <strong>{selectedRegistration.paymentOrderId || "Not stored"}</strong>
+                      <span>Proof</span>
+                      <strong>{selectedRegistration.screenshotAvailable ? "Screenshot uploaded" : "No screenshot stored"}</strong>
                     </div>
                   </div>
 
@@ -1366,7 +1358,7 @@ export default function AdminDashboardPage() {
                               {formatStatusLabel(registration.paymentStatus)}
                             </StatusChip>
                             <div className="table-subtext">
-                              {registration.gatewayVerified ? "Cashfree verified" : formatStatusLabel(registration.paymentProvider)}
+                              {registration.screenshotAvailable ? "Proof uploaded" : formatStatusLabel(registration.paymentProvider)}
                             </div>
                           </td>
                           <td>

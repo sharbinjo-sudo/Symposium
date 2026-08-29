@@ -7913,7 +7913,7 @@ textarea {
   }
 }
 
-/* ===== Cashfree wizard styles ===== */
+/* ===== Manual payment wizard styles ===== */
 .payment-info-panel {
   display: grid;
   gap: 0.85rem;

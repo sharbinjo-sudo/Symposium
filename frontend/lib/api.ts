@@ -4,11 +4,8 @@ import type {
   AdminRegistrationCreatePayload,
   AdminRegistrationFilters,
   AdminRegistrationRow,
-  CashfreeOrderStatusResponse,
   DashboardSummary,
   EventConfig,
-  RegistrationPaymentOrder,
-  RegistrationPaymentOrderPayload,
   RegistrationPayload,
   RegistrationResponse,
   RegistrationStatusLookupPayload,
@@ -386,15 +383,6 @@ export async function submitRegistration(payload: RegistrationPayload): Promise<
   });
 }
 
-export async function createRegistrationPaymentOrder(
-  payload: RegistrationPaymentOrderPayload
-): Promise<RegistrationPaymentOrder> {
-  return requestJson<RegistrationPaymentOrder>("/api/registrations/payment-order/", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-}
-
 export async function checkRegistrationStatus(
   payload: RegistrationStatusLookupPayload
 ): Promise<RegistrationStatusResponse> {
@@ -512,16 +500,6 @@ export async function openAdminRegistrationScreenshot(registrationCode: string) 
 export async function deleteAdminRegistration(registrationCode: string): Promise<{ ok: boolean }> {
   return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/`, {
     method: "DELETE"
-  });
-}
-
-export async function checkCashfreeOrderStatus(
-  orderId: string,
-  idempotencyKey: string
-): Promise<CashfreeOrderStatusResponse> {
-  return requestJson<CashfreeOrderStatusResponse>("/api/registrations/order-status/", {
-    method: "POST",
-    body: JSON.stringify({ orderId, idempotencyKey })
   });
 }
 

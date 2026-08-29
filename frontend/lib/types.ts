@@ -69,14 +69,6 @@ export type RegistrationPayload = {
   idempotencyKey: string;
 };
 
-export type RegistrationPaymentOrderPayload = {
-  eventCode: string;
-  teamName: string;
-  teamSize: number;
-  participants: ParticipantInput[];
-  idempotencyKey: string;
-};
-
 export type RegistrationResponse = {
   registrationCode: string;
   paymentStatus: string;

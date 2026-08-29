@@ -7,23 +7,23 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 
 function RegistrationCompleteContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("order_id");
+  const registrationCode = searchParams.get("registration_code");
 
   return (
     <div className="section page-shell-block registration-complete-page">
       <div className="container">
         <GlassPanel className="registration-complete-card" tone="strong">
           <div className="registration-complete-icon">✅</div>
-          <h1>Payment Received</h1>
+          <h1>Registration Received</h1>
           <p className="card-copy">
-            Your payment has been processed by Cashfree. If you completed the
-            registration form after payment, your registration is confirmed.
+            Your registration and payment proof have been received. The organizers will verify
+            the payment manually before sending the confirmation email.
           </p>
 
-          {orderId && (
+          {registrationCode && (
             <div className="registration-complete-order">
-              <span className="section-eyebrow">Order Reference</span>
-              <strong className="order-id-display">{orderId}</strong>
+              <span className="section-eyebrow">Registration Code</span>
+              <strong className="order-id-display">{registrationCode}</strong>
             </div>
           )}
 
@@ -37,9 +37,8 @@ function RegistrationCompleteContent() {
           </div>
 
           <p className="card-copy registration-complete-note">
-            If you did not complete the registration form, please go back and
-            submit it using the same browser. Your payment is linked to this
-            session.
+            Keep your transaction reference and payment screenshot ready until the admin
+            verification is completed.
           </p>
         </GlassPanel>
       </div>

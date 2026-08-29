@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='registration',
             name='payment_provider',
-            field=models.CharField(choices=[('manual', 'Manual'), ('cashfree', 'Cashfree')], db_index=True, default='manual', max_length=24),
+            field=models.CharField(choices=[('manual', 'Manual')], db_index=True, default='manual', max_length=24),
         ),
     ]

@@ -3,6 +3,35 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Reveal } from "@/components/ui/Reveal";
 import { siteConfig } from "@/lib/config/site";
 
+const studentCoordinatorYears = [
+  {
+    year: "3rd Year",
+    groups: [
+      {
+        label: "Boys",
+        names: ["Jerish Manickam", "Kishore", "Mohammed Aslam", "Muthu Pandi", "Sugi", "Yuthistran"]
+      },
+      {
+        label: "Girls",
+        names: ["Abarna", "Abinaya", "Aiswarya", "Thangakani Sivatharshini", "Thanusha", "Vidhya"]
+      }
+    ]
+  },
+  {
+    year: "2nd Year",
+    groups: [
+      {
+        label: "Boys",
+        names: ["Allan Jebas Prince", "Balamurugan", "Esakki Muthu", "Mugudan"]
+      },
+      {
+        label: "Girls",
+        names: ["Jeffina Clemency", "Pooja", "Ramalakshmi", "Subasree"]
+      }
+    ]
+  }
+];
+
 export default function ContactPage() {
   return (
     <div className="section page-shell-block contact-page">
@@ -38,6 +67,38 @@ export default function ContactPage() {
             </GlassPanel>
           </Reveal>
         </div>
+
+        <section className="student-coordinator-section" aria-labelledby="student-coordinators-title">
+          <div className="student-coordinator-head">
+            <span className="section-eyebrow">Student Coordinators</span>
+            <h3 id="student-coordinators-title">Year-wise support team</h3>
+          </div>
+
+          <div className="student-coordinator-grid">
+            {studentCoordinatorYears.map((yearGroup, yearIndex) => (
+              <Reveal key={yearGroup.year} className="contact-card-reveal" delay={0.12 + yearIndex * 0.08} y={24} scale={0.98}>
+                <GlassPanel className="content-panel student-coordinator-card">
+                  <div className="student-coordinator-card-head">
+                    <h4>{yearGroup.year}</h4>
+                  </div>
+
+                  <div className="student-coordinator-groups">
+                    {yearGroup.groups.map((group) => (
+                      <div key={`${yearGroup.year}-${group.label}`} className="student-coordinator-group">
+                        <strong>{group.label}</strong>
+                        <ul>
+                          {group.names.map((name) => (
+                            <li key={name}>{name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </GlassPanel>
+              </Reveal>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

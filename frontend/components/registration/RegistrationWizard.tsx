@@ -22,6 +22,20 @@ const paymentQrCards: Record<number, string> = {
   500: "/suriya_qr_500_scan.png"
 };
 
+const upiPayeeId = "suriyalingadurai1996-1@okhdfcbank";
+const upiPayeeName = "Suriya L";
+
+function createUpiPaymentUrl(totalAmount: number) {
+  const params = new URLSearchParams({
+    pa: upiPayeeId,
+    pn: upiPayeeName,
+    am: String(totalAmount),
+    cu: "INR"
+  });
+
+  return `upi://pay?${params.toString()}`;
+}
+
 function getReadableUiError(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
     return error.message;
@@ -129,12 +143,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const [acknowledgementOpen, setAcknowledgementOpen] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
   const [idempotencyKey] = useState(() => createIdempotencyKey());
 
   const currentEvent = availableEvents.find((item) => item.code === eventCode) ?? availableEvents[0];
 
   const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
   const paymentQrCard = getPaymentQrCard(totalAmount);
+  const upiPaymentUrl = createUpiPaymentUrl(totalAmount);
   const paymentQrLabel = totalAmount === 500 ? "Team payment QR" : totalAmount === 250 ? "Solo payment QR" : "Payment QR";
   const registrationFeeLabel =
     currentEvent.feeType === "per_team" ? `₹${currentEvent.feeAmount} per team` : `₹${currentEvent.feeAmount} per member`;
@@ -158,6 +174,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       document.body.classList.remove("is-printing-acknowledgement");
     };
   }, [acknowledgementOpen, confirmation]);
+
+  useEffect(() => {
+    setIsAndroidDevice(/Android/i.test(navigator.userAgent));
+  }, []);
 
   function handleDownloadPdf() {
     setAcknowledgementOpen(true);
@@ -1019,6 +1039,15 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <small>Scan, pay the exact amount, and upload the proof.</small>
                         </div>
                       )}
+
+                      {isAndroidDevice ? (
+                        <a className="upi-pay-button" href={upiPaymentUrl} aria-label={`Pay Rs. ${totalAmount} using a UPI app`}>
+                          <span className="upi-pay-icon" aria-hidden="true">
+                            UPI
+                          </span>
+                          <span>Pay with UPI app</span>
+                        </a>
+                      ) : null}
 
                       <div className="summary-row">
                         <span>Payee</span>

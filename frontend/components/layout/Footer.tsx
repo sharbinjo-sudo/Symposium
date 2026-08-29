@@ -7,7 +7,7 @@ export function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="section-eyebrow">CYBERPUNK&apos;26</div>
-            <h3>{siteConfig.heroSubtitle}</h3>
+            <h3>National Level Technical Symposium</h3>
             <p className="footer-copy">{siteConfig.about}</p>
           </div>
           <div className="footer-column">

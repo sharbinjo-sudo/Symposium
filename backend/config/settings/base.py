@@ -84,7 +84,7 @@ ASGI_APPLICATION = "config.asgi.application"
 database_url = os.getenv("DATABASE_URL", "").strip()
 
 if not database_url:
-  raise ImproperlyConfigured("DATABASE_URL is required. Configure NeonDB instead of using a local database.")
+  raise ImproperlyConfigured("DATABASE_URL is required. Configure Supabase Postgres instead of using a local database.")
 
 parsed_database = dj_database_url.parse(
   database_url,

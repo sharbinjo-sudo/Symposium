@@ -45,13 +45,15 @@ Render service settings:
 3. Set these environment variables in Render:
    - `DJANGO_SETTINGS_MODULE=config.settings.prod`
    - `DJANGO_SECRET_KEY=<strong random value>`
-   - `DATABASE_URL=<your Neon PostgreSQL URL>`
+   - `DATABASE_URL=<your Supabase Postgres pooler URL>`
    - `DJANGO_ALLOWED_HOSTS=<your-render-host>.onrender.com`
    - `DJANGO_CORS_ALLOWED_ORIGINS=https://<your-netlify-site>.netlify.app`
    - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_ADMIN_TEMPLATE_ID`
    - `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`
    - `ADMIN_NOTIFICATION_EMAIL`
-   - `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION`, `CASHFREE_ENV`
+   - `BACKBLAZE_B2_ENABLED=true`
+   - `BACKBLAZE_B2_BUCKET_NAME`, `BACKBLAZE_B2_KEY_ID`, `BACKBLAZE_B2_APPLICATION_KEY`
+   - `BACKBLAZE_B2_ENDPOINT_URL`, `BACKBLAZE_B2_REGION`
 4. Render will run `bash build.sh`, which installs dependencies, collects static files, and applies migrations.
 5. The app starts with `gunicorn config.wsgi:application`.
 
@@ -59,7 +61,7 @@ Production Django settings now include:
 
 - WhiteNoise static serving
 - secure proxy SSL handling for Render
-- PostgreSQL via `DATABASE_URL`
+- Supabase PostgreSQL via `DATABASE_URL`
 - production cookie and HSTS settings through `config.settings.prod`
 
 ## Frontend on Netlify

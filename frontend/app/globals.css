@@ -3372,7 +3372,7 @@ input[type="radio"]:focus {
 }
 
 .wizard-payment-stage .payment-qr-card {
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   align-content: stretch;
 }
 
@@ -3402,6 +3402,49 @@ input[type="radio"]:focus {
   height: 100%;
   object-fit: contain;
   padding: 0;
+}
+
+.upi-pay-button {
+  width: min(100%, 320px);
+  min-height: 46px;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.72rem 1rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.16);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(var(--primary-rgb), 0.95), rgba(var(--accent-rgb), 0.9)),
+    #8f1d2c;
+  color: #ffffff;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 16px 34px rgba(143, 29, 44, 0.22);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.upi-pay-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--primary-rgb), 0.24);
+  box-shadow: 0 20px 42px rgba(143, 29, 44, 0.26);
+}
+
+.upi-pay-icon {
+  width: 34px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ocean);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .qr-placeholder {
@@ -7607,6 +7650,97 @@ textarea {
   transform: translateY(-3px);
 }
 
+.student-coordinator-section {
+  display: grid;
+  gap: clamp(1rem, 1.8vw, 1.35rem);
+  margin-top: clamp(0.2rem, 0.8vw, 0.55rem);
+}
+
+.student-coordinator-head {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.student-coordinator-head h3 {
+  margin: 0;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.55rem, 2.3vw, 2.2rem);
+  line-height: 1;
+}
+
+.student-coordinator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 1.8vw, 1.45rem);
+  align-items: stretch;
+}
+
+.student-coordinator-grid .contact-card-reveal {
+  height: 100%;
+}
+
+.student-coordinator-card {
+  display: grid;
+  gap: clamp(0.9rem, 1.35vw, 1.12rem);
+  height: 100%;
+}
+
+.student-coordinator-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.12);
+}
+
+.student-coordinator-card-head h4 {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.7vw, 1.55rem);
+}
+
+.student-coordinator-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.85rem, 1.5vw, 1.15rem);
+}
+
+.student-coordinator-group {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: clamp(0.86rem, 1.3vw, 1rem);
+  border: 1px solid rgba(var(--primary-rgb), 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  align-content: start;
+}
+
+.student-coordinator-group strong {
+  color: var(--ink-strong);
+  font-size: 0.94rem;
+}
+
+.student-coordinator-group ul {
+  display: grid;
+  gap: 0.48rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-coordinator-group li {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0.42rem 0.62rem;
+  border-radius: 12px;
+  background: rgba(255, 248, 249, 0.78);
+  color: var(--ink-soft);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 @keyframes page-card-light-sweep {
   0%,
   100% {
@@ -8264,56 +8398,6 @@ textarea {
   }
 }
 
-/* == Registration Complete Page == */
-.registration-complete-page {
-  min-height: 70vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.registration-complete-card {
-  max-width: 540px;
-  margin: 0 auto;
-  text-align: center;
-  padding: 40px 32px;
-}
-.registration-complete-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-.registration-complete-card h1 {
-  margin: 0 0 12px;
-}
-.registration-complete-order {
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 8px;
-  padding: 16px;
-  margin: 20px 0;
-}
-.registration-complete-order .section-eyebrow {
-  display: block;
-  margin-bottom: 6px;
-}
-.order-id-display {
-  font-family: monospace;
-  font-size: 15px;
-  color: var(--accent);
-  word-break: break-all;
-}
-.registration-complete-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin: 24px 0 16px;
-  flex-wrap: wrap;
-}
-.registration-complete-note {
-  color: var(--text-secondary, #888);
-  font-size: 13px;
-  margin-top: 8px;
-}
-
 /* Full-app responsive hardening */
 html,
 body {
@@ -8458,7 +8542,9 @@ body {
   .status-check-support-grid,
   .status-check-form-grid,
   .status-check-meta-grid,
-  .contact-feature-band {
+  .contact-feature-band,
+  .student-coordinator-grid,
+  .student-coordinator-groups {
     grid-template-columns: 1fr;
   }
 
@@ -8514,7 +8600,6 @@ body {
   .admin-sidebar-actions,
   .admin-detail-actions,
   .confirmation-actions,
-  .registration-complete-actions,
   .status-check-submit-row {
     display: grid;
     grid-template-columns: 1fr;
@@ -8524,7 +8609,6 @@ body {
   .admin-detail-actions .button,
   .admin-sidebar-actions .button,
   .confirmation-actions .button,
-  .registration-complete-actions .button,
   .status-check-submit-row .button {
     width: 100%;
     min-width: 0;
@@ -8561,7 +8645,8 @@ body {
   .hero-actions,
   .hero-facts,
   .hero-countdown-panel .countdown-grid,
-  .prizes-page .prize-podium {
+  .prizes-page .prize-podium,
+  .student-coordinator-groups {
     grid-template-columns: 1fr;
   }
 

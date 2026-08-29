@@ -275,6 +275,27 @@ export default function AdminDashboardPage() {
   }, [selectedRegistration])
 
   useEffect(() => {
+    if (!selectedRegistration || isCreateMode) {
+      return
+    }
+
+    const originalOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedCode(null)
+      }
+    }
+
+    document.body.style.overflow = "hidden"
+    document.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isCreateMode, selectedRegistration])
+
+  useEffect(() => {
     let active = true
     let pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -819,6 +840,105 @@ export default function AdminDashboardPage() {
         </aside>
 
         <div className="admin-main">
+          <GlassPanel className="dashboard-card dashboard-table-card admin-table-card-top" tone="strong">
+              <div className="table-toolbar">
+                <input
+                  value={search}
+                  placeholder="Search code, team, participant, email, roll number, or transaction"
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
+                  <option value="all">All payment states</option>
+                  {paymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)}>
+                  <option value="all">All events</option>
+                  {siteConfig.technicalEvents.map((event) => (
+                    <option key={event.code} value={event.code}>
+                      {event.name}
+                    </option>
+                  ))}
+                </select>
+                <button className="admin-inline-button" type="button" onClick={() => void handleExportCsv()} disabled={exporting}>
+                  {exporting ? "Exporting..." : "Export CSV"}
+                </button>
+              </div>
+
+              <div className="table-meta">
+                {loading
+                  ? "Loading registration and payment records..."
+                  : `${registrations.length} registration${registrations.length === 1 ? "" : "s"} match the current filters.`}
+              </div>
+
+              {error ? <div className="error">{error}</div> : null}
+
+              <div className="table-shell">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Registration</th>
+                      <th>Lead participant</th>
+                      <th>Event</th>
+                      <th>Payment</th>
+                      <th>Email</th>
+
+                      <th>Submitted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6}>Loading registrations...</td>
+                      </tr>
+                    ) : registrations.length === 0 ? (
+                      <tr>
+                        <td colSpan={6}>No registrations match the current filters.</td>
+                      </tr>
+                    ) : (
+                      registrations.map((registration) => (
+                        <tr
+                          key={registration.registrationCode}
+                          className={registration.registrationCode === selectedCode ? "is-selected" : ""}
+                          onClick={() => {
+                            setIsCreateMode(false)
+                            setSelectedCode(registration.registrationCode)
+                          }}
+                        >
+                          <td>
+                            <strong>{registration.registrationCode}</strong>
+                            <div className="table-subtext">{registration.teamName || "Solo entry"}</div>
+                          </td>
+                          <td>
+                            <strong>{registration.leadParticipantName || "Participant"}</strong>
+                            <div className="table-subtext">{registration.leadParticipantEmail || "No email"}</div>
+                          </td>
+                          <td>{registration.eventName}</td>
+                          <td>
+                            <StatusChip tone={paymentTone(registration.paymentStatus)}>
+                              {formatStatusLabel(registration.paymentStatus)}
+                            </StatusChip>
+                            <div className="table-subtext">
+                              {registration.screenshotAvailable ? "Proof uploaded" : formatStatusLabel(registration.paymentProvider)}
+                            </div>
+                          </td>
+                          <td>
+                            <StatusChip tone={emailTone(registration.emailStatus)}>
+                              {formatStatusLabel(registration.emailStatus)}
+                            </StatusChip>
+                          </td>
+
+                          <td>{formatAdminDate(registration.createdAt)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+          </GlassPanel>
           {summary.latestRegistration ? (
             <GlassPanel className="dashboard-card admin-notification-card" tone="strong">
               <div className="section-eyebrow">Latest Submission</div>
@@ -862,7 +982,6 @@ export default function AdminDashboardPage() {
               <div className="metric-label">Verified payments</div>
               <strong className="metric-value">{summary.verifiedPayments}</strong>
             </GlassPanel>
-
           </section>
 
           <section className="admin-section admin-workspace">
@@ -1134,128 +1253,6 @@ export default function AdminDashboardPage() {
                     </Button>
                   </div>
                 </>
-              ) : selectedRegistration ? (
-                <>
-                  <div className="admin-detail-head">
-                    <div>
-                      <div className="section-eyebrow">Registration Detail</div>
-                      <h3>{selectedRegistration!.registrationCode}</h3>
-                    </div>
-                    <div className="admin-detail-head-actions">
-                      <StatusChip tone={registrationTone(selectedRegistration.registrationStatus)}>
-                        {formatStatusLabel(selectedRegistration.registrationStatus)}
-                      </StatusChip>
-                      <Button type="button" variant="secondary" onClick={() => setSelectedCode(null)}>
-                        Close
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="admin-detail-grid">
-                    <div className="admin-detail-item">
-                      <span>Event</span>
-                      <strong>{selectedRegistration.eventName}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Team</span>
-                      <strong>{selectedRegistration.teamName || "Solo entry"}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Lead email</span>
-                      <strong>{selectedRegistration.leadParticipantEmail || "Not provided"}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Transaction ID</span>
-                      <strong>{selectedRegistration.transactionId}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Amount</span>
-                      <strong>Rs. {selectedRegistration.amountPaid}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Payment date</span>
-                      <strong>{formatAdminDate(selectedRegistration.paymentDate)}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Payment mode</span>
-                      <strong>{formatStatusLabel(selectedRegistration.paymentProvider)}</strong>
-                    </div>
-                    <div className="admin-detail-item">
-                      <span>Proof</span>
-                      <strong>{selectedRegistration.screenshotAvailable ? "Screenshot uploaded" : "No screenshot stored"}</strong>
-                    </div>
-                  </div>
-
-                  <div className="admin-detail-stack">
-                      <div className="summary-row">
-                        <span>Participants</span>
-                        <strong>{selectedRegistration.participantNames.join(", ")}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Food preference</span>
-                        <strong>{(selectedRegistration.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Team size</span>
-                        <strong>{selectedRegistration.teamSize}</strong>
-                      </div>
-                    <div className="summary-row">
-                      <span>Email delivery</span>
-                      <strong>{formatStatusLabel(selectedRegistration.emailStatus)}</strong>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="payment-status">Payment status</label>
-                    <select
-                      id="payment-status"
-                      value={draftPaymentStatus}
-                      onChange={(event) => setDraftPaymentStatus(event.target.value)}
-                    >
-                      {paymentOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="admin-note">Admin note</label>
-                    <textarea
-                      id="admin-note"
-                      rows={5}
-                      value={draftNote}
-                      placeholder="Add an internal note for payment review, clarification, or event-day handling."
-                      onChange={(event) => setDraftNote(event.target.value)}
-                    />
-                  </div>
-
-                  {actionError ? <div className="error">{actionError}</div> : null}
-                  {actionMessage ? <div className="helper admin-action-message">{actionMessage}</div> : null}
-
-                  <div className="admin-detail-actions">
-                    <Button type="button" variant="primary" onClick={() => void handleSaveChanges()} disabled={saving}>
-                      {saving ? "Saving..." : "Save changes"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => void handleOpenScreenshot()}
-                      disabled={openingScreenshot || !selectedRegistration.screenshotAvailable}
-                    >
-                      {openingScreenshot ? "Opening..." : "View proof"}
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending || !canSendSelectedEmail}>
-                      {resending ? "Sending..." : "Send email"}
-                    </Button>
-                    <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
-                      {deleting ? "Deleting..." : "Delete registration"}
-                    </Button>
-                  </div>
-                </>
-              ) : selectedRegistration ? (
-                renderSelectedRegistrationCard(selectedRegistration as AdminRegistrationRow)
               ) : (
                 <>
                   <div className="admin-detail-head">
@@ -1276,109 +1273,34 @@ export default function AdminDashboardPage() {
               )}
             </GlassPanel>
 
-            <GlassPanel className="dashboard-card dashboard-table-card" tone="strong">
-              <div className="table-toolbar">
-                <input
-                  value={search}
-                  placeholder="Search code, team, participant, email, roll number, or transaction"
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
-                  <option value="all">All payment states</option>
-                  {paymentOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)}>
-                  <option value="all">All events</option>
-                  {siteConfig.technicalEvents.map((event) => (
-                    <option key={event.code} value={event.code}>
-                      {event.name}
-                    </option>
-                  ))}
-                </select>
-                <button className="admin-inline-button" type="button" onClick={() => void handleExportCsv()} disabled={exporting}>
-                  {exporting ? "Exporting..." : "Export CSV"}
-                </button>
-              </div>
-
-              <div className="table-meta">
-                {loading
-                  ? "Loading registration and payment records..."
-                  : `${registrations.length} registration${registrations.length === 1 ? "" : "s"} match the current filters.`}
-              </div>
-
-              {error ? <div className="error">{error}</div> : null}
-
-              <div className="table-shell">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Registration</th>
-                      <th>Lead participant</th>
-                      <th>Event</th>
-                      <th>Payment</th>
-                      <th>Email</th>
-
-                      <th>Submitted</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={6}>Loading registrations...</td>
-                      </tr>
-                    ) : registrations.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>No registrations match the current filters.</td>
-                      </tr>
-                    ) : (
-                      registrations.map((registration) => (
-                        <tr
-                          key={registration.registrationCode}
-                          className={registration.registrationCode === selectedCode ? "is-selected" : ""}
-                          onClick={() => {
-                            setIsCreateMode(false)
-                            setSelectedCode(registration.registrationCode)
-                          }}
-                        >
-                          <td>
-                            <strong>{registration.registrationCode}</strong>
-                            <div className="table-subtext">{registration.teamName || "Solo entry"}</div>
-                          </td>
-                          <td>
-                            <strong>{registration.leadParticipantName || "Participant"}</strong>
-                            <div className="table-subtext">{registration.leadParticipantEmail || "No email"}</div>
-                          </td>
-                          <td>{registration.eventName}</td>
-                          <td>
-                            <StatusChip tone={paymentTone(registration.paymentStatus)}>
-                              {formatStatusLabel(registration.paymentStatus)}
-                            </StatusChip>
-                            <div className="table-subtext">
-                              {registration.screenshotAvailable ? "Proof uploaded" : formatStatusLabel(registration.paymentProvider)}
-                            </div>
-                          </td>
-                          <td>
-                            <StatusChip tone={emailTone(registration.emailStatus)}>
-                              {formatStatusLabel(registration.emailStatus)}
-                            </StatusChip>
-                          </td>
-
-                          <td>{formatAdminDate(registration.createdAt)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </GlassPanel>
           </section>
         </div>
       </div>
+      {selectedRegistration && !isCreateMode ? (
+        <div
+          className="admin-detail-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedCode(null)
+            }
+          }}
+        >
+          <GlassPanel
+            as="section"
+            className="dashboard-card admin-detail-card admin-detail-modal"
+            tone="strong"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Registration details ${selectedRegistration.registrationCode}`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {renderSelectedRegistrationCard(selectedRegistration)}
+          </GlassPanel>
+        </div>
+      ) : null}
     </div>
   )
 }
+
 

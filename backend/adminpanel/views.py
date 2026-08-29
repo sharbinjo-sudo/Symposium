@@ -14,7 +14,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from config.security import apply_no_store
-from notifications.emailjs import send_registration_notifications
+from notifications.emailjs import send_participant_registration_confirmation
 from registrations.models import Registration
 from registrations.serializers import (
   AdminRegistrationCreateSerializer,
@@ -288,10 +288,11 @@ class AdminRegistrationCreateView(APIView):
     except DuplicateRegistrationError as exc:
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
 
-    registration.admin_note = data.get("adminNote", "").strip() or None
     if data.get("sendEmail", False):
-      registration.email_status = Registration.EMAIL_SENT if send_registration_notifications(registration) else Registration.EMAIL_FAILED
-    registration.save(update_fields=["admin_note", "email_status", "updated_at"])
+      send_participant_registration_confirmation(registration)
+      registration.refresh_from_db()
+    registration.admin_note = data.get("adminNote", "").strip() or None
+    registration.save(update_fields=["admin_note", "updated_at"])
 
     log_admin_action(
       admin=admin,
@@ -362,9 +363,7 @@ class AdminResendEmailView(APIView):
         )
       )
 
-    sent = send_registration_notifications(registration)
-    registration.email_status = Registration.EMAIL_SENT if sent else Registration.EMAIL_FAILED
-    registration.save(update_fields=["email_status", "updated_at"])
+    sent = send_participant_registration_confirmation(registration)
 
     log_admin_action(
       admin=admin,

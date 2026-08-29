@@ -83,24 +83,19 @@ ASGI_APPLICATION = "config.asgi.application"
 
 database_url = os.getenv("DATABASE_URL", "").strip()
 
-if database_url:
-  parsed_database = dj_database_url.parse(
-    database_url,
-    conn_max_age=600
-  )
-  if parsed_database.get("ENGINE") == "django.db.backends.postgresql":
-    parsed_database.setdefault("OPTIONS", {})
-    parsed_database["OPTIONS"].setdefault("sslmode", "require")
-  DATABASES = {
-    "default": parsed_database
-  }
-else:
-  DATABASES = {
-    "default": {
-      "ENGINE": "django.db.backends.sqlite3",
-      "NAME": BASE_DIR / "db.sqlite3"
-    }
-  }
+if not database_url:
+  raise ImproperlyConfigured("DATABASE_URL is required. Configure NeonDB instead of using a local database.")
+
+parsed_database = dj_database_url.parse(
+  database_url,
+  conn_max_age=600
+)
+if parsed_database.get("ENGINE") == "django.db.backends.postgresql":
+  parsed_database.setdefault("OPTIONS", {})
+  parsed_database["OPTIONS"].setdefault("sslmode", "require")
+DATABASES = {
+  "default": parsed_database
+}
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
@@ -192,14 +187,17 @@ EMAILJS_PUBLIC_KEY = os.getenv("EMAILJS_PUBLIC_KEY", "")
 EMAILJS_PRIVATE_KEY = os.getenv("EMAILJS_PRIVATE_KEY", "")
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", os.getenv("EMAILJS_ADMIN_RECEIVER", ""))
 
-BACKBLAZE_B2_BUCKET_NAME = os.getenv("BACKBLAZE_B2_BUCKET_NAME", "")
+BACKBLAZE_B2_BUCKET_NAME = os.getenv("BACKBLAZE_B2_BUCKET_NAME", "").strip().lower()
 BACKBLAZE_B2_KEY_ID = os.getenv("BACKBLAZE_B2_KEY_ID", "")
 BACKBLAZE_B2_APPLICATION_KEY = os.getenv("BACKBLAZE_B2_APPLICATION_KEY", "")
 BACKBLAZE_B2_ENDPOINT_URL = os.getenv("BACKBLAZE_B2_ENDPOINT_URL", "")
 BACKBLAZE_B2_REGION = os.getenv("BACKBLAZE_B2_REGION", "")
 BACKBLAZE_B2_CUSTOM_DOMAIN = os.getenv("BACKBLAZE_B2_CUSTOM_DOMAIN", "")
+BACKBLAZE_B2_ADDRESSING_STYLE = os.getenv("BACKBLAZE_B2_ADDRESSING_STYLE", "path")
 
 if BACKBLAZE_B2_ENABLED:
+  from botocore.config import Config
+
   missing_backblaze_settings = [
     name
     for name, value in {
@@ -226,10 +224,12 @@ if BACKBLAZE_B2_ENABLED:
         "endpoint_url": BACKBLAZE_B2_ENDPOINT_URL,
         "region_name": BACKBLAZE_B2_REGION or None,
         "custom_domain": BACKBLAZE_B2_CUSTOM_DOMAIN or None,
-        "signature_version": "s3v4",
-        "addressing_style": "virtual",
-        "default_acl": "private",
-        "file_overwrite": False,
+        "client_config": Config(
+          signature_version="s3v4",
+          s3={"addressing_style": BACKBLAZE_B2_ADDRESSING_STYLE}
+        ),
+        "default_acl": None,
+        "file_overwrite": True,
         "querystring_auth": True
       }
     },

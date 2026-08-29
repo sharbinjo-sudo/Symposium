@@ -4693,6 +4693,11 @@ input[type="radio"]:focus {
   gap: 0.9rem;
 }
 
+.admin-table-card-top {
+  gap: 1rem;
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+}
+
 .admin-sidebar-panel,
 .dashboard-card,
 .admin-login-copy,
@@ -4723,6 +4728,29 @@ input[type="radio"]:focus {
 .admin-detail-card {
   position: static;
   overflow: hidden;
+}
+
+.admin-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: start center;
+  padding: clamp(5rem, 9vw, 7rem) clamp(0.75rem, 3vw, 2rem) clamp(1rem, 3vw, 2rem);
+  background:
+    linear-gradient(180deg, rgba(44, 17, 21, 0.24), rgba(44, 17, 21, 0.12)),
+    rgba(255, 248, 249, 0.72);
+  backdrop-filter: blur(16px) saturate(1.05);
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+  overflow-y: auto;
+}
+
+.admin-detail-modal {
+  width: min(100%, 1080px);
+  max-height: calc(100vh - clamp(6rem, 12vw, 9rem));
+  overflow: auto;
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  box-shadow: 0 28px 90px rgba(44, 17, 21, 0.24);
 }
 
 .admin-detail-head {
@@ -4817,6 +4845,25 @@ input[type="radio"]:focus {
   grid-template-columns: minmax(260px, 2fr) repeat(2, minmax(170px, 1fr)) minmax(132px, auto);
   align-items: end;
   gap: 0.8rem;
+}
+
+.admin-table-card-top .table-toolbar {
+  grid-template-columns: minmax(320px, 1.8fr) repeat(2, minmax(180px, 0.8fr)) minmax(140px, 0.45fr);
+  align-items: stretch;
+}
+
+.admin-table-card-top .table-toolbar input,
+.admin-table-card-top .table-toolbar select {
+  min-height: 52px;
+  border-color: rgba(var(--primary-rgb), 0.14);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 24px rgba(44, 17, 21, 0.04);
+}
+
+.admin-table-card-top .table-meta {
+  margin-top: -0.15rem;
+  color: var(--ink-muted);
+  font-weight: 600;
 }
 
 .admin-inline-button {
@@ -8202,6 +8249,14 @@ body {
   .table-toolbar > :first-child {
     grid-column: 1 / -1;
   }
+
+  .admin-table-card-top .table-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-table-card-top .table-toolbar > :first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -8271,6 +8326,15 @@ body {
     position: static;
   }
 
+  .admin-detail-overlay {
+    align-items: start;
+    padding: 4.85rem 0.65rem 0.75rem;
+  }
+
+  .admin-detail-modal {
+    max-height: calc(100vh - 5.6rem);
+  }
+
   .admin-detail-head,
   .status-check-form-head,
   .status-check-result-head,
@@ -8288,6 +8352,10 @@ body {
   .rules-panel,
   .card-actions-split,
   .card-actions-single {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table-card-top .table-toolbar {
     grid-template-columns: 1fr;
   }
 

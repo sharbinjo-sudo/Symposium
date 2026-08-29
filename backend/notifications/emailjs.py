@@ -28,14 +28,26 @@ def _missing_emailjs_settings() -> list[str]:
   missing: list[str] = []
   if not settings.EMAILJS_SERVICE_ID:
     missing.append("EMAILJS_SERVICE_ID")
-  if not settings.EMAILJS_TEMPLATE_ID:
-    missing.append("EMAILJS_TEMPLATE_ID")
-  if not settings.EMAILJS_ADMIN_TEMPLATE_ID:
-    missing.append("EMAILJS_ADMIN_TEMPLATE_ID")
   if not settings.EMAILJS_PUBLIC_KEY:
     missing.append("EMAILJS_PUBLIC_KEY")
   if not settings.EMAILJS_PRIVATE_KEY:
     missing.append("EMAILJS_PRIVATE_KEY")
+  return missing
+
+
+def _missing_participant_emailjs_settings() -> list[str]:
+  missing = _missing_emailjs_settings()
+  if not settings.EMAILJS_TEMPLATE_ID:
+    missing.append("EMAILJS_TEMPLATE_ID")
+  return missing
+
+
+def _missing_admin_emailjs_settings() -> list[str]:
+  missing = _missing_emailjs_settings()
+  if not settings.EMAILJS_ADMIN_TEMPLATE_ID:
+    missing.append("EMAILJS_ADMIN_TEMPLATE_ID")
+  if not settings.ADMIN_NOTIFICATION_EMAIL:
+    missing.append("ADMIN_NOTIFICATION_EMAIL")
   return missing
 
 
@@ -227,22 +239,60 @@ def _build_registration_template_params(registration, participant, recipient_ema
   return template_params
 
 
-def send_registration_notifications(registration) -> bool:
-  participant_template_id = settings.EMAILJS_TEMPLATE_ID
+def send_admin_registration_notification(registration) -> bool:
   admin_template_id = _get_admin_template_id()
 
   logger.info(
-    "EMAIL DISPATCH START for %s: participant_template=%s admin_template=%s",
+    "ADMIN EMAIL DISPATCH START for %s: admin_template=%s",
+    registration.registration_code,
+    admin_template_id or "(not configured)",
+  )
+
+  missing_settings = _missing_admin_emailjs_settings()
+  if missing_settings:
+    logger.warning(
+      "Admin registration email skipped for %s. Missing EmailJS settings: %s",
+      registration.registration_code,
+      ", ".join(missing_settings)
+    )
+    return False
+
+  participants = list(registration.participants.order_by("participant_number"))
+  if not participants:
+    logger.warning("Admin registration email skipped for %s. Participant list is empty.", registration.registration_code)
+    return False
+
+  admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip().lower()
+  template_params = _build_registration_template_params(registration, participants[0], admin_email, "admin")
+  sent = _send_emailjs_message(
+    admin_email,
+    admin_template_id,
+    template_params,
+    purpose="ADMIN_NEW_REGISTRATION",
+  )
+
+  logger.info(
+    "ADMIN EMAIL DISPATCH RESULT for %s: sent=%s",
+    registration.registration_code,
+    sent
+  )
+  return sent
+
+
+def send_participant_registration_confirmation(registration) -> bool:
+  participant_template_id = settings.EMAILJS_TEMPLATE_ID
+
+  logger.info(
+    "PARTICIPANT EMAIL DISPATCH START for %s: participant_template=%s",
     registration.registration_code,
     participant_template_id,
-    admin_template_id or "(not configured)",
   )
 
   # Atomic idempotency: claim the lock before doing any sending work.
   from django.db import transaction
   with transaction.atomic():
     locked = Registration.objects.select_for_update().get(pk=registration.pk)
-    if locked.email_status in (Registration.EMAIL_SENT, Registration.EMAIL_SENDING):
+    if locked.email_status == Registration.EMAIL_SENDING:
       logger.info("Email already sent/sending for %s, skipping.", locked.registration_code)
       return True
     locked.email_status = Registration.EMAIL_SENDING
@@ -251,10 +301,10 @@ def send_registration_notifications(registration) -> bool:
   registration.refresh_from_db()
   result = False
   try:
-    missing_settings = _missing_emailjs_settings()
+    missing_settings = _missing_participant_emailjs_settings()
     if missing_settings:
       logger.warning(
-        "Registration email skipped for %s. Missing EmailJS settings: %s",
+        "Participant confirmation email skipped for %s. Missing EmailJS settings: %s",
         registration.registration_code,
         ", ".join(missing_settings)
       )
@@ -262,17 +312,14 @@ def send_registration_notifications(registration) -> bool:
 
     participants = list(registration.participants.order_by("participant_number"))
     if not participants:
-      logger.warning("Registration email skipped for %s. Participant list is empty.", registration.registration_code)
+      logger.warning("Participant confirmation email skipped for %s. Participant list is empty.", registration.registration_code)
       return False
 
-    admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip().lower()
-    admin_email_canonical = _canonicalize_email(admin_email) if admin_email else ""
     participant_results: list[bool] = []
     participant_recipient_emails: set[str] = set()
 
-    # Step 1: Send participant confirmation to EACH participant,
-    # but skip if the address canonically belongs to the admin
-    # (that inbox gets the admin notification in Step 2 instead).
+    # Send participant confirmations only to participant addresses. A participant
+    # may use the same inbox as the admin during testing, so do not suppress it.
     for participant in participants:
       participant_email = participant.email.strip().lower()
       if not participant_email:
@@ -294,15 +341,6 @@ def send_registration_notifications(registration) -> bool:
 
       participant_recipient_emails.add(participant_email)
 
-      if admin_email and _canonicalize_email(participant_email) == admin_email_canonical:
-        logger.info(
-          "Participant confirmation skipped for %s: %s belongs to admin, "
-          "admin notification will be sent instead.",
-          registration.registration_code,
-          participant_email
-        )
-        continue
-
       participant_template_params = _build_registration_template_params(
         registration, participant, participant_email, "participant"
       )
@@ -315,32 +353,11 @@ def send_registration_notifications(registration) -> bool:
       participant_results.append(sent)
 
     participant_sent = all(participant_results) if participant_results else True
-
-    # Step 2: Always send admin notification when admin email is configured.
-    lead_participant = participants[0]
-    admin_sent = True
-    if not admin_email:
-      logger.warning("Admin notification skipped for %s because ADMIN_NOTIFICATION_EMAIL is missing.", registration.registration_code)
-    elif not admin_template_id:
-      logger.error(
-        "Admin notification skipped for %s: EMAILJS_ADMIN_TEMPLATE_ID is not configured.",
-        registration.registration_code
-      )
-      admin_sent = False
-    else:
-      admin_template_params = _build_registration_template_params(registration, lead_participant, admin_email, "admin")
-      admin_sent = _send_emailjs_message(
-        admin_email,
-        admin_template_id,
-        admin_template_params,
-        purpose="ADMIN",
-      )
-
-    result = participant_sent and admin_sent
+    result = participant_sent
 
     logger.info(
-      "EMAIL DISPATCH RESULT for %s: participant_sent=%s admin_sent=%s result=%s",
-      registration.registration_code, participant_sent, admin_sent, result
+      "PARTICIPANT EMAIL DISPATCH RESULT for %s: participant_sent=%s",
+      registration.registration_code, participant_sent
     )
     return result
   finally:
@@ -348,6 +365,10 @@ def send_registration_notifications(registration) -> bool:
     registration.email_status = Registration.EMAIL_SENT if result else Registration.EMAIL_FAILED
     registration.save(update_fields=["email_status", "updated_at"])
     logger.info(
-      "EMAIL STATUS for %s: %s",
+      "PARTICIPANT EMAIL STATUS for %s: %s",
       registration.registration_code, registration.email_status
     )
+
+
+def send_registration_notifications(registration) -> bool:
+  return send_participant_registration_confirmation(registration)

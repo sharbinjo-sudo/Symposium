@@ -6,6 +6,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from config.security import apply_no_store
+from notifications.emailjs import send_admin_registration_notification
 from .models import Registration
 
 # Security: Constant time delay to prevent timing attacks on status lookup
@@ -42,6 +43,8 @@ class RegistrationCreateView(APIView):
       registration = create_registration(serializer.validated_data)
     except DuplicateRegistrationError as exc:
       return apply_no_store(Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST))
+
+    send_admin_registration_notification(registration)
 
     response_serializer = RegistrationResponseSerializer(registration)
     return apply_no_store(Response(response_serializer.data, status=status.HTTP_201_CREATED))

@@ -34,7 +34,7 @@ services:
       - key: ADMIN_NOTIFICATION_EMAIL
         sync: false
       - key: BACKBLAZE_B2_ENABLED
-        value: "false"
+        value: "true"
       - key: BACKBLAZE_B2_BUCKET_NAME
         sync: false
       - key: BACKBLAZE_B2_KEY_ID
@@ -47,3 +47,5 @@ services:
         sync: false
       - key: BACKBLAZE_B2_CUSTOM_DOMAIN
         sync: false
+      - key: BACKBLAZE_B2_ADDRESSING_STYLE
+        value: path

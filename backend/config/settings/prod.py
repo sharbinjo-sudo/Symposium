@@ -3,6 +3,8 @@ import os
 from .base import *  # noqa: F403
 
 DEBUG = False
+if not BACKBLAZE_B2_ENABLED:  # noqa: F405
+  raise ImproperlyConfigured("BACKBLAZE_B2_ENABLED must be true in production so uploads do not use local disk.")  # noqa: F405
 SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "true").lower() == "true"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -16,7 +16,7 @@ EVENT_CONTENT = {
       "Certificates: All registered participants"
     ],
     "rules": [
-      "Solo participation is supported.",
+      "Individual participation is supported.",
       "Bring a concise slide deck and a focused abstract or topic note.",
       "Judging weighs originality, delivery, and practical relevance.",
       "Participants must carry their presentation files on event day."
@@ -26,7 +26,7 @@ EVENT_CONTENT = {
     "track": "Technical",
     "summary": "Solve programming, debugging, and logic challenges under event-day pressure.",
     "description": (
-      "Coding challenge for solo participants or teams, focused on problem solving, debugging discipline, and "
+      "Coding challenge for individual participants, focused on problem solving, debugging discipline, and "
       "implementation clarity."
     ),
     "prizes": [
@@ -35,7 +35,7 @@ EVENT_CONTENT = {
       "Certificates: All registered participants"
     ],
     "rules": [
-      "Each team can have up to 2 participants.",
+      "Each participant must register individually.",
       "Round 1 is a written problem-solving round for shortlisting.",
       "Round 2 is a live coding round using Python, C, or Java.",
       "Phones and AI tools are prohibited during the event."
@@ -45,7 +45,7 @@ EVENT_CONTENT = {
     "track": "Technical",
     "summary": "Craft a functional web experience with clean interface thinking and responsive execution.",
     "description": (
-      "Web development event for solo participants or teams to turn a given idea into a useful, readable, and "
+      "Web development event for individual participants to turn a given idea into a useful, readable, and "
       "presentable web interface."
     ),
     "prizes": [
@@ -54,9 +54,9 @@ EVENT_CONTENT = {
       "Certificates: All registered participants"
     ],
     "rules": [
-      "Each team can have up to 2 participants.",
+      "Each participant must register individually.",
       "The challenge focuses on frontend-only implementation across multiple pages.",
-      "Teams receive a surprise idea or brief during the event.",
+      "Participants receive a surprise idea or brief during the event.",
       "AI tools may be used for this round."
     ]
   },
@@ -73,7 +73,7 @@ EVENT_CONTENT = {
       "Certificates: All registered participants"
     ],
     "rules": [
-      "Each team can have up to 2 participants.",
+      "Each participant must register individually.",
       "Random datasets are provided during the event.",
       "Participants may use Python, dashboard tools, or AI-assisted workflows.",
       "The most detailed, accurate, and compelling visual story wins."
@@ -85,9 +85,6 @@ EVENT_CONTENT = {
 class EventSerializer(serializers.ModelSerializer):
   code = serializers.CharField(source="event_code")
   name = serializers.CharField(source="event_name")
-  minTeamSize = serializers.IntegerField(source="minimum_team_size")
-  maxTeamSize = serializers.IntegerField(source="maximum_team_size")
-  feeType = serializers.CharField(source="registration_fee_type")
   feeAmount = serializers.DecimalField(source="registration_fee", max_digits=8, decimal_places=2)
   registrationOpen = serializers.BooleanField(source="is_registration_open")
   summary = serializers.SerializerMethodField()
@@ -104,9 +101,6 @@ class EventSerializer(serializers.ModelSerializer):
       "track",
       "summary",
       "description",
-      "minTeamSize",
-      "maxTeamSize",
-      "feeType",
       "feeAmount",
       "registrationOpen",
       "prizes",
@@ -121,7 +115,7 @@ class EventSerializer(serializers.ModelSerializer):
     content = EVENT_CONTENT.get(obj.event_code, {})
     return content.get(
       "summary",
-      f"{obj.event_name} registration with {obj.minimum_team_size}-{obj.maximum_team_size} participant slots."
+      f"{obj.event_name} registration."
     )
 
   def get_description(self, obj: Event) -> str:

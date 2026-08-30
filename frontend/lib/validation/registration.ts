@@ -51,25 +51,19 @@ export const participantSchema = z.object({
   yearOfStudy: z.string().min(1, "Year of study is required."),
   foodPreference: z.enum(["veg", "non_veg"], {
     errorMap: () => ({ message: "Choose Veg or Non-Veg food preference." })
-  }),
-  isTeamLeader: z.boolean()
+  })
 });
 
-export function createRegistrationSchema(event: EventConfig | undefined) {
-  const requiresTeamName = (event?.maxTeamSize ?? 1) > 1;
-
+export function createRegistrationSchema() {
   return z.object({
     eventCode: z.string().min(2, "Please choose an event."),
-    teamName: z
-      .string()
-      .trim()
-      .max(100, "Team name is too long.")
-      .refine((value) => !requiresTeamName || value.length >= 2, "Team name is required."),
-    teamSize: z
-      .number()
-      .int()
-      .min(event?.minTeamSize ?? 1)
-      .max(event?.maxTeamSize ?? 2),
+    eventCodes: z
+      .array(z.string().min(2))
+      .min(1, "Please choose at least one event.")
+      .refine((codes) => !(codes.includes("WC") && codes.includes("VS")), {
+        message:
+          "Choose either Web Craft or Visualytics, not both, due to the event schedule. Check Timeline page for more details."
+      }),
     transactionId: z
       .string()
       .trim()
@@ -82,7 +76,7 @@ export function createRegistrationSchema(event: EventConfig | undefined) {
     }),
     participants: z
       .array(participantSchema)
-      .min(event?.minTeamSize ?? 1)
-      .max(event?.maxTeamSize ?? 2)
+      .min(1, "Participant details are required.")
+      .max(1, "Only one participant is allowed per registration.")
   });
 }

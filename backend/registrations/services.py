@@ -1,4 +1,3 @@
-from decimal import Decimal
 import re
 from uuid import uuid4
 
@@ -34,10 +33,15 @@ def normalize_mobile(value: str) -> str:
   return compact_value
 
 
-def compute_total_amount(event: Event, team_size: int) -> Decimal:
-  if event.registration_fee_type == Event.FEE_TYPE_PER_TEAM:
-    return event.registration_fee
-  return event.registration_fee * team_size
+def selected_events_for_registration(registration: Registration) -> list[Event]:
+  selected_events = list(registration.selected_events.all())
+  if not selected_events:
+    return [registration.event]
+
+  return sorted(
+    selected_events,
+    key=lambda event: (event.pk != registration.event_id, event.event_name)
+  )
 
 
 def resolve_upload_token(upload_token: str) -> str:
@@ -56,16 +60,13 @@ def ensure_duplicate_rules(
   event: Event,
   participants: list[dict],
   transaction_id: str | None = None,
-  team_name: str | None = None
+  selected_events: list[Event] | None = None
 ) -> None:
-  if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
-    raise DuplicateRegistrationError("This payment reference is already in use.")
-
   active_registrations = Registration.objects.exclude(payment_status=Registration.PAYMENT_REJECTED)
   active_participants = Participant.objects.exclude(registration__payment_status=Registration.PAYMENT_REJECTED)
 
-  if team_name and active_registrations.filter(event=event, team_name__iexact=team_name).exists():
-    raise DuplicateRegistrationError("A team with this name is already registered for this event.")
+  if transaction_id and active_registrations.filter(transaction_id=transaction_id).exists():
+    raise DuplicateRegistrationError("This payment reference is already in use.")
 
   for participant in participants:
     email = normalize_email(participant["email"])
@@ -86,14 +87,15 @@ def create_registration(validated_data: dict) -> Registration:
     return existing_registration
 
   event = Event.objects.select_for_update().get(pk=validated_data["event"].pk)
+  selected_events = list(validated_data.get("selected_events") or [event])
   ensure_duplicate_rules(
     event,
     validated_data["participants"],
     validated_data["normalized_transaction_id"],
-    team_name=validated_data.get("teamName")
+    selected_events=selected_events
   )
 
-  latest = Registration.objects.select_for_update().filter(event=event).order_by("-id").first()
+  latest = Registration.objects.select_for_update().order_by("-id").first()
   next_number = 1
   if latest:
     try:
@@ -103,10 +105,8 @@ def create_registration(validated_data: dict) -> Registration:
 
   try:
     registration = Registration.objects.create(
-      registration_code=f"CP26-{event.event_code}-{next_number:04d}",
+      registration_code=f"CP26-RN-{next_number:04d}",
       event=event,
-      team_name=validated_data.get("teamName") or None,
-      team_size=validated_data["teamSize"],
       total_amount=validated_data["total_amount"],
       transaction_id=validated_data["normalized_transaction_id"],
       payment_provider=validated_data.get("payment_provider", Registration.PAYMENT_PROVIDER_MANUAL),
@@ -118,6 +118,8 @@ def create_registration(validated_data: dict) -> Registration:
     )
   except IntegrityError as exc:
     raise DuplicateRegistrationError("This payment or registration request has already been used.") from exc
+
+  registration.selected_events.set(selected_events)
 
   participant_rows = []
   for index, participant in enumerate(validated_data["participants"], start=1):
@@ -131,8 +133,7 @@ def create_registration(validated_data: dict) -> Registration:
       email=normalize_email(participant["email"]),
       department=participant["department"].strip(),
       year_of_study=participant["yearOfStudy"].strip(),
-      food_preference=participant["foodPreference"],
-      is_team_leader=participant["isTeamLeader"]
+      food_preference=participant["foodPreference"]
     ))
 
   Participant.objects.bulk_create(participant_rows)

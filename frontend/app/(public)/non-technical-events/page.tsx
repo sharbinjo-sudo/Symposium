@@ -19,7 +19,7 @@ export default function NonTechnicalEventsPage() {
           <GlassPanel className="non-tech-note-card" tone="strong">
             <p className="card-copy non-tech-note-copy">
               <strong>Note:</strong>
-              <span>Registration for non-technical events is offline.</span>
+              <span>Non-technical events will be fully handled offline.</span>
             </p>
           </GlassPanel>
         </Reveal>
@@ -31,7 +31,6 @@ export default function NonTechnicalEventsPage() {
                 showRegister={false}
                 showImportantNotes={false}
                 showTags={false}
-                teamSizeLabel="Decided Onsite"
               />
             </Reveal>
           ))}

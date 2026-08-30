@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { WaterRippleCard } from "@/components/ui/WaterRippleCard";
 import { cn } from "@/lib/cn";
-import { formatTeamRange } from "@/lib/format";
 import type { EventConfig } from "@/lib/types";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 
@@ -15,7 +14,6 @@ type EventCardProps = {
   showRegister?: boolean;
   showImportantNotes?: boolean;
   showTags?: boolean;
-  teamSizeLabel?: string;
 };
 
 function renderGraphic(event: EventConfig) {
@@ -139,8 +137,7 @@ export function EventCard({
   event,
   showRegister = true,
   showImportantNotes = true,
-  showTags = true,
-  teamSizeLabel
+  showTags = true
 }: EventCardProps) {
   const [open, setOpen] = useState(false);
   const leadNote = showImportantNotes ? event.importantNotes[0] : undefined;
@@ -168,13 +165,6 @@ export function EventCard({
             <p className="event-card-description">{event.description}</p>
           </div>
           <div className="event-card-visual">{renderGraphic(event)}</div>
-        </div>
-
-        <div className="event-card-meta">
-          <div className="event-metric">
-            <span>Team size</span>
-            <strong>{teamSizeLabel ?? formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
-          </div>
         </div>
 
         {leadNote ? (

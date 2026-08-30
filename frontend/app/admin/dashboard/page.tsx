@@ -144,7 +144,7 @@ function isAdminAuthError(error: unknown) {
   return error instanceof ApiError && (error.status === 401 || error.status === 403)
 }
 
-function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
+function emptyParticipant(): ParticipantInput {
   return {
     fullName: "",
     collegeName: "",
@@ -152,22 +152,12 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
     email: "",
     department: "",
     yearOfStudy: "",
-    foodPreference: "",
-    isTeamLeader
+    foodPreference: ""
   }
 }
 
 function todayDateValue() {
   return new Date().toLocaleDateString("en-CA")
-}
-
-function syncParticipantList(current: ParticipantInput[], nextSize: number) {
-  return Array.from({ length: nextSize }, (_, index) => current[index] ?? emptyParticipant(index === 0)).map(
-    (participant, index) => ({
-      ...participant,
-      isTeamLeader: index === 0
-    })
-  )
 }
 
 function mapCreateFieldErrors(fieldErrors: Record<string, string>) {
@@ -218,8 +208,6 @@ export default function AdminDashboardPage() {
   const [creating, setCreating] = useState(false)
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
   const [createEventCode, setCreateEventCode] = useState(defaultEvent?.code ?? "")
-  const [createTeamSize, setCreateTeamSize] = useState(defaultEvent?.minTeamSize ?? 1)
-  const [createTeamName, setCreateTeamName] = useState("")
   const [createTransactionId, setCreateTransactionId] = useState("")
   const [createPaymentProvider, setCreatePaymentProvider] = useState("manual")
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
@@ -228,7 +216,7 @@ export default function AdminDashboardPage() {
   const [createSendEmail, setCreateSendEmail] = useState(false)
   const [createAdminNote, setCreateAdminNote] = useState("")
   const [createParticipants, setCreateParticipants] = useState<ParticipantInput[]>(() =>
-    Array.from({ length: defaultEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
+    [emptyParticipant()]
   )
   const authRedirectingRef = useRef(false)
   const latestRegistrationCodeRef = useRef<string | null>(null)
@@ -382,15 +370,13 @@ export default function AdminDashboardPage() {
   function resetCreateForm(nextEvent: EventConfig = defaultEvent) {
     setCreateErrors({})
     setCreateEventCode(nextEvent.code)
-    setCreateTeamSize(nextEvent.minTeamSize)
-    setCreateTeamName("")
     setCreateTransactionId("")
     setCreatePaymentProvider("manual")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
     setCreateSendEmail(false)
     setCreateAdminNote("")
-    setCreateParticipants(Array.from({ length: nextEvent.minTeamSize }, (_, index) => emptyParticipant(index === 0)))
+    setCreateParticipants([emptyParticipant()])
   }
 
   async function refreshDashboard(showLoading = false) {
@@ -431,20 +417,15 @@ export default function AdminDashboardPage() {
     }
 
     setCreateEventCode(nextEvent.code)
-    setCreateTeamSize(nextEvent.minTeamSize)
-    setCreateParticipants(Array.from({ length: nextEvent.minTeamSize }, (_, index) => emptyParticipant(index === 0)))
+    setCreateParticipants([emptyParticipant()])
     setCreateErrors((current) => {
       const next = { ...current }
       delete next.eventCode
-      delete next.teamName
       return next
     })
   }
 
-  function handleCreateTeamSizeChange(nextSize: number) {
-    setCreateTeamSize(nextSize)
-    setCreateParticipants((current) => syncParticipantList(current, nextSize))
-  }
+
 
   function handleCreateParticipantChange(index: number, field: keyof ParticipantInput, value: string | boolean) {
     setCreateParticipants((current) =>
@@ -460,10 +441,6 @@ export default function AdminDashboardPage() {
 
     if (!createEventCode) {
       nextErrors.eventCode = "Choose an event."
-    }
-
-    if (createEvent.maxTeamSize > 1 && !createTeamName.trim()) {
-      nextErrors.teamName = "Team name is required for this event."
     }
 
     if (!createTransactionId.trim()) {
@@ -503,8 +480,6 @@ export default function AdminDashboardPage() {
 
     const payload: AdminRegistrationCreatePayload = {
       eventCode: createEventCode,
-      teamName: createEvent.maxTeamSize > 1 ? createTeamName.trim() : "",
-      teamSize: createTeamSize,
       transactionId: createTransactionId.trim(),
       paymentProvider: createPaymentProvider,
       paymentStatus: createPaymentStatus,
@@ -719,8 +694,8 @@ export default function AdminDashboardPage() {
             <strong>{registration.eventName}</strong>
           </div>
           <div className="admin-detail-item">
-            <span>Team</span>
-            <strong>{registration.teamName || "Solo entry"}</strong>
+            <span>Registration type</span>
+            <strong>Individual entry</strong>
           </div>
           <div className="admin-detail-item">
             <span>Lead email</span>
@@ -757,10 +732,7 @@ export default function AdminDashboardPage() {
             <span>Food preference</span>
             <strong>{(registration.participantFoodPreferences ?? []).map(formatFoodPreference).join(", ")}</strong>
           </div>
-          <div className="summary-row">
-            <span>Team size</span>
-            <strong>{registration.teamSize}</strong>
-          </div>
+
           <div className="summary-row">
             <span>Email delivery</span>
             <strong>{formatStatusLabel(registration.emailStatus)}</strong>
@@ -854,7 +826,7 @@ export default function AdminDashboardPage() {
               <div className="table-toolbar">
                 <input
                   value={search}
-                  placeholder="Search code, team, participant, email, roll number, or transaction"
+                  placeholder="Search code, participant, email, roll number, or transaction"
                   onChange={(event) => setSearch(event.target.value)}
                 />
                 <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
@@ -920,7 +892,7 @@ export default function AdminDashboardPage() {
                         >
                           <td>
                             <strong>{registration.registrationCode}</strong>
-                            <div className="table-subtext">{registration.teamName || "Solo entry"}</div>
+                            <div className="table-subtext">Individual entry</div>
                           </td>
                           <td>
                             <strong>{registration.leadParticipantName || "Participant"}</strong>
@@ -963,10 +935,7 @@ export default function AdminDashboardPage() {
                   <span>Code</span>
                   <strong>{summary.latestRegistration.registrationCode}</strong>
                 </div>
-                <div className="admin-notification-item">
-                  <span>Team</span>
-                  <strong>{summary.latestRegistration.teamName || "Solo entry"}</strong>
-                </div>
+
                 <div className="admin-notification-item">
                   <span>Email</span>
                   <strong>{summary.latestRegistration.participantEmail || "Not provided"}</strong>
@@ -1027,24 +996,6 @@ export default function AdminDashboardPage() {
                         ))}
                       </select>
                       {createErrors.eventCode ? <div className="error">{createErrors.eventCode}</div> : null}
-                    </div>
-
-                    <div className="field">
-                      <label htmlFor="create-team-size">Team size</label>
-                      <select
-                        id="create-team-size"
-                        value={createTeamSize}
-                        onChange={(event) => handleCreateTeamSizeChange(Number(event.target.value))}
-                      >
-                        {Array.from(
-                          { length: createEvent.maxTeamSize - createEvent.minTeamSize + 1 },
-                          (_, index) => createEvent.minTeamSize + index
-                        ).map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     <div className="field">
@@ -1111,19 +1062,7 @@ export default function AdminDashboardPage() {
                       </select>
                     </div>
 
-                    <div className="field admin-create-grid-span">
-                      <label htmlFor="create-team-name">Team name</label>
-                      <input
-                        id="create-team-name"
-                        value={createTeamName}
-                        onChange={(event) => {
-                          setCreateTeamName(event.target.value)
-                          setCreateErrors((current) => ({ ...current, teamName: "" }))
-                        }}
-                        placeholder={createEvent.maxTeamSize > 1 ? "Required for team events" : "Optional for solo entries"}
-                      />
-                      {createErrors.teamName ? <div className="error">{createErrors.teamName}</div> : null}
-                    </div>
+
                   </div>
 
                   <div className="admin-create-checkboxes">
@@ -1148,8 +1087,8 @@ export default function AdminDashboardPage() {
                     {createParticipants.map((participant, index) => (
                       <div key={`create-participant-${index}`} className="participant-card admin-create-participant-card">
                         <div className="participant-labels">
-                          <span>{index === 0 ? "Team Leader" : `Participant ${index + 1}`}</span>
-                          <span>{index === 0 ? "Primary contact" : "Member details"}</span>
+                          <span>Participant</span>
+                          <span>Primary contact</span>
                         </div>
                         <div className="form-grid two">
                           <div className="field">

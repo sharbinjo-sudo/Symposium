@@ -21,6 +21,16 @@ const homePageLinks = [
     copy: "Prize amounts, certificates, and event-wise rewards."
   },
   {
+    href: "/timeline",
+    label: "Timeline",
+    copy: "Event-day schedule, session flow, breaks, and closing ceremony."
+  },
+  {
+    href: "/note",
+    label: "Notes",
+    copy: "Registration rules, offline event notes, and payment verification guidance."
+  },
+  {
     href: "/contact",
     label: "Contact",
     copy: "Convener, coordinators, phone number, and mail ID."
@@ -46,7 +56,7 @@ const homeFacts = [
   },
   {
     label: "Registration deadline",
-    value: "September 10, 2026, 11:59 PM"
+    value: "September 11, 2026, 12:30 AM"
   },
   {
     label: "Event date",
@@ -84,7 +94,7 @@ export default function HomePage() {
                   <span>closes in</span>
                 </h2>
                 <p className="card-copy">
-                  Complete your registration before September 10 ends so your event-day entry is ready.
+                  Complete your registration before September 11, 12:30 AM so your event-day entry is ready.
                 </p>
               </div>
               <Countdown eventDate={siteConfig.registrationDeadline} />

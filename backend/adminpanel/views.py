@@ -22,7 +22,12 @@ from registrations.serializers import (
   AdminRegistrationSerializer,
   RegistrationActionSerializer
 )
-from registrations.services import DuplicateRegistrationError, create_registration, normalize_transaction_id
+from registrations.services import (
+  DuplicateRegistrationError,
+  create_registration,
+  normalize_transaction_id,
+  selected_events_for_registration
+)
 
 from .audit import log_admin_action
 from .auth import SESSION_ADMIN_KEY, get_authenticated_admin, set_admin_session
@@ -87,14 +92,14 @@ def _is_safe_screenshot_path(path: str) -> bool:
 
 
 def get_admin_registration_queryset(request):
-  queryset = Registration.objects.select_related("event").prefetch_related("participants").all()
+  queryset = Registration.objects.select_related("event").prefetch_related("participants", "selected_events").all()
 
   event_code = (request.query_params.get("event") or "").strip()
   payment_status = (request.query_params.get("payment_status") or "").strip()
   search = (request.query_params.get("search") or "").strip()
 
   if event_code:
-    queryset = queryset.filter(event__event_code=event_code)
+    queryset = queryset.filter(Q(event__event_code=event_code) | Q(selected_events__event_code=event_code))
   if payment_status:
     queryset = queryset.filter(payment_status=payment_status)
   if search:
@@ -102,7 +107,6 @@ def get_admin_registration_queryset(request):
     search = _validate_search_length(search)
     queryset = queryset.filter(
       Q(registration_code__icontains=search)
-      | Q(team_name__icontains=search)
       | Q(transaction_id__icontains=search)
       | Q(participants__full_name__icontains=search)
       | Q(participants__email__icontains=search)
@@ -187,7 +191,7 @@ class AdminDashboardSummaryView(APIView):
 
   def get(self, request):
     latest_registration = (
-      Registration.objects.select_related("event").prefetch_related("participants").order_by("-created_at").first()
+      Registration.objects.select_related("event").prefetch_related("participants", "selected_events").order_by("-created_at").first()
     )
     latest_payload = None
 
@@ -195,8 +199,7 @@ class AdminDashboardSummaryView(APIView):
       lead_participant = latest_registration.participants.order_by("participant_number").first()
       latest_payload = {
         "registrationCode": latest_registration.registration_code,
-        "eventName": latest_registration.event.event_name,
-        "teamName": latest_registration.team_name or "Solo entry",
+        "eventName": ", ".join(event.event_name for event in selected_events_for_registration(latest_registration)),
         "participantName": lead_participant.full_name if lead_participant else "Participant",
         "participantEmail": lead_participant.email if lead_participant else "",
         "paymentStatus": latest_registration.payment_status,
@@ -328,7 +331,7 @@ class AdminRegistrationCreateView(APIView):
       entity_id=registration.registration_code,
       metadata={
         "eventCode": data["eventCode"],
-        "teamSize": data["teamSize"],
+        "eventCodes": data.get("eventCodes", [data["eventCode"]]),
         "paymentStatus": payment_status
       }
     )
@@ -417,7 +420,6 @@ class AdminRegistrationExportView(APIView):
     writer.writerow([
       "Registration Code",
       "Event",
-      "Team",
       "Lead Participant",
       "Lead Email",
       "Food Preferences",
@@ -434,8 +436,7 @@ class AdminRegistrationExportView(APIView):
       writer.writerow(
         [
           registration.registration_code,
-          registration.event.event_name,
-          registration.team_name or "",
+          ", ".join(event.event_name for event in selected_events_for_registration(registration)),
           lead_participant.full_name if lead_participant else "",
           lead_participant.email if lead_participant else "",
           ", ".join(participant.get_food_preference_display() for participant in registration.participants.all()),

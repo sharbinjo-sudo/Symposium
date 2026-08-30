@@ -40,8 +40,7 @@ class Registration(models.Model):
 
   registration_code = models.CharField(max_length=20, unique=True, db_index=True)
   event = models.ForeignKey(Event, on_delete=models.PROTECT, related_name="registrations")
-  team_name = models.CharField(max_length=100, null=True, blank=True)
-  team_size = models.PositiveSmallIntegerField()
+  selected_events = models.ManyToManyField(Event, related_name="multi_event_registrations", blank=True)
   total_amount = models.DecimalField(max_digits=8, decimal_places=2)
   transaction_id = models.CharField(max_length=100, unique=True, db_index=True)
   payment_provider = models.CharField(
@@ -86,7 +85,6 @@ class Participant(models.Model):
   department = models.CharField(max_length=100)
   year_of_study = models.CharField(max_length=20)
   food_preference = models.CharField(max_length=16, choices=FOOD_PREFERENCE_CHOICES, default=FOOD_VEG)
-  is_team_leader = models.BooleanField(default=False)
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:

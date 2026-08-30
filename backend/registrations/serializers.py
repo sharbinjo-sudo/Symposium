@@ -7,7 +7,7 @@ import re
 from events.models import Event
 
 from .models import Participant, Registration
-from .services import compute_total_amount, normalize_transaction_id, resolve_upload_token
+from .services import normalize_transaction_id, resolve_upload_token, selected_events_for_registration
 
 FULL_NAME_ERROR = "Enter a valid name without numbers, phone numbers, or email addresses."
 INDIAN_MOBILE_ERROR = "Enter a valid Indian mobile number, like +91XXXXXXXXXX."
@@ -22,7 +22,6 @@ class ParticipantInputSerializer(serializers.Serializer):
   department = serializers.CharField(max_length=100)
   yearOfStudy = serializers.CharField(max_length=20)
   foodPreference = serializers.ChoiceField(choices=Participant.FOOD_PREFERENCE_CHOICES)
-  isTeamLeader = serializers.BooleanField()
 
   def validate_fullName(self, value: str) -> str:
     trimmed_value = value.strip()
@@ -92,19 +91,28 @@ class ParticipantInputSerializer(serializers.Serializer):
 
 
 class RegistrationBaseSerializer(serializers.Serializer):
-  eventCode = serializers.CharField(max_length=4)
-  teamName = serializers.CharField(max_length=100, allow_blank=True, required=False)
-  teamSize = serializers.IntegerField(min_value=1, max_value=4)
+  eventCode = serializers.CharField(max_length=4, required=False, allow_blank=True)
+  eventCodes = serializers.ListField(
+    child=serializers.CharField(max_length=4),
+    min_length=1,
+    max_length=4,
+    required=False
+  )
   participants = ParticipantInputSerializer(many=True)
   idempotencyKey = serializers.CharField(max_length=64)
 
-  def validate_teamName(self, value: str) -> str:
-    trimmed_value = value.strip()
-    if not trimmed_value:
-      return ""
-    if len(trimmed_value) < 2:
-      raise serializers.ValidationError("Team name is required.")
-    return trimmed_value
+  def validate_eventCode(self, value: str) -> str:
+    return value.strip().upper()
+
+  def validate_eventCodes(self, value: list[str]) -> list[str]:
+    normalized_codes: list[str] = []
+    for code in value:
+      normalized_code = code.strip().upper()
+      if normalized_code and normalized_code not in normalized_codes:
+        normalized_codes.append(normalized_code)
+    if not normalized_codes:
+      raise serializers.ValidationError("Choose at least one event.")
+    return normalized_codes
 
   def validate_idempotencyKey(self, value: str) -> str:
     trimmed_value = value.strip()
@@ -113,30 +121,47 @@ class RegistrationBaseSerializer(serializers.Serializer):
     return trimmed_value
 
   def validate(self, attrs):
-    try:
-      event = Event.objects.get(event_code=attrs["eventCode"])
-    except Event.DoesNotExist as exc:
-      raise serializers.ValidationError({"eventCode": "Selected event does not exist."}) from exc
+    selected_event_codes = attrs.get("eventCodes") or []
+    legacy_event_code = attrs.get("eventCode", "")
+    if legacy_event_code and legacy_event_code not in selected_event_codes:
+      selected_event_codes = [legacy_event_code, *selected_event_codes]
 
-    if not event.is_registration_open:
-      raise serializers.ValidationError({"eventCode": "Registration is closed for this event."})
+    selected_event_codes = list(dict.fromkeys(selected_event_codes))
+    if not selected_event_codes:
+      raise serializers.ValidationError({"eventCodes": "Choose at least one event."})
 
-    team_size = attrs["teamSize"]
+    events_by_code = Event.objects.in_bulk(selected_event_codes, field_name="event_code")
+    missing_codes = [code for code in selected_event_codes if code not in events_by_code]
+    if missing_codes:
+      raise serializers.ValidationError({"eventCodes": "One or more selected events do not exist."})
+
+    selected_events = [events_by_code[code] for code in selected_event_codes]
+    event = selected_events[0]
+
+    if any(not selected_event.is_registration_open for selected_event in selected_events):
+      raise serializers.ValidationError({"eventCodes": "Registration is closed for one or more selected events."})
+
+    selected_code_set = set(selected_event_codes)
+    if {"WC", "VS"}.issubset(selected_code_set):
+      raise serializers.ValidationError(
+        {
+          "eventCodes": (
+            "Choose either Web Craft or Visualytics, not both, due to the event schedule. "
+            "Check Timeline page for more details."
+          )
+        }
+      )
+
     participants = attrs["participants"]
 
-    if team_size < event.minimum_team_size or team_size > event.maximum_team_size:
-      raise serializers.ValidationError({"teamSize": "Team size is outside the allowed range for this event."})
+    if len(participants) != 1:
+      raise serializers.ValidationError({"participants": "Only one participant is allowed per registration."})
 
-    if len(participants) != team_size:
-      raise serializers.ValidationError({"participants": "Participant count must match team size."})
-
-    attrs["teamName"] = attrs.get("teamName", "").strip()
-
-    if event.maximum_team_size > 1 and not attrs["teamName"]:
-      raise serializers.ValidationError({"teamName": "Team name is required."})
-
+    attrs["eventCode"] = event.event_code
+    attrs["eventCodes"] = selected_event_codes
     attrs["event"] = event
-    attrs["total_amount"] = compute_total_amount(event, team_size)
+    attrs["selected_events"] = selected_events
+    attrs["total_amount"] = event.registration_fee
     return attrs
 
 
@@ -197,15 +222,25 @@ class PrecheckParticipantSerializer(serializers.Serializer):
 
 class RegistrationPrecheckSerializer(serializers.Serializer):
   eventCode = serializers.CharField(max_length=4, required=False, allow_blank=True)
-  teamName = serializers.CharField(max_length=100, required=False, allow_blank=True)
+  eventCodes = serializers.ListField(
+    child=serializers.CharField(max_length=4),
+    min_length=1,
+    max_length=4,
+    required=False
+  )
   transactionId = serializers.CharField(max_length=100, required=False, allow_blank=True)
   participants = PrecheckParticipantSerializer(many=True, required=False)
 
   def validate_eventCode(self, value: str) -> str:
     return value.strip().upper()
 
-  def validate_teamName(self, value: str) -> str:
-    return value.strip()
+  def validate_eventCodes(self, value: list[str]) -> list[str]:
+    normalized_codes: list[str] = []
+    for code in value:
+      normalized_code = code.strip().upper()
+      if normalized_code and normalized_code not in normalized_codes:
+        normalized_codes.append(normalized_code)
+    return normalized_codes
 
   def validate_transactionId(self, value: str) -> str:
     trimmed_value = value.strip()
@@ -268,6 +303,10 @@ class AdminRegistrationCreateSerializer(RegistrationBaseSerializer):
 
 class RegistrationResponseSerializer(serializers.ModelSerializer):
   registrationCode = serializers.CharField(source="registration_code")
+  eventCode = serializers.CharField(source="event.event_code")
+  eventName = serializers.SerializerMethodField()
+  eventCodes = serializers.SerializerMethodField()
+  eventNames = serializers.SerializerMethodField()
   paymentStatus = serializers.CharField(source="payment_status")
   emailStatus = serializers.CharField(source="email_status")
   paymentReference = serializers.CharField(source="transaction_id")
@@ -278,6 +317,10 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
     model = Registration
     fields = [
       "registrationCode",
+      "eventCode",
+      "eventName",
+      "eventCodes",
+      "eventNames",
       "paymentStatus",
       "emailStatus",
       "paymentReference",
@@ -285,13 +328,22 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
       "paymentProvider"
     ]
 
+  def get_eventName(self, obj):
+    return ", ".join(event.event_name for event in selected_events_for_registration(obj))
+
+  def get_eventCodes(self, obj):
+    return [event.event_code for event in selected_events_for_registration(obj)]
+
+  def get_eventNames(self, obj):
+    return [event.event_name for event in selected_events_for_registration(obj)]
+
 
 class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   registrationCode = serializers.CharField(source="registration_code")
   eventCode = serializers.CharField(source="event.event_code")
-  eventName = serializers.CharField(source="event.event_name")
-  teamName = serializers.SerializerMethodField()
-  teamSize = serializers.IntegerField(source="team_size")
+  eventName = serializers.SerializerMethodField()
+  eventCodes = serializers.SerializerMethodField()
+  eventNames = serializers.SerializerMethodField()
   participantNames = serializers.SerializerMethodField()
   participantFoodPreferences = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
@@ -310,8 +362,14 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
     participants = list(obj.participants.all())
     return participants[0] if participants else None
 
-  def get_teamName(self, obj):
-    return obj.team_name or "Solo entry"
+  def get_eventName(self, obj):
+    return ", ".join(event.event_name for event in selected_events_for_registration(obj))
+
+  def get_eventCodes(self, obj):
+    return [event.event_code for event in selected_events_for_registration(obj)]
+
+  def get_eventNames(self, obj):
+    return [event.event_name for event in selected_events_for_registration(obj)]
 
   def get_participantNames(self, obj):
     return [participant.full_name for participant in obj.participants.all()]
@@ -333,8 +391,8 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
       "registrationCode",
       "eventCode",
       "eventName",
-      "teamName",
-      "teamSize",
+      "eventCodes",
+      "eventNames",
       "participantNames",
       "participantFoodPreferences",
       "leadParticipantName",
@@ -357,9 +415,9 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   leadParticipantName = serializers.SerializerMethodField()
   leadParticipantEmail = serializers.SerializerMethodField()
   registrationCode = serializers.CharField(source="registration_code")
-  eventName = serializers.CharField(source="event.event_name")
-  teamName = serializers.CharField(source="team_name", allow_null=True, required=False)
-  teamSize = serializers.IntegerField(source="team_size")
+  eventName = serializers.SerializerMethodField()
+  eventCodes = serializers.SerializerMethodField()
+  eventNames = serializers.SerializerMethodField()
   amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
   transactionId = serializers.CharField(source="transaction_id")
   paymentStatus = serializers.CharField(source="payment_status")
@@ -392,6 +450,15 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   def get_screenshotAvailable(self, obj):
     return bool(obj.payment_screenshot_path)
 
+  def get_eventName(self, obj):
+    return ", ".join(event.event_name for event in selected_events_for_registration(obj))
+
+  def get_eventCodes(self, obj):
+    return [event.event_code for event in selected_events_for_registration(obj)]
+
+  def get_eventNames(self, obj):
+    return [event.event_name for event in selected_events_for_registration(obj)]
+
   class Meta:
     model = Registration
     fields = [
@@ -401,8 +468,8 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
       "leadParticipantEmail",
       "registrationCode",
       "eventName",
-      "teamName",
-      "teamSize",
+      "eventCodes",
+      "eventNames",
       "amountPaid",
       "transactionId",
       "paymentStatus",

@@ -26,7 +26,6 @@ from .services import (
   normalize_email,
   normalize_mobile
 )
-from events.models import Event
 
 
 class RegistrationCreateView(APIView):
@@ -65,20 +64,22 @@ class RegistrationPrecheckView(APIView):
     data = serializer.validated_data
     field_errors: dict[str, str] = {}
 
+    event_codes = data.get("eventCodes") or []
     event_code = data.get("eventCode", "")
-    team_name = data.get("teamName", "")
+    if event_code and event_code not in event_codes:
+      event_codes = [event_code, *event_codes]
+    event_codes = list(dict.fromkeys(event_codes))
     active_registrations = Registration.objects.exclude(payment_status=Registration.PAYMENT_REJECTED)
     active_participants = Participant.objects.exclude(registration__payment_status=Registration.PAYMENT_REJECTED)
 
-    if event_code and team_name:
-      event = Event.objects.filter(event_code=event_code).first()
-      if event is None:
-        field_errors["eventCode"] = "Selected event does not exist."
-      elif active_registrations.filter(event=event, team_name__iexact=team_name).exists():
-        field_errors["teamName"] = "A team with this name is already registered for this event."
+    if {"WC", "VS"}.issubset(set(event_codes)):
+      field_errors["eventCodes"] = (
+        "Choose either Web Craft or Visualytics, not both, due to the event schedule. "
+        "Check Timeline page for more details."
+      )
 
     transaction_id = data.get("transactionId", "")
-    if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
+    if transaction_id and active_registrations.filter(transaction_id=transaction_id).exists():
       field_errors["transactionId"] = "This UPI transaction ID is already registered."
 
     seen_emails: dict[str, int] = {}
@@ -134,7 +135,7 @@ class RegistrationStatusLookupView(APIView):
 
     registration = (
       Registration.objects.select_related("event")
-      .prefetch_related("participants")
+      .prefetch_related("participants", "selected_events")
       .filter(
         registration_code__iexact=serializer.validated_data["registrationCode"],
         participants__email__iexact=serializer.validated_data["email"]

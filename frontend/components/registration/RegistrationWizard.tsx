@@ -10,16 +10,18 @@ import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { UploadDropzone } from "@/components/ui/UploadDropzone";
 import { ApiError, createIdempotencyKey, precheckRegistration, submitRegistration, uploadScreenshot } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
-import { formatFoodPreference, formatMemberCount, formatTeamRange } from "@/lib/format";
+import { formatFoodPreference } from "@/lib/format";
 import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
 import type { EventConfig, ParticipantInput, RegistrationResponse } from "@/lib/types";
 
-const steps = ["Event", "Participants", "Team", "Payment", "Review", "Confirm"];
+const steps = ["Event", "Participant", "Payment", "Review", "Confirm"];
+const exclusiveEventPairs = [["WC", "VS"]];
+const eventConflictMessage =
+  "Choose either Web Craft or Visualytics, not both, due to the event schedule. Check Timeline page for more details.";
 
 const paymentQrCards: Record<number, string> = {
-  250: "/suriya_qr_250_scan.png",
-  500: "/suriya_qr_500_scan.png"
+  250: "/suriya_qr_250_scan.png"
 };
 
 const upiPayeeId = "suriyalingadurai1996-1@okhdfcbank";
@@ -54,7 +56,7 @@ function getReadableUiError(error: unknown, fallbackMessage: string) {
   return message;
 }
 
-function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
+function emptyParticipant(): ParticipantInput {
   return {
     fullName: "",
     collegeName: "",
@@ -62,13 +64,25 @@ function emptyParticipant(isTeamLeader: boolean): ParticipantInput {
     email: "",
     department: "",
     yearOfStudy: "",
-    foodPreference: "",
-    isTeamLeader
+    foodPreference: ""
   };
 }
 
-function calculateTotal(feeAmount: number, feeType: string, teamSize: number) {
-  return feeType === "per_team" ? feeAmount : feeAmount * teamSize;
+function selectedEventSummary(events: EventConfig[]) {
+  return events.map((event) => event.name).join(", ");
+}
+
+function normalizeSelectedEventCodes(events: EventConfig[], codes: string[]) {
+  const availableCodes = new Set(events.map((event) => event.code));
+  const normalizedCodes = codes
+    .map((code) => code.trim().toUpperCase())
+    .filter((code, index, allCodes) => availableCodes.has(code) && allCodes.indexOf(code) === index);
+
+  return normalizedCodes.length > 0 ? normalizedCodes : events[0] ? [events[0].code] : [];
+}
+
+function hasExclusiveEventConflict(codes: string[]) {
+  return exclusiveEventPairs.some(([firstCode, secondCode]) => codes.includes(firstCode) && codes.includes(secondCode));
 }
 
 function getPaymentQrCard(totalAmount: number) {
@@ -124,16 +138,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const availableEvents = events.length > 0 ? events : siteConfig.technicalEvents;
   const initialEvent = getInitialEvent(availableEvents, initialEventCode);
   const [step, setStep] = useState(0);
-  const [eventCode, setEventCode] = useState(initialEvent?.code ?? "");
-  const [teamSize, setTeamSize] = useState(initialEvent?.minTeamSize ?? 1);
-  const [teamName, setTeamName] = useState("");
+  const [eventCodes, setEventCodes] = useState<string[]>(() =>
+    initialEvent?.code ? [initialEvent.code] : availableEvents[0] ? [availableEvents[0].code] : []
+  );
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [paymentUploadToken, setPaymentUploadToken] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInput[]>(() =>
-    Array.from({ length: initialEvent?.minTeamSize ?? 1 }, (_, index) => emptyParticipant(index === 0))
+    [emptyParticipant()]
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
@@ -146,21 +160,20 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const [isAndroidDevice, setIsAndroidDevice] = useState(false);
   const [idempotencyKey] = useState(() => createIdempotencyKey());
 
-  const currentEvent = availableEvents.find((item) => item.code === eventCode) ?? availableEvents[0];
+  const selectedEvents = eventCodes
+    .map((code) => availableEvents.find((item) => item.code === code))
+    .filter((event): event is EventConfig => Boolean(event));
+  const currentEvent = selectedEvents[0] ?? availableEvents[0];
+  const selectedEventNames = selectedEventSummary(selectedEvents);
+  const eventCode = currentEvent?.code ?? "";
 
-  const totalAmount = calculateTotal(currentEvent.feeAmount, currentEvent.feeType, teamSize);
+  const totalAmount = currentEvent.feeAmount;
   const paymentQrCard = getPaymentQrCard(totalAmount);
   const upiPaymentUrl = createUpiPaymentUrl(totalAmount);
-  const paymentQrLabel = totalAmount === 500 ? "Team payment QR" : totalAmount === 250 ? "Solo payment QR" : "Payment QR";
-  const registrationFeeLabel =
-    currentEvent.feeType === "per_team" ? `₹${currentEvent.feeAmount} per team` : `₹${currentEvent.feeAmount} per member`;
-  const billingModeLabel = currentEvent.feeType === "per_team" ? "Per team" : "Per member";
-  const teamLabel = teamName || (teamSize === 1 ? "Solo entry" : `Team of ${teamSize}`);
-  const leadParticipant = participants[0] ?? emptyParticipant(true);
-  const participantNames = participants.map((participant) => participant.fullName || "Participant").join(", ");
-  const participantFoodPreferences = participants
-    .map((participant) => formatFoodPreference(participant.foodPreference))
-    .join(", ");
+  const paymentQrLabel = "Payment QR";
+  const registrationFeeLabel = `₹${currentEvent.feeAmount} per participant`;
+  const soloParticipants = participants.slice(0, 1);
+  const leadParticipant = soloParticipants[0] ?? emptyParticipant();
   const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Mail ID")?.value ?? "Organizer email";
   const paymentLocked = Boolean(paymentUploadToken);
   const paymentLockedMessage =
@@ -188,10 +201,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
   function syncParticipants(size: number) {
     setParticipants((current) => {
-      const next = Array.from({ length: size }, (_, index) => current[index] ?? emptyParticipant(index === 0));
+      const next = Array.from({ length: 1 }, (_, index) => current[index] ?? emptyParticipant());
       return next.map((participant, index) => ({
         ...participant,
-        isTeamLeader: index === 0
+
       }));
     });
   }
@@ -213,20 +226,42 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     });
   }
 
-  function handleEventChange(nextEventCode: string) {
+  function updateSelectedEvents(nextCodes: string[]) {
     if (paymentLocked) {
       setSubmitError(paymentLockedMessage);
       return;
     }
 
-    const nextEvent = availableEvents.find((item) => item.code === nextEventCode);
-    if (!nextEvent) {
+    const normalizedCodes = normalizeSelectedEventCodes(availableEvents, nextCodes);
+    if (normalizedCodes.length === 0) {
       return;
     }
-    setEventCode(nextEventCode);
-    setTeamSize(nextEvent.minTeamSize);
-    syncParticipants(nextEvent.minTeamSize);
+
+    if (hasExclusiveEventConflict(normalizedCodes)) {
+      setErrors((current) => ({
+        ...current,
+        eventCodes: eventConflictMessage
+      }));
+      return;
+    }
+
+    setEventCodes(normalizedCodes);
+    syncParticipants(1);
     resetPaymentState();
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.eventCode;
+      delete next.eventCodes;
+
+      return next;
+    });
+  }
+
+  function handleEventToggle(nextEventCode: string) {
+    const nextCodes = eventCodes.includes(nextEventCode)
+      ? eventCodes.filter((code) => code !== nextEventCode)
+      : [...eventCodes, nextEventCode];
+    updateSelectedEvents(nextCodes);
   }
 
   function handleParticipantChange(index: number, field: keyof ParticipantInput, value: string | boolean) {
@@ -250,12 +285,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   function validateStep() {
     const nextErrors: Record<string, string> = {};
 
-    if (step === 0 && !eventCode) {
-      nextErrors.eventCode = "Choose an event to continue.";
+    if (step === 0) {
+      if (eventCodes.length === 0) {
+        nextErrors.eventCodes = "Choose at least one event to continue.";
+      } else if (hasExclusiveEventConflict(eventCodes)) {
+        nextErrors.eventCodes = eventConflictMessage;
+      }
     }
 
     if (step === 1) {
-      participants.forEach((participant, index) => {
+      soloParticipants.forEach((participant, index) => {
         const result = participantSchema.safeParse(participant);
 
         if (!result.success) {
@@ -304,14 +343,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     }
 
     if (step === 2) {
-      if (currentEvent.maxTeamSize > 1 && !teamName.trim()) {
-        nextErrors.teamName = "Team name is required.";
-      } else if (teamName.trim().length > 100) {
-        nextErrors.teamName = "Team name is too long.";
-      }
-    }
-
-    if (step === 3) {
       if (!paymentReference.trim()) {
         nextErrors.transactionId = "UPI transaction ID is required.";
       } else if (!/^\d{12}$/.test(paymentReference.trim())) {
@@ -328,17 +359,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       }
     }
 
-    if (step === 4) {
-      const schema = createRegistrationSchema(currentEvent);
+    if (step === 3) {
+      const schema = createRegistrationSchema();
       const result = schema.safeParse({
         eventCode,
-        teamName,
-        teamSize,
+        eventCodes,
         transactionId: paymentReference,
         paymentDate,
         paymentUploadToken,
         consentGiven,
-        participants
+        participants: soloParticipants
       });
 
       if (!result.success) {
@@ -356,32 +386,25 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     try {
       if (step === 1) {
         await precheckRegistration({
-          participants: participants.map((participant) => ({
+          participants: soloParticipants.map((participant) => ({
             email: participant.email,
             mobileNumber: participant.mobileNumber
           }))
         });
       }
 
-      if (step === 2 && currentEvent.maxTeamSize > 1) {
-        await precheckRegistration({
-          eventCode,
-          teamName
-        });
-      }
-
-      if (step === 3) {
+      if (step === 2) {
         await precheckRegistration({
           transactionId: paymentReference.trim()
         });
       }
 
-      if (step === 4) {
+      if (step === 3) {
         await precheckRegistration({
           eventCode,
-          teamName: currentEvent.maxTeamSize > 1 ? teamName : "",
+          eventCodes,
           transactionId: paymentReference.trim(),
-          participants: participants.map((participant) => ({
+          participants: soloParticipants.map((participant) => ({
             email: participant.email,
             mobileNumber: participant.mobileNumber
           }))
@@ -421,7 +444,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
   function previousStep() {
     const previous = Math.max(step - 1, 0);
-    if (paymentLocked && previous < 3) {
+    if (paymentLocked && previous < 2) {
       setSubmitError(paymentLockedMessage);
       return;
     }
@@ -429,7 +452,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   function handleStepClick(nextStepIndex: number) {
-    if (paymentLocked && nextStepIndex < 3) {
+    if (paymentLocked && nextStepIndex < 2) {
       setSubmitError(paymentLockedMessage);
       return;
     }
@@ -499,18 +522,17 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
           const response = await submitRegistration({
             eventCode,
-            teamName: currentEvent.maxTeamSize > 1 ? teamName : "",
-            teamSize,
+            eventCodes,
             transactionId: paymentReference.trim(),
             paymentDate,
             paymentUploadToken,
             consentGiven,
-            participants,
+            participants: soloParticipants.map((participant) => ({ ...participant })),
             idempotencyKey
           });
           setConfirmation(response);
           setAcknowledgementOpen(true);
-          setStep(5);
+          setStep(4);
         } catch (error) {
           if (error instanceof ApiError) {
             setErrors((current) => ({ ...current, ...error.fieldErrors }));
@@ -598,12 +620,12 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                     <section className="ack-detail-grid" aria-label="Registration summary">
                       <div>
-                        <span>Selected event</span>
-                        <strong>{currentEvent.name}</strong>
+                        <span>Selected events</span>
+                        <strong>{selectedEventNames}</strong>
                       </div>
                       <div>
                         <span>Registration type</span>
-                        <strong>{teamLabel}</strong>
+                        <strong>Individual registration</strong>
                       </div>
                       <div>
                         <span>Amount paid</span>
@@ -625,62 +647,39 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                     <section className="ack-section">
                       <div className="ack-section-head">
-                        <span>{teamSize === 1 ? "Participant details" : "Team details"}</span>
+                        <span>Participant details</span>
                       </div>
 
                       <table className="ack-table">
                         <tbody>
-                          {teamSize === 1 ? (
-                            <>
-                              <tr>
-                                <th>Full name</th>
-                                <td>{leadParticipant.fullName || "Participant"}</td>
-                              </tr>
-                              <tr>
-                                <th>Email address</th>
-                                <td>{leadParticipant.email || "Email not provided"}</td>
-                              </tr>
-                              <tr>
-                                <th>Mobile number</th>
-                                <td>{leadParticipant.mobileNumber || "Phone not provided"}</td>
-                              </tr>
-                              <tr>
-                                <th>College</th>
-                                <td>{leadParticipant.collegeName || "College not provided"}</td>
-                              </tr>
-                              <tr>
-                                <th>Department</th>
-                                <td>{leadParticipant.department || "Department not provided"}</td>
-                              </tr>
-                              <tr>
-                                <th>Year</th>
-                                <td>{formatYearOfStudy(leadParticipant.yearOfStudy)}</td>
-                              </tr>
-                              <tr>
-                                <th>Food preference</th>
-                                <td>{formatFoodPreference(leadParticipant.foodPreference)}</td>
-                              </tr>
-                            </>
-                          ) : (
-                            <>
-                              <tr>
-                                <th>Team name</th>
-                                <td>{teamLabel}</td>
-                              </tr>
-                              <tr>
-                                <th>Team size</th>
-                                <td>{formatMemberCount(teamSize)}</td>
-                              </tr>
-                              <tr>
-                                <th>Team members</th>
-                                <td>{participantNames}</td>
-                              </tr>
-                              <tr>
-                                <th>Food preferences</th>
-                                <td>{participantFoodPreferences}</td>
-                              </tr>
-                            </>
-                          )}
+                          <tr>
+                            <th>Full name</th>
+                            <td>{leadParticipant.fullName || "Participant"}</td>
+                          </tr>
+                          <tr>
+                            <th>Email address</th>
+                            <td>{leadParticipant.email || "Email not provided"}</td>
+                          </tr>
+                          <tr>
+                            <th>Mobile number</th>
+                            <td>{leadParticipant.mobileNumber || "Phone not provided"}</td>
+                          </tr>
+                          <tr>
+                            <th>College</th>
+                            <td>{leadParticipant.collegeName || "College not provided"}</td>
+                          </tr>
+                          <tr>
+                            <th>Department</th>
+                            <td>{leadParticipant.department || "Department not provided"}</td>
+                          </tr>
+                          <tr>
+                            <th>Year</th>
+                            <td>{formatYearOfStudy(leadParticipant.yearOfStudy)}</td>
+                          </tr>
+                          <tr>
+                            <th>Food preference</th>
+                            <td>{formatFoodPreference(leadParticipant.foodPreference)}</td>
+                          </tr>
                         </tbody>
                       </table>
                     </section>
@@ -773,48 +772,78 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               {step === 0 ? (
                 <section className="wizard-stage wizard-event-stage">
                   <div className="mobile-event-select field">
-                    <label htmlFor="mobileEventCode">Choose event</label>
-                    <select
-                      id="mobileEventCode"
-                      value={eventCode}
-                      onChange={(event) => handleEventChange(event.target.value)}
-                    >
-                      {availableEvents.map((event) => (
-                        <option key={event.code} value={event.code}>
+                    <label>Choose events</label>
+                    <details className="mobile-event-dropdown">
+                      <summary>
+                        <span>{selectedEventNames || "Choose one or more events"}</span>
+                      </summary>
+                      <div className="mobile-event-option-list">
+                        {availableEvents.map((event) => (
+                          <label key={event.code} className="mobile-event-option">
+                            <input
+                              type="checkbox"
+                              checked={eventCodes.includes(event.code)}
+                              onChange={() => handleEventToggle(event.code)}
+                            />
+                            <span>{event.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </details>
+                    <div className="registration-event-chip-list">
+                      {selectedEvents.map((event) => (
+                        <button
+                          key={event.code}
+                          type="button"
+                          className="registration-event-chip"
+                          onClick={() => handleEventToggle(event.code)}
+                        >
                           {event.name}
-                        </option>
+                          <span aria-hidden="true">x</span>
+                        </button>
                       ))}
-                    </select>
-                    <div className="helper">{currentEvent.summary}</div>
+                    </div>
+
                   </div>
+
+                  {errors.eventCodes ? <div className="error registration-event-error">{errors.eventCodes}</div> : null}
 
                   <div className="event-selector-grid">
                     {availableEvents.map((event) => (
                       <button
                         key={event.code}
                         type="button"
-                        className={`event-select-card${event.code === eventCode ? " is-selected" : ""}`}
-                        onClick={() => handleEventChange(event.code)}
+                        className={`event-select-card registration-multi-event-card${
+                          eventCodes.includes(event.code) ? " is-selected" : ""
+                        }`}
+                        onClick={() => handleEventToggle(event.code)}
+                        aria-pressed={eventCodes.includes(event.code)}
                       >
                         <span className="event-select-index">0{event.order}</span>
+                        <span className="registration-event-checkbox" aria-hidden="true" />
                         <strong>{event.name}</strong>
                         <span>{event.summary}</span>
                       </button>
                     ))}
                   </div>
 
+                  <div className="field selected-events-readout">
+                    <label htmlFor="selectedEventsReadout">Selected events</label>
+                    <input id="selectedEventsReadout" value={selectedEventNames} readOnly />
+                  </div>
+
                   <GlassPanel className="summary-panel wizard-intro-summary" tone="soft">
                     <div className="summary-row">
-                      <span>Selected event</span>
-                      <strong>{currentEvent.name}</strong>
+                      <span>Selected events</span>
+                      <strong>{selectedEventNames}</strong>
                     </div>
                     <div className="summary-row">
                       <span>Registration fee</span>
                       <strong>{registrationFeeLabel}</strong>
                     </div>
                     <div className="summary-row">
-                      <span>Team range</span>
-                      <strong>{formatTeamRange(currentEvent.minTeamSize, currentEvent.maxTeamSize)}</strong>
+                      <span>Registration type</span>
+                      <strong>Individual</strong>
                     </div>
                   </GlassPanel>
                 </section>
@@ -823,34 +852,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               {step === 1 ? (
                 <section className="wizard-stage wizard-participants-stage">
                   <div className="wizard-two-column wizard-participants-overview">
-                    <GlassPanel className="content-panel wizard-team-size-card" tone="soft">
-                      <div className="field">
-                        <label htmlFor="teamSize">Team size</label>
-                        <select
-                          id="teamSize"
-                          value={teamSize}
-                          onChange={(event) => {
-                            if (paymentLocked) {
-                              setSubmitError(paymentLockedMessage);
-                              return;
-                            }
-                            const nextSize = Number(event.target.value);
-                            setTeamSize(nextSize);
-                            syncParticipants(nextSize);
-                            resetPaymentState();
-                          }}
-                        >
-                          {Array.from(
-                            { length: currentEvent.maxTeamSize - currentEvent.minTeamSize + 1 },
-                            (_, index) => currentEvent.minTeamSize + index
-                          ).map((size) => (
-                            <option key={size} value={size}>
-                              {formatMemberCount(size)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="helper">Participant cards update automatically to match the selected team size.</div>
+                    <GlassPanel className="content-panel wizard-team-size-card registration-solo-instruction-card" tone="soft">
+                      <p className="helper">
+                        <strong>Separate registration required:</strong> Each participant must complete a separate
+                        registration. If grouping is required for an event, it will be coordinated on campus.
+                      </p>
                     </GlassPanel>
 
                     <GlassPanel className="summary-panel wizard-participants-summary" tone="soft">
@@ -859,19 +865,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                         <strong>Rs. {totalAmount}</strong>
                       </div>
                       <div className="summary-row">
-                        <span>Billing mode</span>
-                        <strong>{billingModeLabel}</strong>
+                        <span>Participant count</span>
+                        <strong>1 participant</strong>
                       </div>
                     </GlassPanel>
                   </div>
 
                   <div className={`participants-grid${participants.length === 1 ? " is-single" : ""}`}>
-                    {participants.map((participant, index) => (
+                    {soloParticipants.map((participant, index) => (
                       <GlassPanel key={index} className="participant-card" tone="soft">
-                        <div className="tag-row">
-                          <span className="tag">Participant {index + 1}</span>
-                          {index === 0 ? <span className="tag">Team Leader</span> : null}
-                        </div>
+
                         <div className="form-grid two">
                           <div className="field">
                             <label htmlFor={`fullName-${index}`}>Full name</label>
@@ -975,49 +978,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               ) : null}
 
               {step === 2 ? (
-                <section className="wizard-stage wizard-team-stage">
-                  {currentEvent.maxTeamSize > 1 ? (
-                    <div className="field">
-                      <label htmlFor="teamName">Team name</label>
-                      <input
-                        id="teamName"
-                        type="text"
-                        value={teamName}
-                        onChange={(event) => {
-                          if (paymentLocked) {
-                            setSubmitError(paymentLockedMessage);
-                            return;
-                          }
-                          setTeamName(event.target.value);
-                        }}
-                        placeholder="Enter team name"
-                        maxLength={100}
-                      />
-                      {errors.teamName ? <div className="error">{errors.teamName}</div> : null}
-                      <div className="helper">Required for team events</div>
-                    </div>
-                  ) : (
-                    <div className="helper">Solo event - no team name needed.</div>
-                  )}
-
-                  <GlassPanel className="summary-panel" tone="soft">
-                    <div className="summary-row">
-                      <span>Event</span>
-                      <strong>{currentEvent.name}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Team size</span>
-                      <strong>{formatMemberCount(teamSize)}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Total amount</span>
-                      <strong>Rs. {totalAmount}</strong>
-                    </div>
-                  </GlassPanel>
-                </section>
-              ) : null}
-
-              {step === 3 ? (
                 <section className="wizard-stage wizard-payment-stage">
                   <div className="payment-stage">
                     <GlassPanel className="payment-qr-card" tone="soft">
@@ -1137,21 +1097,17 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                 </section>
               ) : null}
 
-              {step === 4 ? (
+              {step === 3 ? (
                 <section className="wizard-stage wizard-review-stage">
                   <GlassPanel className="review-panel" tone="soft">
                     <div className="review-grid">
                       <div className="review-row">
                         <span>Event</span>
-                        <strong>{currentEvent.name}</strong>
+                        <strong>{selectedEventNames}</strong>
                       </div>
                       <div className="review-row">
-                        <span>Team</span>
-                        <strong>{teamLabel}</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Team size</span>
-                        <strong>{formatMemberCount(teamSize)}</strong>
+                        <span>Registration type</span>
+                        <strong>Individual registration</strong>
                       </div>
                       <div className="review-row">
                         <span>Amount</span>
@@ -1174,9 +1130,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                   <GlassPanel className="review-participants-panel" tone="soft">
                     <div className="review-section-head">
-                      <span>Participants ({teamSize})</span>
+                      <span>Participant</span>
                     </div>
-                    {participants.map((participant, index) => (
+                    {soloParticipants.map((participant, index) => (
                       <div key={index} className="review-participant">
                         <span className="review-participant-name">
                           #{index + 1} - {participant.fullName || "Participant"}
@@ -1191,7 +1147,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                 </section>
               ) : null}
 
-              {step === 5 ? (
+              {step === 4 ? (
                 <section className="wizard-stage wizard-confirm-stage">
                   {confirmation ? (
                     <div className="confirmation-panel">
@@ -1219,14 +1175,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
             </motion.div>
           </AnimatePresence>
 
-          {step < 5 ? (
+          {step < 4 ? (
             <div className="step-actions">
               {step > 0 ? (
                 <Button type="button" variant="secondary" onClick={previousStep}>
                   Back
                 </Button>
               ) : null}
-              {step < 4 ? (
+              {step < 3 ? (
                 <Button type="button" variant="primary" onClick={() => void nextStep()} disabled={uploadingScreenshot || checkingDuplicates}>
                   {uploadingScreenshot ? "Uploading..." : checkingDuplicates ? "Checking..." : "Continue"}
                 </Button>

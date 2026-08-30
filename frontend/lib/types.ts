@@ -1,4 +1,4 @@
-export type FeeType = "per_participant" | "per_team";
+export type FeeType = "per_participant";
 export type EventNoteTone = "info" | "warning" | "prohibited" | "required";
 export type FoodPreference = "veg" | "non_veg";
 
@@ -12,9 +12,6 @@ export type EventConfig = {
   visualTitle: string;
   accent: "blue-violet" | "cyan-blue" | "violet-teal" | "teal-blue";
   visualTags: string[];
-  minTeamSize: number;
-  maxTeamSize: number;
-  feeType: FeeType;
   feeAmount: number;
   prizes: string[];
   rules: string[];
@@ -57,13 +54,11 @@ export type ParticipantInput = {
   department: string;
   yearOfStudy: string;
   foodPreference: FoodPreference | "";
-  isTeamLeader: boolean;
 };
 
 export type RegistrationPayload = {
   eventCode: string;
-  teamName: string;
-  teamSize: number;
+  eventCodes: string[];
   transactionId: string;
   paymentDate: string;
   paymentUploadToken: string;
@@ -74,13 +69,17 @@ export type RegistrationPayload = {
 
 export type RegistrationPrecheckPayload = {
   eventCode?: string;
-  teamName?: string;
+  eventCodes?: string[];
   transactionId?: string;
   participants?: Array<Pick<ParticipantInput, "email" | "mobileNumber">>;
 };
 
 export type RegistrationResponse = {
   registrationCode: string;
+  eventCode: string;
+  eventName: string;
+  eventCodes: string[];
+  eventNames: string[];
   paymentStatus: string;
   emailStatus: string;
   paymentReference: string;
@@ -97,8 +96,8 @@ export type RegistrationStatusResponse = {
   registrationCode: string;
   eventCode: string;
   eventName: string;
-  teamName: string;
-  teamSize: number;
+  eventCodes: string[];
+  eventNames: string[];
   participantNames: string[];
   participantFoodPreferences: string[];
   leadParticipantName: string;
@@ -121,7 +120,6 @@ export type DashboardSummary = {
   latestRegistration: null | {
     registrationCode: string;
     eventName: string;
-    teamName: string;
     participantName: string;
     participantEmail: string;
     paymentStatus: string;
@@ -136,8 +134,8 @@ export type AdminRegistrationRow = {
   leadParticipantEmail: string;
   registrationCode: string;
   eventName: string;
-  teamName: string;
-  teamSize: number;
+  eventCodes: string[];
+  eventNames: string[];
   amountPaid: string;
   transactionId: string;
   paymentStatus: string;
@@ -170,8 +168,7 @@ export type AdminRegistrationActionPayload = {
 
 export type AdminRegistrationCreatePayload = {
   eventCode: string;
-  teamName: string;
-  teamSize: number;
+  eventCodes?: string[];
   transactionId: string;
   paymentProvider: string;
   paymentStatus: string;

@@ -5,13 +5,13 @@ export const siteConfig: SiteConfig = {
   heroSubtitle: "National Level AI & Data Science Symposium",
   themeTagline: "VV College of Engineering welcomes all engineering students to CYBERPUNK'26.",
   eventDate: process.env.NEXT_PUBLIC_EVENT_DATE ?? "2026-09-11T09:30:00+05:30",
-  registrationDeadline: "2026-09-10T23:59:00+05:30",
+  registrationDeadline: process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:30:00+05:30",
   venue: "V V College of Engineering",
   venueDetail: "V V Nagar, Tisaiyanvillai - 627657",
   heroCopy:
-    "A national-level technical symposium featuring technical and non-technical events for solo or team participation. Registration fee: ₹250 per member.",
+    "A national-level technical symposium featuring technical and non-technical events for individually registered participants. Registration fee: ₹250 per participant.",
   about:
-    "CYBERPUNK'26 is a national-level technical symposium organized by the Department of Artificial Intelligence and Data Science, V V College of Engineering. The symposium starts at 9:30 AM on September 11, 2026, with technical and non-technical events for solo or team participation.",
+    "CYBERPUNK'26 is a national-level technical symposium organized by the Department of Artificial Intelligence and Data Science, V V College of Engineering. The symposium starts at 9:30 AM on September 11, 2026, with technical and non-technical events for individually registered participants.",
   facilitiesNote:
     "V V College of Engineering is approved by AICTE, New Delhi and affiliated to Anna University, Chennai. The event venue is V V College of Engineering, Tisaiyanvillai.",
   contacts: [
@@ -30,9 +30,9 @@ export const siteConfig: SiteConfig = {
   highlights: [
     "National-level technical symposium hosted by the Department of AI & DS",
     "Open to all engineering students",
-    "Solo or team participation available",
+    "Separate registration for each participant",
     "Registration fee: ₹250 per member",
-    "Registration end date: September 10, 2026"
+    "Registration end date: September 11, 2026, 12:30 AM"
   ],
   heroStats: [
     { value: "04", label: "Technical events" },
@@ -51,13 +51,10 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Floating decks and idea layers",
       accent: "blue-violet",
       visualTags: ["Slide narrative", "Idea framing", "Presentation polish"],
-      minTeamSize: 1,
-      maxTeamSize: 1,
-      feeType: "per_participant",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "This is a solo event. Each participant must register individually for Paper Presentation.",
+        "Each participant must register individually for Paper Presentation.",
         "Participants should prepare a clear slide deck based on a technical idea, project, research concept, or innovation.",
         "The presentation must be concise and should cover the problem statement, proposed solution, methodology, outcome, and practical relevance.",
         "Participants must carry the final presentation file on a pen drive and should also keep a backup copy in email or cloud storage.",
@@ -86,23 +83,20 @@ export const siteConfig: SiteConfig = {
       name: "Code Busters",
       track: "Technical",
       summary: "Solve programming, debugging, and logic challenges under event-day pressure.",
-      description: "A coding challenge for solo participants or teams, focused on problem solving, debugging discipline, and implementation clarity.",
+      description: "A coding challenge for individual participants, focused on problem solving, debugging discipline, and implementation clarity.",
       visualTitle: "Logic nodes and clean code motion",
       accent: "cyan-blue",
       visualTags: ["Algorithm rounds", "Debug sprints", "Logic trails"],
-      minTeamSize: 1,
-      maxTeamSize: 2,
-      feeType: "per_participant",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Solo entries and teams of 2 members are allowed.",
+        "Each participant must register individually.",
         "The event will include programming, debugging, logic-building, and problem-solving challenges.",
         "Programming languages, platform details, input-output format, and submission instructions will be shared by the coordinators on event day.",
         "Participants must complete each challenge within the announced time limit.",
         "Solutions will be evaluated based on correctness, efficiency, logic, code clarity, and successful execution.",
         "Use of phones, internet search, AI tools, external devices, or outside collaboration is strictly prohibited during the contest.",
-        "Any form of malpractice, sharing answers, or copying code from another participant or team will lead to disqualification.",
+        "Any form of malpractice, sharing answers, or copying code from another participant will lead to disqualification.",
         "The final score may consider solved problems, test-case success, execution time, and tie-breaker criteria announced by the organizers."
       ],
       importantNotes: [
@@ -114,7 +108,7 @@ export const siteConfig: SiteConfig = {
         {
           tone: "warning",
           title: "Platform timing",
-          description: "Submission closes immediately at the final buzzer, even if a team is still typing."
+          description: "Submission closes immediately at the final buzzer, even if a participant is still typing."
         }
       ],
       registrationOpen: true
@@ -125,20 +119,17 @@ export const siteConfig: SiteConfig = {
       name: "Web Craft",
       track: "Technical",
       summary: "Craft a functional web experience with clean interface thinking and responsive execution.",
-      description: "A web development event for solo participants or teams to turn a given idea into a useful, readable, and presentable web interface.",
+      description: "A web development event for individual participants to turn a given idea into a useful, readable, and presentable web interface.",
       visualTitle: "Layered browsers and responsive frames",
       accent: "violet-teal",
       visualTags: ["Responsive UI", "Component systems", "Interface craft"],
-      minTeamSize: 1,
-      maxTeamSize: 2,
-      feeType: "per_participant",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Solo participants and teams of 2 members are allowed.",
+        "Each participant must register individually.",
         "Participants will be given a web development task, theme, or problem statement during the event.",
         "The final output should be functional, readable, responsive, and aligned with the given task.",
-        "Teams may use standard frontend technologies and tools permitted by the coordinators on event day.",
+        "Participants may use standard frontend technologies and tools permitted by the coordinators on event day.",
         "The interface should work properly on common screen sizes and should avoid broken layouts, unreadable text, and incomplete navigation.",
         "Judging will cover UI quality, responsiveness, usability, creativity, completeness, code organization, and presentation of the final output.",
         "Participants must be ready to demonstrate the working project and explain their design and implementation decisions to the panel.",
@@ -148,7 +139,7 @@ export const siteConfig: SiteConfig = {
         {
           tone: "required",
           title: "Demo ready build",
-          description: "Teams should be ready to show their final project running during the review window."
+          description: "Participants should be ready to show their final project running during the review window."
         },
         {
           tone: "info",
@@ -168,13 +159,10 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Data arcs and dashboard motion",
       accent: "teal-blue",
       visualTags: ["Visual stories", "Chart thinking", "Insight design"],
-      minTeamSize: 1,
-      maxTeamSize: 2,
-      feeType: "per_participant",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
-        "Solo participants and teams of 2 members are allowed.",
+        "Each participant must register individually.",
         "Participants will work with a dataset, prompt, or analytics scenario provided during the event.",
         "The goal is to convert raw information into meaningful visual insights using charts, dashboards, summaries, or visual stories.",
         "Charts must be selected intentionally and should match the type of data and insight being communicated.",
@@ -209,10 +197,7 @@ export const siteConfig: SiteConfig = {
         "Participants must express a given emotion, situation, or idea using only their facial expressions and body language.",
       visualTitle: "Stage gestures and quick guesses",
       accent: "blue-violet",
-      visualTags: ["Silent acting", "Fast guesses", "Team coordination"],
-      minTeamSize: 1,
-      maxTeamSize: 5,
-      feeType: "per_participant",
+      visualTags: ["Silent acting", "Fast guesses", "Stage coordination"],
       feeAmount: 0,
       prizes: [],
       rules: [
@@ -252,9 +237,6 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Twin images and hidden differences",
       accent: "cyan-blue",
       visualTags: ["Sharp eyes", "Speed observation", "Detail spotting"],
-      minTeamSize: 1,
-      maxTeamSize: 5,
-      feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [
@@ -294,9 +276,6 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Linked image tiles and answer paths",
       accent: "violet-teal",
       visualTags: ["Visual puzzles", "Rapid Connect", "Challenge Connect"],
-      minTeamSize: 1,
-      maxTeamSize: 5,
-      feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [
@@ -318,7 +297,7 @@ export const siteConfig: SiteConfig = {
         {
           tone: "info",
           title: "Individual challenge",
-          description: "Participants compete solo through rapid visual connection rounds."
+          description: "Participants compete individually through rapid visual connection rounds."
         },
         {
           tone: "warning",
@@ -339,9 +318,6 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Pixel blur and human hand",
       accent: "teal-blue",
       visualTags: ["Spot the source", "AI detection", "Sharp judgment"],
-      minTeamSize: 1,
-      maxTeamSize: 5,
-      feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [

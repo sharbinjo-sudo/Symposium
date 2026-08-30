@@ -191,7 +191,7 @@ export function RegistrationStatusLookup() {
                   type="text"
                   value={registrationCode}
                   onChange={(event) => setRegistrationCode(event.target.value.toUpperCase())}
-                  placeholder="CP12-XX-XXX0"
+                  placeholder="CP26-RN-0001"
                   autoComplete="off"
                 />
                 {fieldErrors.registrationCode ? <div className="error">{fieldErrors.registrationCode}</div> : null}
@@ -277,12 +277,8 @@ export function RegistrationStatusLookup() {
 
                   <div className="status-check-detail-list">
                     <div className="status-check-detail-row">
-                      <span>Team</span>
-                      <strong>{result.teamName}</strong>
-                    </div>
-                    <div className="status-check-detail-row">
-                      <span>Team size</span>
-                      <strong>{result.teamSize}</strong>
+                      <span>Registration type</span>
+                      <strong>Individual entry</strong>
                     </div>
                     <div className="status-check-detail-row">
                       <span>Lead participant</span>
@@ -332,7 +328,7 @@ export function RegistrationStatusLookup() {
                   <div className="status-check-support-grid">
                     <div className="status-check-hint-card">
                       <span>Need your code?</span>
-                      <strong>Find it on the acknowledgement PDF, like CP12-XX-XXX0.</strong>
+                      <strong>Find it on the acknowledgement PDF, like CP26-RN-0001.</strong>
                     </div>
                     <div className="status-check-hint-card">
                       <span>Need help?</span>

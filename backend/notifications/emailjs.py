@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from registrations.models import Registration
+from registrations.services import selected_events_for_registration
 
 logger = logging.getLogger(__name__)
 
@@ -243,75 +244,30 @@ def _event_date_label() -> str:
   return "11 September 2026"
 
 
-def _build_participant_2_block(participants: list) -> str:
-  participant_2 = None
-  for p in participants:
-    if p.participant_number == 2:
-      participant_2 = p
-      break
-  if participant_2 is None:
-    return ""
-  return f"""<div style="background:#f8f9fa; border-left:4px solid #b3344a; padding:16px; margin:20px 0;">
-<h3 style="margin:0 0 12px;">Participant 2 Details</h3>
-<p><strong>Name:</strong> {participant_2.full_name}</p>
-<p><strong>Email:</strong> {participant_2.email.strip().lower()}</p>
-<p><strong>Phone:</strong> {participant_2.mobile_number}</p>
-<p><strong>College:</strong> {participant_2.college_name}</p>
-<p><strong>Department:</strong> {participant_2.department}</p>
-<p><strong>Year:</strong> {participant_2.year_of_study}</p>
-<p><strong>Food Preference:</strong> {participant_2.get_food_preference_display()}</p>
-</div>"""
-
-
-def _build_participant_1_params(participants: list) -> dict[str, str]:
-  participant_1 = None
-  for p in participants:
-    if p.participant_number == 1:
-      participant_1 = p
-      break
-  if participant_1 is None:
-    return {
-      "participant_1_name": "",
-      "participant_1_email": "",
-      "participant_1_phone": "",
-      "participant_1_college": "",
-      "participant_1_department": "",
-      "participant_1_year": "",
-      "participant_1_food_preference": ""
-    }
+def _build_participant_1_params(participant) -> dict[str, str]:
   return {
-    "participant_1_name": participant_1.full_name,
-    "participant_1_email": participant_1.email.strip().lower(),
-    "participant_1_phone": participant_1.mobile_number,
-    "participant_1_college": participant_1.college_name,
-    "participant_1_department": participant_1.department,
-    "participant_1_year": participant_1.year_of_study,
-    "participant_1_food_preference": participant_1.get_food_preference_display()
+    "participant_1_name": participant.full_name,
+    "participant_1_email": participant.email.strip().lower(),
+    "participant_1_phone": participant.mobile_number,
+    "participant_1_college": participant.college_name,
+    "participant_1_department": participant.department,
+    "participant_1_year": participant.year_of_study,
+    "participant_1_food_preference": participant.get_food_preference_display()
   }
 
 
 def _build_registration_template_params(registration, participant, recipient_email: str, audience: str) -> dict[str, str]:
   participant_email = participant.email.strip().lower()
-  all_participants = list(registration.participants.all())
+  selected_event_names = ", ".join(event.event_name for event in selected_events_for_registration(registration))
   participant_food_preference = participant.get_food_preference_display()
-  food_preferences = ", ".join(
-    f"{p.full_name}: {p.get_food_preference_display()}" for p in all_participants
-  )
-  team_members = ", ".join(p.full_name for p in all_participants)
-  team_name = registration.team_name or (
-    "Solo entry" if registration.team_size == 1 else f"Team of {registration.team_size}"
-  )
   submitted_at = timezone.localtime(registration.created_at).strftime("%d %B %Y, %I:%M %p")
 
   template_params = {
     "email_audience": audience,
     "registration_code": registration.registration_code,
-    "event": registration.event.event_name,
-    "event_name": registration.event.event_name,
-    "selected_event": registration.event.event_name,
-    "team_name": team_name,
-    "team_members": team_members,
-    "participant_count": str(registration.team_size),
+    "event": selected_event_names,
+    "event_name": selected_event_names,
+    "selected_event": selected_event_names,
     "payment_status": registration.get_payment_status_display(),
     "admin_email": settings.ADMIN_NOTIFICATION_EMAIL.strip(),
     "name": participant.full_name,
@@ -328,15 +284,13 @@ def _build_registration_template_params(registration, participant, recipient_ema
     "year_of_study": participant.year_of_study,
     "food": participant_food_preference,
     "food_preference": participant_food_preference,
-    "participant_food_preferences": food_preferences,
     "date": _event_date_label(),
     "event_date": _event_date_label(),
     "submitted_at": submitted_at,
     "venue": "V V College of Engineering, Tisaiyanvillai",
     "recipient_email": recipient_email
   }
-  template_params.update(_build_participant_1_params(all_participants))
-  template_params["participant_2_block"] = _build_participant_2_block(all_participants)
+  template_params.update(_build_participant_1_params(participant))
   return template_params
 
 

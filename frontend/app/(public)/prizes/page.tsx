@@ -29,9 +29,7 @@ export default async function PrizesPage() {
               <PrizeCard
                 title={event.name}
                 prizes={event.prizes}
-                details={`${event.code} | Fee: Rs. ${event.feeAmount} | ${
-                  event.feeType === "per_team" ? "per team" : "per member"
-                }`}
+                details={`${event.code} | Fee: Rs. ${event.feeAmount} per participant`}
               />
             </Reveal>
           ))}

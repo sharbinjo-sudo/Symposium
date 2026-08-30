@@ -24,45 +24,79 @@ def _canonicalize_email(email: str) -> str:
   return f"{local}@{domain}"
 
 
-def _missing_emailjs_settings() -> list[str]:
+def _provider_missing_fields(provider: dict[str, str]) -> list[str]:
   missing: list[str] = []
-  if not settings.EMAILJS_SERVICE_ID:
-    missing.append("EMAILJS_SERVICE_ID")
-  if not settings.EMAILJS_PUBLIC_KEY:
-    missing.append("EMAILJS_PUBLIC_KEY")
-  if not settings.EMAILJS_PRIVATE_KEY:
-    missing.append("EMAILJS_PRIVATE_KEY")
+  for field in ("service_id", "template_id", "public_key", "private_key"):
+    if not provider.get(field):
+      missing.append(field)
   return missing
 
 
-def _missing_participant_emailjs_settings() -> list[str]:
-  missing = _missing_emailjs_settings()
-  if not settings.EMAILJS_TEMPLATE_ID:
-    missing.append("EMAILJS_TEMPLATE_ID")
-  return missing
+def _build_emailjs_providers(
+  primary_template_id: str,
+  fallback_template_id: str,
+  primary_service_id: str = "",
+  primary_public_key: str = "",
+  primary_private_key: str = "",
+  fallback_service_id: str = "",
+  fallback_public_key: str = "",
+  fallback_private_key: str = ""
+) -> list[dict[str, str]]:
+  providers = [
+    {
+      "label": "primary",
+      "service_id": primary_service_id.strip() or settings.EMAILJS_SERVICE_ID.strip(),
+      "template_id": primary_template_id.strip(),
+      "public_key": primary_public_key.strip() or settings.EMAILJS_PUBLIC_KEY.strip(),
+      "private_key": primary_private_key.strip() or settings.EMAILJS_PRIVATE_KEY.strip()
+    }
+  ]
 
+  fallback_provider = {
+    "label": "fallback",
+    "service_id": fallback_service_id.strip() or getattr(settings, "EMAILJS_FALLBACK_SERVICE_ID", "").strip(),
+    "template_id": fallback_template_id.strip(),
+    "public_key": (
+      fallback_public_key.strip()
+      or getattr(settings, "EMAILJS_FALLBACK_PUBLIC_KEY", "").strip()
+      or settings.EMAILJS_PUBLIC_KEY.strip()
+    ),
+    "private_key": (
+      fallback_private_key.strip()
+      or getattr(settings, "EMAILJS_FALLBACK_PRIVATE_KEY", "").strip()
+      or settings.EMAILJS_PRIVATE_KEY.strip()
+    )
+  }
+  if fallback_template_id.strip() or fallback_service_id.strip() or fallback_public_key.strip() or fallback_private_key.strip():
+    providers.append(fallback_provider)
 
-def _missing_admin_emailjs_settings() -> list[str]:
-  missing = _missing_emailjs_settings()
-  if not settings.EMAILJS_ADMIN_TEMPLATE_ID:
-    missing.append("EMAILJS_ADMIN_TEMPLATE_ID")
-  if not settings.ADMIN_NOTIFICATION_EMAIL:
-    missing.append("ADMIN_NOTIFICATION_EMAIL")
-  return missing
+  ready_providers: list[dict[str, str]] = []
+  for provider in providers:
+    missing = _provider_missing_fields(provider)
+    if missing:
+      logger.warning(
+        "EMAILJS provider skipped [%s]: missing %s",
+        provider["label"],
+        ", ".join(missing)
+      )
+      continue
+    ready_providers.append(provider)
+
+  return ready_providers
 
 
 def _send_emailjs_message(
   recipient_email: str,
-  template_id: str,
+  provider: dict[str, str],
   template_params: dict[str, str],
   purpose: str = "",
 ) -> bool:
   """Send one email via EmailJS. Logs template_id and recipient for diagnostics."""
   payload = json.dumps({
-    "service_id": settings.EMAILJS_SERVICE_ID,
-    "template_id": template_id,
-    "user_id": settings.EMAILJS_PUBLIC_KEY,
-    "accessToken": settings.EMAILJS_PRIVATE_KEY,
+    "service_id": provider["service_id"],
+    "template_id": provider["template_id"],
+    "user_id": provider["public_key"],
+    "accessToken": provider["private_key"],
     "template_params": {
       **template_params,
       "to": recipient_email,
@@ -76,9 +110,11 @@ def _send_emailjs_message(
   }).encode("utf-8")
 
   logger.info(
-    "EMAILJS SEND [%s]: template=%s recipient=%s",
+    "EMAILJS SEND [%s/%s]: service=%s template=%s recipient=%s",
     purpose or "unknown",
-    template_id,
+    provider["label"],
+    provider["service_id"],
+    provider["template_id"],
     recipient_email,
   )
 
@@ -96,8 +132,13 @@ def _send_emailjs_message(
     with request.urlopen(req, timeout=15) as response:
       body = response.read().decode("utf-8", errors="replace")
       logger.info(
-        "EMAILJS OK [%s]: template=%s recipient=%s response=%s",
-        purpose, template_id, recipient_email, body
+        "EMAILJS OK [%s/%s]: service=%s template=%s recipient=%s response=%s",
+        purpose,
+        provider["label"],
+        provider["service_id"],
+        provider["template_id"],
+        recipient_email,
+        body
       )
       return 200 <= response.status < 300
   except HTTPError as exc:
@@ -106,22 +147,82 @@ def _send_emailjs_message(
     except Exception:
       error_body = "<unavailable>"
     logger.warning(
-      "EMAILJS FAILED [%s]: template=%s recipient=%s status=%s body=%s",
-      purpose, template_id, recipient_email, exc.code, error_body
+      "EMAILJS FAILED [%s/%s]: service=%s template=%s recipient=%s status=%s body=%s",
+      purpose,
+      provider["label"],
+      provider["service_id"],
+      provider["template_id"],
+      recipient_email,
+      exc.code,
+      error_body
     )
     return False
   except URLError as exc:
     logger.warning(
-      "EMAILJS NETWORK ERROR [%s]: template=%s recipient=%s error=%s",
-      purpose, template_id, recipient_email, exc.reason
+      "EMAILJS NETWORK ERROR [%s/%s]: service=%s template=%s recipient=%s error=%s",
+      purpose,
+      provider["label"],
+      provider["service_id"],
+      provider["template_id"],
+      recipient_email,
+      exc.reason
     )
     return False
   except Exception as exc:
     logger.exception(
-      "EMAILJS UNKNOWN ERROR [%s]: template=%s recipient=%s error=%s",
-      purpose, template_id, recipient_email, exc
+      "EMAILJS UNKNOWN ERROR [%s/%s]: service=%s template=%s recipient=%s error=%s",
+      purpose,
+      provider["label"],
+      provider["service_id"],
+      provider["template_id"],
+      recipient_email,
+      exc
     )
     return False
+
+
+def _send_emailjs_message_with_fallback(
+  recipient_email: str,
+  primary_template_id: str,
+  fallback_template_id: str,
+  template_params: dict[str, str],
+  purpose: str = "",
+  primary_service_id: str = "",
+  primary_public_key: str = "",
+  primary_private_key: str = "",
+  fallback_service_id: str = "",
+  fallback_public_key: str = "",
+  fallback_private_key: str = ""
+) -> bool:
+  providers = _build_emailjs_providers(
+    primary_template_id,
+    fallback_template_id,
+    primary_service_id=primary_service_id,
+    primary_public_key=primary_public_key,
+    primary_private_key=primary_private_key,
+    fallback_service_id=fallback_service_id,
+    fallback_public_key=fallback_public_key,
+    fallback_private_key=fallback_private_key
+  )
+  if not providers:
+    logger.warning("EMAILJS skipped [%s]: no complete primary or fallback provider is configured.", purpose)
+    return False
+
+  for index, provider in enumerate(providers):
+    if index > 0:
+      logger.info(
+        "EMAILJS FALLBACK ATTEMPT [%s]: service=%s template=%s recipient=%s",
+        purpose,
+        provider["service_id"],
+        provider["template_id"],
+        recipient_email
+      )
+
+    if _send_emailjs_message(recipient_email, provider, template_params, purpose=purpose):
+      return True
+
+  logger.warning("EMAILJS exhausted providers [%s]: recipient=%s", purpose, recipient_email)
+  return False
 
 
 def _get_admin_template_id() -> str:
@@ -211,7 +312,7 @@ def _build_registration_template_params(registration, participant, recipient_ema
     "team_name": team_name,
     "team_members": team_members,
     "participant_count": str(registration.team_size),
-    "payment_status": registration.payment_status,
+    "payment_status": registration.get_payment_status_display(),
     "admin_email": settings.ADMIN_NOTIFICATION_EMAIL.strip(),
     "name": participant.full_name,
     "full_name": participant.full_name,
@@ -241,19 +342,19 @@ def _build_registration_template_params(registration, participant, recipient_ema
 
 def send_admin_registration_notification(registration) -> bool:
   admin_template_id = _get_admin_template_id()
+  fallback_admin_template_id = getattr(settings, "EMAILJS_FALLBACK_ADMIN_TEMPLATE_ID", "").strip()
 
   logger.info(
-    "ADMIN EMAIL DISPATCH START for %s: admin_template=%s",
+    "ADMIN EMAIL DISPATCH START for %s: admin_template=%s fallback_template=%s",
     registration.registration_code,
     admin_template_id or "(not configured)",
+    fallback_admin_template_id or "(not configured)"
   )
 
-  missing_settings = _missing_admin_emailjs_settings()
-  if missing_settings:
+  if not settings.ADMIN_NOTIFICATION_EMAIL:
     logger.warning(
-      "Admin registration email skipped for %s. Missing EmailJS settings: %s",
-      registration.registration_code,
-      ", ".join(missing_settings)
+      "Admin registration email skipped for %s. Missing ADMIN_NOTIFICATION_EMAIL.",
+      registration.registration_code
     )
     return False
 
@@ -264,9 +365,10 @@ def send_admin_registration_notification(registration) -> bool:
 
   admin_email = settings.ADMIN_NOTIFICATION_EMAIL.strip().lower()
   template_params = _build_registration_template_params(registration, participants[0], admin_email, "admin")
-  sent = _send_emailjs_message(
+  sent = _send_emailjs_message_with_fallback(
     admin_email,
     admin_template_id,
+    fallback_admin_template_id,
     template_params,
     purpose="ADMIN_NEW_REGISTRATION",
   )
@@ -280,12 +382,14 @@ def send_admin_registration_notification(registration) -> bool:
 
 
 def send_participant_registration_confirmation(registration) -> bool:
-  participant_template_id = settings.EMAILJS_TEMPLATE_ID
+  participant_template_id = settings.EMAILJS_TEMPLATE_ID.strip()
+  fallback_participant_template_id = getattr(settings, "EMAILJS_FALLBACK_TEMPLATE_ID", "").strip()
 
   logger.info(
-    "PARTICIPANT EMAIL DISPATCH START for %s: participant_template=%s",
+    "PARTICIPANT EMAIL DISPATCH START for %s: participant_template=%s fallback_template=%s",
     registration.registration_code,
     participant_template_id,
+    fallback_participant_template_id or "(not configured)"
   )
 
   # Atomic idempotency: claim the lock before doing any sending work.
@@ -301,15 +405,6 @@ def send_participant_registration_confirmation(registration) -> bool:
   registration.refresh_from_db()
   result = False
   try:
-    missing_settings = _missing_participant_emailjs_settings()
-    if missing_settings:
-      logger.warning(
-        "Participant confirmation email skipped for %s. Missing EmailJS settings: %s",
-        registration.registration_code,
-        ", ".join(missing_settings)
-      )
-      return False
-
     participants = list(registration.participants.order_by("participant_number"))
     if not participants:
       logger.warning("Participant confirmation email skipped for %s. Participant list is empty.", registration.registration_code)
@@ -344,9 +439,10 @@ def send_participant_registration_confirmation(registration) -> bool:
       participant_template_params = _build_registration_template_params(
         registration, participant, participant_email, "participant"
       )
-      sent = _send_emailjs_message(
+      sent = _send_emailjs_message_with_fallback(
         participant_email,
         participant_template_id,
+        fallback_participant_template_id,
         participant_template_params,
         purpose="PARTICIPANT",
       )
@@ -366,6 +462,90 @@ def send_participant_registration_confirmation(registration) -> bool:
     registration.save(update_fields=["email_status", "updated_at"])
     logger.info(
       "PARTICIPANT EMAIL STATUS for %s: %s",
+      registration.registration_code, registration.email_status
+    )
+
+
+def send_participant_payment_rejection(registration) -> bool:
+  rejection_template_id = getattr(settings, "EMAILJS_REJECTION_TEMPLATE_ID", "").strip()
+  fallback_rejection_template_id = getattr(settings, "EMAILJS_FALLBACK_REJECTION_TEMPLATE_ID", "").strip()
+
+  logger.info(
+    "REJECTION EMAIL DISPATCH START for %s: rejection_template=%s fallback_template=%s",
+    registration.registration_code,
+    rejection_template_id or "(not configured)",
+    fallback_rejection_template_id or "(not configured)"
+  )
+
+  from django.db import transaction
+  with transaction.atomic():
+    locked = Registration.objects.select_for_update().get(pk=registration.pk)
+    if locked.email_status == Registration.EMAIL_SENDING:
+      logger.info("Email already sending for %s, skipping rejection email.", locked.registration_code)
+      return True
+    locked.email_status = Registration.EMAIL_SENDING
+    locked.save(update_fields=["email_status", "updated_at"])
+
+  registration.refresh_from_db()
+  result = False
+  try:
+    participants = list(registration.participants.order_by("participant_number"))
+    if not participants:
+      logger.warning("Rejection email skipped for %s. Participant list is empty.", registration.registration_code)
+      return False
+
+    participant_results: list[bool] = []
+    participant_recipient_emails: set[str] = set()
+
+    for participant in participants:
+      participant_email = participant.email.strip().lower()
+      if not participant_email:
+        logger.warning(
+          "Rejection email skipped for %s participant %s because the email is missing.",
+          registration.registration_code,
+          participant.participant_number
+        )
+        participant_results.append(False)
+        continue
+
+      if participant_email in participant_recipient_emails:
+        logger.info(
+          "Duplicate rejection recipient skipped for %s: %s",
+          registration.registration_code,
+          participant_email
+        )
+        continue
+
+      participant_recipient_emails.add(participant_email)
+      template_params = _build_registration_template_params(registration, participant, participant_email, "rejection")
+      sent = _send_emailjs_message_with_fallback(
+        participant_email,
+        rejection_template_id,
+        fallback_rejection_template_id,
+        template_params,
+        purpose="PARTICIPANT_REJECTION",
+        primary_service_id=getattr(settings, "EMAILJS_REJECTION_SERVICE_ID", "").strip(),
+        primary_public_key=getattr(settings, "EMAILJS_REJECTION_PUBLIC_KEY", "").strip(),
+        primary_private_key=getattr(settings, "EMAILJS_REJECTION_PRIVATE_KEY", "").strip(),
+        fallback_service_id=getattr(settings, "EMAILJS_FALLBACK_REJECTION_SERVICE_ID", "").strip(),
+        fallback_public_key=getattr(settings, "EMAILJS_FALLBACK_REJECTION_PUBLIC_KEY", "").strip(),
+        fallback_private_key=getattr(settings, "EMAILJS_FALLBACK_REJECTION_PRIVATE_KEY", "").strip()
+      )
+      participant_results.append(sent)
+
+    result = all(participant_results) if participant_results else False
+    logger.info(
+      "REJECTION EMAIL DISPATCH RESULT for %s: rejection_sent=%s",
+      registration.registration_code,
+      result
+    )
+    return result
+  finally:
+    registration.refresh_from_db()
+    registration.email_status = Registration.EMAIL_SENT if result else Registration.EMAIL_FAILED
+    registration.save(update_fields=["email_status", "updated_at"])
+    logger.info(
+      "REJECTION EMAIL STATUS for %s: %s",
       registration.registration_code, registration.email_status
     )
 

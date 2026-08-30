@@ -61,16 +61,19 @@ def ensure_duplicate_rules(
   if transaction_id and Registration.objects.filter(transaction_id=transaction_id).exists():
     raise DuplicateRegistrationError("This payment reference is already in use.")
 
-  if team_name and Registration.objects.filter(event=event, team_name__iexact=team_name).exists():
+  active_registrations = Registration.objects.exclude(payment_status=Registration.PAYMENT_REJECTED)
+  active_participants = Participant.objects.exclude(registration__payment_status=Registration.PAYMENT_REJECTED)
+
+  if team_name and active_registrations.filter(event=event, team_name__iexact=team_name).exists():
     raise DuplicateRegistrationError("A team with this name is already registered for this event.")
 
   for participant in participants:
     email = normalize_email(participant["email"])
     mobile = normalize_mobile(participant["mobileNumber"])
 
-    if Participant.objects.filter(email=email).exists():
+    if active_participants.filter(email=email).exists():
       raise DuplicateRegistrationError("A participant email is already registered.")
-    if Participant.objects.filter(mobile_number=mobile).exists():
+    if active_participants.filter(mobile_number=mobile).exists():
       raise DuplicateRegistrationError("A participant mobile number is already registered.")
 
 

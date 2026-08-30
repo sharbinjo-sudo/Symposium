@@ -13,7 +13,7 @@ const homePageLinks = [
   {
     href: "/non-technical-events",
     label: "Non-Tech Events",
-    copy: "Expression Challenge, Mystery Quest, Connection Challenge, and Visual Insight."
+    copy: "Expression Challenge, Spot the Difference, Connection Challenge, and Human vs AI."
   },
   {
     href: "/prizes",
@@ -73,6 +73,17 @@ export default function HomePage() {
                 Explore Events
               </ButtonLink>
             </div>
+            <Reveal className="hero-note-reveal" delay={0.06} y={18} scale={0.98}>
+              <GlassPanel className="hero-note-card" tone="strong">
+                <p className="card-copy hero-note-copy">
+                  <strong>Note:</strong>
+                  <span>
+                    The countdown indicates the deadline for online registration. On-site registration will remain
+                    available on campus.
+                  </span>
+                </p>
+              </GlassPanel>
+            </Reveal>
           </Reveal>
 
           <Reveal className="hero-visual-column hero-countdown-column" delay={0.1} y={22} scale={0.98}>

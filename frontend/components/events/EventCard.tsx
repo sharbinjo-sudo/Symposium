@@ -30,14 +30,15 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "MQ") {
+  if (event.code === "SD") {
     return (
-      <div className="event-graphic event-graphic-mystery" aria-hidden="true">
-        <span className="mystery-card mystery-card-one" />
-        <span className="mystery-card mystery-card-two" />
-        <span className="mystery-line mystery-line-one" />
-        <span className="mystery-line mystery-line-two" />
-        <span className="mystery-question">?</span>
+      <div className="event-graphic event-graphic-spot" aria-hidden="true">
+        <span className="spot-frame spot-frame-left" />
+        <span className="spot-frame spot-frame-right" />
+        <span className="spot-circle spot-circle-one" />
+        <span className="spot-circle spot-circle-two" />
+        <span className="spot-circle spot-circle-three" />
+        <span className="spot-magnifier" />
       </div>
     );
   }
@@ -54,14 +55,15 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "VI") {
+  if (event.code === "HAI") {
     return (
-      <div className="event-graphic event-graphic-visual" aria-hidden="true">
-        <span className="visual-frame" />
-        <span className="visual-sun" />
-        <span className="visual-mountain visual-mountain-one" />
-        <span className="visual-mountain visual-mountain-two" />
-        <span className="visual-story-line" />
+      <div className="event-graphic event-graphic-humanai" aria-hidden="true">
+        <span className="hai-panel hai-panel-left" />
+        <span className="hai-panel hai-panel-right" />
+        <span className="hai-divider" />
+        <span className="hai-icon hai-icon-human">👤</span>
+        <span className="hai-icon hai-icon-ai">🤖</span>
+        <span className="hai-vs">vs</span>
       </div>
     );
   }
@@ -100,6 +102,21 @@ function renderGraphic(event: EventConfig) {
         <span className="web-frame web-frame-one" />
         <span className="web-frame web-frame-two" />
         <span className="web-frame web-frame-three" />
+      </div>
+    );
+  }
+
+  if (event.code === "VS") {
+    return (
+      <div className="event-graphic event-graphic-visualytics" aria-hidden="true">
+        <span className="viz-donut" />
+        <span className="viz-donut-hole" />
+        <span className="viz-slice viz-slice-one" />
+        <span className="viz-slice viz-slice-two" />
+        <span className="viz-trend" />
+        <span className="viz-dot viz-dot-one" />
+        <span className="viz-dot viz-dot-two" />
+        <span className="viz-dot viz-dot-three" />
       </div>
     );
   }

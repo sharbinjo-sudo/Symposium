@@ -67,11 +67,14 @@ class RegistrationPrecheckView(APIView):
 
     event_code = data.get("eventCode", "")
     team_name = data.get("teamName", "")
+    active_registrations = Registration.objects.exclude(payment_status=Registration.PAYMENT_REJECTED)
+    active_participants = Participant.objects.exclude(registration__payment_status=Registration.PAYMENT_REJECTED)
+
     if event_code and team_name:
       event = Event.objects.filter(event_code=event_code).first()
       if event is None:
         field_errors["eventCode"] = "Selected event does not exist."
-      elif Registration.objects.filter(event=event, team_name__iexact=team_name).exists():
+      elif active_registrations.filter(event=event, team_name__iexact=team_name).exists():
         field_errors["teamName"] = "A team with this name is already registered for this event."
 
     transaction_id = data.get("transactionId", "")
@@ -89,7 +92,7 @@ class RegistrationPrecheckView(APIView):
         if email in seen_emails:
           field_errors[email_key] = "This email is repeated in the same registration."
           field_errors.setdefault(f"participant-{seen_emails[email]}-email", "This email is repeated in the same registration.")
-        elif Participant.objects.filter(email=email).exists():
+        elif active_participants.filter(email=email).exists():
           field_errors[email_key] = "This email is already registered."
         seen_emails[email] = index
 
@@ -101,7 +104,7 @@ class RegistrationPrecheckView(APIView):
             f"participant-{seen_mobiles[mobile]}-mobileNumber",
             "This mobile number is repeated in the same registration."
           )
-        elif Participant.objects.filter(mobile_number=mobile).exists():
+        elif active_participants.filter(mobile_number=mobile).exists():
           field_errors[mobile_key] = "This mobile number is already registered."
         seen_mobiles[mobile] = index
 

@@ -38,6 +38,9 @@ export type SiteConfig = {
   about: string;
   facilitiesNote: string;
   contacts: Array<{ label: string; value: string }>;
+  community: {
+    whatsappGroup: string;
+  };
   paymentScannerImage: string;
   paymentReceiverName: string;
   highlights: string[];
@@ -145,6 +148,13 @@ export type AdminRegistrationRow = {
   adminNote: string | null;
   screenshotAvailable: boolean;
   createdAt: string;
+};
+
+export type PaginatedResponse<T> = {
+  count: number;
+  limit: number;
+  offset: number;
+  results: T[];
 };
 
 export type AdminRegistrationFilters = {

@@ -6,6 +6,7 @@ import type {
   AdminRegistrationRow,
   DashboardSummary,
   EventConfig,
+  PaginatedResponse,
   RegistrationPayload,
   RegistrationPrecheckPayload,
   RegistrationResponse,
@@ -448,7 +449,8 @@ export async function getAdminSummary(): Promise<DashboardSummary> {
 }
 
 export async function getAdminRegistrations(filters?: AdminRegistrationFilters): Promise<AdminRegistrationRow[]> {
-  return requestJson<AdminRegistrationRow[]>(buildAdminRegistrationQuery(filters));
+  const response = await requestJson<PaginatedResponse<AdminRegistrationRow>>(buildAdminRegistrationQuery(filters));
+  return Array.isArray(response.results) ? response.results : [];
 }
 
 export async function updateAdminRegistration(

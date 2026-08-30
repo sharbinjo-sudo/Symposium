@@ -1,5 +1,6 @@
 import csv
 import os
+import posixpath
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -14,7 +15,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from config.security import apply_no_store
-from notifications.emailjs import send_participant_registration_confirmation
+from notifications.emailjs import send_participant_payment_rejection, send_participant_registration_confirmation
 from registrations.models import Registration
 from registrations.serializers import (
   AdminRegistrationCreateSerializer,
@@ -32,6 +33,8 @@ DUMMY_PASSWORD_HASH = make_password("cyberpunk26-admin-dummy")
 
 # Security: Maximum length for search queries to prevent DoS
 MAX_SEARCH_LENGTH = 200
+ADMIN_REGISTRATION_DEFAULT_LIMIT = 100
+ADMIN_REGISTRATION_MAX_LIMIT = 500
 
 # Security: Allowed path prefix for screenshot files
 ALLOWED_SCREENSHOT_PREFIX = "payments/"
@@ -44,16 +47,25 @@ def _validate_search_length(search: str) -> str:
   return search
 
 
+def _parse_positive_int(value: str | None, default: int) -> int:
+  try:
+    parsed_value = int(value or default)
+  except (TypeError, ValueError):
+    return default
+  return max(parsed_value, 0)
+
+
 def _is_safe_screenshot_path(path: str) -> bool:
   """
   Validate that the screenshot path is safe and doesn't contain directory traversal.
-  Returns False if path contains suspicious patterns.
+  Storage keys always use forward slashes regardless of OS, so we use posixpath
+  instead of os.path to avoid Windows backslash conversion breaking the prefix check.
   """
   if not path:
     return False
 
-  # Normalize path separators
-  normalized = os.path.normpath(path)
+  # Normalize to forward slashes (storage keys always use / on all platforms)
+  normalized = posixpath.normpath(path)
 
   # Check for directory traversal attempts
   if ".." in path or ".." in normalized:
@@ -63,8 +75,8 @@ def _is_safe_screenshot_path(path: str) -> bool:
   if not normalized.startswith(ALLOWED_SCREENSHOT_PREFIX):
     return False
 
-  # Check for absolute paths (Unix and Windows)
-  if os.path.isabs(normalized):
+  # Check for absolute paths
+  if posixpath.isabs(normalized):
     return False
 
   # Check for null bytes
@@ -206,8 +218,23 @@ class AdminRegistrationListView(APIView):
 
   def get(self, request):
     queryset = get_admin_registration_queryset(request)
-    serializer = AdminRegistrationSerializer(queryset[:200], many=True)
-    return apply_no_store(Response(serializer.data))
+    count = queryset.count()
+    limit = min(
+      _parse_positive_int(request.query_params.get("limit"), ADMIN_REGISTRATION_DEFAULT_LIMIT),
+      ADMIN_REGISTRATION_MAX_LIMIT
+    )
+    offset = _parse_positive_int(request.query_params.get("offset"), 0)
+    serializer = AdminRegistrationSerializer(queryset[offset:offset + limit], many=True)
+    return apply_no_store(
+      Response(
+        {
+          "count": count,
+          "limit": limit,
+          "offset": offset,
+          "results": serializer.data
+        }
+      )
+    )
 
 
 class AdminRegistrationActionView(APIView):
@@ -355,25 +382,29 @@ class AdminResendEmailView(APIView):
     except Registration.DoesNotExist:
       return apply_no_store(Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND))
 
-    if registration.payment_status != Registration.PAYMENT_VERIFIED:
+    if registration.payment_status == Registration.PAYMENT_VERIFIED:
+      email_type = "confirmation"
+      sent = send_participant_registration_confirmation(registration)
+    elif registration.payment_status == Registration.PAYMENT_REJECTED:
+      email_type = "rejection"
+      sent = send_participant_payment_rejection(registration)
+    else:
       return apply_no_store(
         Response(
-          {"detail": "Verify the payment before sending the confirmation email."},
+          {"detail": "Set the payment to verified or rejected before sending a participant email."},
           status=status.HTTP_400_BAD_REQUEST
         )
       )
 
-    sent = send_participant_registration_confirmation(registration)
-
     log_admin_action(
       admin=admin,
-      action="resend_email",
+      action=f"send_{email_type}_email",
       entity_type="registration",
       entity_id=registration.registration_code,
-      metadata={"sent": sent}
+      metadata={"sent": sent, "emailType": email_type}
     )
 
-    return apply_no_store(Response({"ok": sent}))
+    return apply_no_store(Response({"ok": sent, "emailType": email_type}))
 
 
 class AdminRegistrationExportView(APIView):

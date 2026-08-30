@@ -14,7 +14,7 @@ Thumbs.db
 
 backend/.env
 frontend/.env.local
-
+*/db.sqlite3 
 backend/.venv/
 backend/venv/
 frontend/node_modules/

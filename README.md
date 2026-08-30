@@ -50,6 +50,10 @@ Render service settings:
    - `DJANGO_CORS_ALLOWED_ORIGINS=https://<your-netlify-site>.netlify.app`
    - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_ADMIN_TEMPLATE_ID`
    - `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`
+   - Optional fallback: `EMAILJS_FALLBACK_SERVICE_ID`, `EMAILJS_FALLBACK_TEMPLATE_ID`, `EMAILJS_FALLBACK_ADMIN_TEMPLATE_ID`
+   - Optional fallback keys: `EMAILJS_FALLBACK_PUBLIC_KEY`, `EMAILJS_FALLBACK_PRIVATE_KEY`
+   - Rejection email: `EMAILJS_REJECTION_SERVICE_ID`, `EMAILJS_REJECTION_TEMPLATE_ID`
+   - Optional rejection keys/fallback: `EMAILJS_REJECTION_PUBLIC_KEY`, `EMAILJS_REJECTION_PRIVATE_KEY`, `EMAILJS_FALLBACK_REJECTION_SERVICE_ID`, `EMAILJS_FALLBACK_REJECTION_TEMPLATE_ID`, `EMAILJS_FALLBACK_REJECTION_PUBLIC_KEY`, `EMAILJS_FALLBACK_REJECTION_PRIVATE_KEY`
    - `ADMIN_NOTIFICATION_EMAIL`
    - `BACKBLAZE_B2_ENABLED=true`
    - `BACKBLAZE_B2_BUCKET_NAME`, `BACKBLAZE_B2_KEY_ID`, `BACKBLAZE_B2_APPLICATION_KEY`
@@ -75,6 +79,7 @@ Netlify settings:
    - base directory: `frontend`
    - build command: `npm run build`
 3. Set these environment variables in Netlify:
+   - `NODE_VERSION=22`
    - `NEXT_PUBLIC_API_BASE_URL=https://<your-render-host>.onrender.com`
    - `NEXT_PUBLIC_EVENT_DATE=2026-09-11T09:30:00+05:30`
 4. Deploy. The Next.js frontend will keep using local Django automatically when this env var is not set, so local development still works.

@@ -22,6 +22,9 @@ export const siteConfig: SiteConfig = {
     { label: "Event Contact", value: "8056591486" },
     { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
   ],
+  community: {
+    whatsappGroup: "https://chat.whatsapp.com/BDgammW6Hma5zsKvd2dzBX?s=sw&p=a&mlu=4"
+  },
   paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
   paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "Suriya L",
   highlights: [
@@ -201,76 +204,81 @@ export const siteConfig: SiteConfig = {
       code: "EC",
       name: "Expression Challenge",
       track: "Non-Technical",
-      summary: "A silent acting and guessing stage event for coordinated two-member teams.",
+      summary: "Express emotions and ideas using only facial expressions and body language.",
       description:
-        "One teammate acts out a song title, movie name, famous dialogue, personality, or topic using only body language while the other guesses within the time limit.",
+        "Participants must express a given emotion, situation, or idea using only their facial expressions and body language.",
       visualTitle: "Stage gestures and quick guesses",
       accent: "blue-violet",
       visualTags: ["Silent acting", "Fast guesses", "Team coordination"],
-      minTeamSize: 2,
-      maxTeamSize: 2,
-      feeType: "per_team",
+      minTeamSize: 1,
+      maxTeamSize: 5,
+      feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [
-        "Exactly 2 members per team: one actor and one guesser.",
-        "Strictly no speaking, lip-syncing, mouthing words, spelling, letter gestures, or direct clues.",
-        "Each round has a fixed time limit.",
-        "Teams earn points for every correct answer.",
+        "Each participant will receive a random word, emotion, or situation.",
+        "The participant must express it without speaking.",
+        "Other participants or audience must guess the given expression.",
+        "A fixed time limit will be provided for each turn.",
+        "Participants may use facial expressions and gestures, but no props.",
+        "No words, sounds, mobile phones, or outside assistance are allowed.",
+        "The given word or situation must not be directly revealed through gestures such as spelling letters.",
+        "Each correct guess within the time limit earns points.",
+        "The participant cannot change the assigned word once the round begins.",
         "Winners are decided by the highest correct answers in the shortest time."
       ],
       importantNotes: [
         {
           tone: "prohibited",
-          title: "No direct clues",
-          description: "Actors must use only body language. Speech, lip movement, spelling, and letter hints are not allowed."
+          title: "No speaking or props",
+          description: "Participants must rely solely on facial expressions and body language. Words, sounds, and props are not allowed."
         },
         {
           tone: "required",
-          title: "Two-member team",
-          description: "Each team must have one actor and one guesser."
+          title: "Stick to the word",
+          description: "Once assigned, the word or emotion cannot be changed during the round."
         }
       ],
       registrationOpen: false
     },
     {
       order: 2,
-      code: "MQ",
-      name: "Mystery Quest",
+      code: "SD",
+      name: "Spot the Difference",
       track: "Non-Technical",
-      summary: "Decode words through sketching and one-word clues across two quick rounds.",
+      summary: "Find as many differences as possible between two similar images within a time limit.",
       description:
-        "Teams use creativity, communication, quick thinking, and teamwork to solve visual and verbal clue challenges under pressure.",
-      visualTitle: "Clue cards and hidden answers",
+        "Participants will be shown two similar images side-by-side and must identify as many differences as possible within the given time.",
+      visualTitle: "Twin images and hidden differences",
       accent: "cyan-blue",
-      visualTags: ["Sketch Sprint", "Clue Cascade", "Team decoding"],
-      minTeamSize: 2,
-      maxTeamSize: 2,
-      feeType: "per_team",
+      visualTags: ["Sharp eyes", "Speed observation", "Detail spotting"],
+      minTeamSize: 1,
+      maxTeamSize: 5,
+      feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [
-        "Each team has 2 members: one clue-giver and one guesser. Roles may switch between rounds.",
-        "Round 1, Sketch Sprint: one member draws the given word while the other guesses.",
-        "Sketch Sprint allows 60 seconds per word with multiple attempts.",
-        "Sketch Sprint is drawing only. Speaking, letters, numbers, and symbols are not allowed.",
-        "Round 2, Clue Cascade: one member gives one-word verbal clues for the secret word.",
-        "Clue Cascade allows 60 seconds per team.",
-        "No gestures, spelling, rhyming, direct translations, or parts of the answer are allowed.",
-        "Invalid clues skip the word and score 0 points.",
-        "Each correct guess earns 10 points. There is no negative marking.",
-        "Combined scores determine winners. Ties use a tie-breaker round."
+        "Two similar images will be displayed side-by-side.",
+        "Participants must carefully observe and identify the differences.",
+        "A fixed time limit will be given for each round.",
+        "Participants must mention the location or description of each difference.",
+        "Each correctly identified difference earns points.",
+        "No mobile phones, internet, AI tools, or outside assistance are allowed.",
+        "Participants cannot zoom, edit, or manipulate the images.",
+        "Answers must be submitted before the timer ends.",
+        "Once submitted, answers cannot be changed.",
+        "Winners are decided by the highest correct answers."
       ],
       importantNotes: [
         {
-          tone: "warning",
-          title: "Two different rounds",
-          description: "Teams should be ready for both drawing-based and one-word verbal clue formats."
+          tone: "prohibited",
+          title: "No devices or outside help",
+          description: "Mobile phones, internet, AI tools, and outside assistance are strictly prohibited."
         },
         {
-          tone: "prohibited",
-          title: "No symbols or answer parts",
-          description: "Letters, numbers, symbols, rhymes, translations, and answer fragments are treated as violations."
+          tone: "warning",
+          title: "No image manipulation",
+          description: "Participants cannot zoom, edit, or manipulate the images in any way."
         }
       ],
       registrationOpen: false
@@ -287,7 +295,7 @@ export const siteConfig: SiteConfig = {
       accent: "violet-teal",
       visualTags: ["Visual puzzles", "Rapid Connect", "Challenge Connect"],
       minTeamSize: 1,
-      maxTeamSize: 1,
+      maxTeamSize: 5,
       feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
@@ -322,40 +330,41 @@ export const siteConfig: SiteConfig = {
     },
     {
       order: 4,
-      code: "VI",
-      name: "Visual Insight",
+      code: "HAI",
+      name: "Human vs AI",
       track: "Non-Technical",
-      summary: "Build and present an original story from a picture under a short time limit.",
+      summary: "Identify whether displayed content is Human-made or AI-generated.",
       description:
-        "Participants observe a displayed image, craft a compelling short story, and present it with imagination, clarity, and connection to the picture.",
-      visualTitle: "Picture frame and story line",
+        "Participants must identify whether the displayed content is human-made or AI-generated.",
+      visualTitle: "Pixel blur and human hand",
       accent: "teal-blue",
-      visualTags: ["Picture prompt", "Storytelling", "Creative stage"],
+      visualTags: ["Spot the source", "AI detection", "Sharp judgment"],
       minTeamSize: 1,
-      maxTeamSize: 2,
+      maxTeamSize: 5,
       feeType: "per_participant",
       feeAmount: 0,
       prizes: [],
       rules: [
-        "A random image is displayed on screen for 30 seconds.",
-        "Participants get 2 to 3 minutes to construct their short story.",
-        "Each participant or team gets 1 to 2 minutes to present the story on stage.",
-        "All teams share the same image, but each must adopt a different narrative style or genre such as Mystery, Comedy, or Drama.",
-        "Stories must directly relate to the displayed image.",
-        "Presentations must strictly follow the allotted time limit.",
-        "Electronic devices and external help are prohibited during preparation.",
-        "Scoring is based on creativity, imagination, presentation, and connection to the picture."
+        "Each round will display one image or content sample.",
+        "Participants must decide: Human-made or AI-generated.",
+        "Each sample will have a limited time for identification.",
+        "Participants must submit their answer before the timer ends.",
+        "No internet, mobile phones, AI tools, or outside assistance are allowed.",
+        "Once an answer is submitted, it cannot be changed.",
+        "The content may include images, posters, artwork, photographs, or creative designs.",
+        "Some samples may be intentionally difficult to distinguish.",
+        "Judges' decisions will be final and binding."
       ],
       importantNotes: [
         {
-          tone: "required",
-          title: "Stay connected to the image",
-          description: "The story should clearly grow from the displayed picture, not from an unrelated idea."
+          tone: "prohibited",
+          title: "No external help",
+          description: "Internet, mobile phones, AI tools, and outside assistance are strictly prohibited."
         },
         {
-          tone: "info",
-          title: "Genre twist",
-          description: "Teams may receive different narrative styles even when the image is the same."
+          tone: "required",
+          title: "Final decision",
+          description: "Judges' decisions will be final and binding in all cases."
         }
       ],
       registrationOpen: false

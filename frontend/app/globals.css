@@ -915,8 +915,12 @@ input[type="radio"]:focus {
 .hero-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  gap: clamp(1.8rem, 4vw, 3.4rem);
-  align-items: center;
+  grid-template-areas:
+    "copy countdown"
+    "note countdown";
+  column-gap: clamp(1.8rem, 4vw, 3.4rem);
+  row-gap: clamp(0.85rem, 1.35vw, 1.15rem);
+  align-items: start;
 }
 
 .home-hero-frame {
@@ -953,6 +957,7 @@ input[type="radio"]:focus {
 }
 
 .hero-copy {
+  grid-area: copy;
   max-width: min(100%, 40rem);
   padding-top: 0.35rem;
 }
@@ -962,9 +967,10 @@ input[type="radio"]:focus {
 }
 
 .hero-countdown-column {
-  align-self: stretch;
+  grid-area: countdown;
+  align-self: start;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .hero-kicker {
@@ -1016,7 +1022,10 @@ input[type="radio"]:focus {
 }
 
 .hero-note-reveal {
-  margin-top: clamp(0.95rem, 1.6vw, 1.25rem);
+  grid-area: note;
+  align-self: start;
+  height: auto;
+  margin-top: 0;
   max-width: 48ch;
 }
 
@@ -1028,6 +1037,7 @@ input[type="radio"]:focus {
   border-color: rgba(var(--primary-rgb), 0.18);
   background: #ffffff !important;
   box-shadow: 0 24px 70px rgba(76, 26, 34, 0.1);
+  height: auto;
 }
 
 .hero-note-card::before,
@@ -2770,6 +2780,32 @@ input[type="radio"]:focus {
 
 .non-tech-note-copy span {
   min-width: 0;
+}
+
+.note-page .container {
+  display: grid;
+  gap: clamp(1.2rem, 2vw, 1.8rem);
+}
+
+.note-page-card {
+  padding: clamp(1.2rem, 2vw, 1.9rem);
+}
+
+.note-page-list {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(0.85rem, 1.4vw, 1.1rem);
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  font-size: clamp(0.98rem, 1.12vw, 1.1rem);
+  line-height: 1.58;
+}
+
+.note-page-list li::marker {
+  color: var(--primary);
+  font-weight: 900;
 }
 
 .non-tech-event-grid .placeholder-card::before,
@@ -5500,6 +5536,13 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .hero-layout {
+    grid-template-areas:
+      "copy"
+      "countdown"
+      "note";
+  }
+
   .hero-copy,
   .hero-visual-column {
     max-width: none;
@@ -7321,6 +7364,451 @@ textarea {
   border-color: rgba(235, 146, 164, 0.46);
 }
 
+/* Phone-first polish for secondary pages */
+@media (max-width: 560px) {
+  .site-main,
+  .page-shell-block,
+  .wizard-shell,
+  .status-check-section,
+  .admin-shell {
+    overflow-x: clip;
+  }
+
+  .section.page-shell-block,
+  .section.page-shell-block.technical-events-page,
+  .section.page-shell-block.prizes-page,
+  .wizard-shell,
+  .status-check-section,
+  .admin-shell {
+    padding-top: 0.7rem;
+    padding-bottom: 1.65rem;
+  }
+
+  .page-shell-block .container,
+  .technical-events-page .container,
+  .prizes-page .container,
+  .note-page .container,
+  .contact-page .container,
+  .wizard-shell .container,
+  .status-check-layout,
+  .admin-shell .container {
+    gap: 0.72rem;
+  }
+
+  .page-shell-block .section-title,
+  .technical-events-head .section-title,
+  .prizes-page-head .section-title,
+  .contact-page-head .section-title,
+  .note-page .section-title,
+  .wizard-heading-wrap .section-title {
+    gap: 0.3rem;
+  }
+
+  .page-shell-block .section-eyebrow,
+  .technical-events-head .section-eyebrow,
+  .prizes-page-head .section-eyebrow,
+  .wizard-heading-wrap .section-eyebrow {
+    margin: 0;
+    font-size: 0.64rem;
+    line-height: 1.2;
+    letter-spacing: 0.13em;
+  }
+
+  .page-shell-block .heading-as-h2 h2,
+  .technical-events-head .heading-as-h2 h2,
+  .prizes-page-head .heading-as-h2 h2,
+  .contact-page-head .heading-as-h2 h2,
+  .note-page .heading-as-h2 h2,
+  .wizard-heading-wrap .heading-as-h2 h2,
+  .status-check-title {
+    max-width: 100%;
+    font-size: clamp(1.78rem, 9vw, 2.36rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    white-space: normal;
+  }
+
+  .page-shell-block .section-copy,
+  .technical-events-head .section-copy,
+  .prizes-page-head .section-copy,
+  .contact-page-head .section-copy,
+  .wizard-heading-wrap .section-copy,
+  .status-check-intro-copy {
+    margin-top: 0.08rem;
+    font-size: 0.86rem;
+    line-height: 1.38;
+  }
+
+  .technical-note-card,
+  .non-tech-note-card,
+  .note-page-card,
+  .contact-page .content-panel,
+  .prizes-page .prize-card,
+  .status-check-form-card,
+  .status-check-result-card,
+  .admin-sidebar-panel,
+  .dashboard-card,
+  .admin-login-panel,
+  .wizard-main-card .content-panel,
+  .wizard-main-card .summary-panel,
+  .wizard-main-card .participant-card,
+  .wizard-main-card .payment-qr-card,
+  .wizard-main-card .confirmation-hero-card,
+  .wizard-main-card .confirmation-receipt-card {
+    padding: 0.82rem;
+    border-radius: 18px;
+  }
+
+  .technical-note-copy,
+  .non-tech-note-copy,
+  .note-page-list,
+  .contact-page .card-copy,
+  .prizes-page .card-copy,
+  .status-check-result-copy,
+  .helper {
+    font-size: 0.84rem;
+    line-height: 1.36;
+  }
+
+  .note-page-list {
+    gap: 0.55rem;
+    padding-left: 1.05rem;
+  }
+
+  .note-page-list li {
+    padding-left: 0.15rem;
+  }
+
+  .technical-events-page .event-grid,
+  .non-technical-events-page .event-grid,
+  .prizes-page .prize-grid,
+  .contact-feature-band,
+  .student-coordinator-grid {
+    gap: 0.72rem;
+    margin-top: 0.08rem;
+  }
+
+  .technical-events-page .event-card-shell,
+  .non-technical-events-page .event-card-shell {
+    padding: 0.78rem;
+    gap: 0.56rem;
+    border-radius: 18px;
+  }
+
+  .technical-events-page .event-card-main,
+  .non-technical-events-page .event-card-main {
+    gap: 0.58rem;
+  }
+
+  .technical-events-page .event-card-copy h3,
+  .non-technical-events-page .event-card-copy h3 {
+    font-size: clamp(1.2rem, 6.4vw, 1.55rem);
+    line-height: 1.02;
+  }
+
+  .technical-events-page .event-card-copy .card-copy,
+  .technical-events-page .event-card-description,
+  .non-technical-events-page .event-card-copy .card-copy,
+  .non-technical-events-page .event-card-description,
+  .technical-events-page .rule-list,
+  .non-technical-events-page .rule-list {
+    font-size: 0.82rem;
+    line-height: 1.34;
+  }
+
+  .technical-events-page .event-card-visual,
+  .non-technical-events-page .event-card-visual {
+    min-height: 104px;
+    border-radius: 16px;
+  }
+
+  .technical-events-page .event-metric,
+  .non-technical-events-page .event-metric,
+  .status-check-meta-card,
+  .status-check-hint-card,
+  .admin-detail-item,
+  .admin-notification-item,
+  .confirmation-meta-item {
+    min-height: 0;
+    padding: 0.64rem 0.7rem;
+    border-radius: 14px;
+  }
+
+  .technical-events-page .event-tag,
+  .non-technical-events-page .event-tag,
+  .status-chip {
+    min-height: 26px;
+    padding: 0.3rem 0.52rem;
+    font-size: 0.66rem;
+  }
+
+  .rules-panel,
+  .rule-list {
+    gap: 0.58rem;
+  }
+
+  .prizes-page .prize-card {
+    gap: 0.54rem;
+  }
+
+  .prizes-page .prize-card h4 {
+    font-size: clamp(1.02rem, 5.2vw, 1.22rem);
+    line-height: 1.1;
+  }
+
+  .prizes-page .prize-podium {
+    gap: 0.34rem;
+  }
+
+  .prizes-page .prize-podium-slot {
+    min-height: 54px;
+    padding: 0.46rem 0.26rem;
+  }
+
+  .prizes-page .rule-list {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .student-coordinator-section {
+    gap: 0.7rem;
+    margin-top: 0.1rem;
+  }
+
+  .student-coordinator-head {
+    gap: 0.18rem;
+  }
+
+  .student-coordinator-head h3 {
+    font-size: 1.34rem;
+  }
+
+  .student-coordinator-card {
+    gap: 0.72rem;
+  }
+
+  .student-coordinator-card-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    padding-bottom: 0.64rem;
+  }
+
+  .student-coordinator-card-head h4 {
+    font-size: 1.12rem;
+  }
+
+  .student-coordinator-groups {
+    gap: 0.6rem;
+  }
+
+  .student-coordinator-group {
+    gap: 0.48rem;
+    padding: 0.68rem;
+    border-radius: 14px;
+  }
+
+  .student-coordinator-group li {
+    min-height: 30px;
+    padding: 0.34rem 0.48rem;
+    border-radius: 10px;
+    font-size: 0.84rem;
+  }
+
+  .status-check-form-card,
+  .status-check-result-card {
+    min-height: 0;
+    gap: 0.66rem;
+  }
+
+  .status-check-form-head,
+  .status-check-result-head {
+    gap: 0.44rem;
+  }
+
+  .status-check-form-head h2,
+  .status-check-result-head h2,
+  .status-check-empty h2 {
+    font-size: 1.18rem;
+    line-height: 1.08;
+  }
+
+  .status-check-field {
+    gap: 0.32rem;
+  }
+
+  .status-check-field span {
+    font-size: 0.84rem;
+  }
+
+  .status-check-field input,
+  .wizard-main-card input:not([type="checkbox"]):not([type="radio"]),
+  .wizard-main-card select,
+  .wizard-main-card textarea,
+  .admin-shell input:not([type="checkbox"]):not([type="radio"]),
+  .admin-shell select,
+  .admin-shell textarea {
+    min-height: 2.92rem;
+    padding: 0.62rem 0.78rem;
+    border-radius: 16px;
+    font-size: 0.92rem;
+  }
+
+  .status-check-detail-list {
+    gap: 0.46rem;
+    padding: 0.32rem;
+    border-radius: 16px;
+  }
+
+  .status-check-detail-row,
+  .confirmation-detail-row,
+  .review-row,
+  .summary-row {
+    gap: 0.22rem;
+    padding: 0.64rem 0.72rem;
+    border-radius: 14px;
+  }
+
+  .wizard-main-card {
+    padding: 0.64rem;
+    gap: 0.64rem;
+    border-radius: 20px;
+  }
+
+  .progress-step-active {
+    min-height: 62px;
+    padding: 0.54rem 0.62rem;
+    border-radius: 15px;
+  }
+
+  .progress-step-label {
+    font-size: 0.94rem;
+  }
+
+  .wizard-stage,
+  .payment-stage,
+  .payment-column,
+  .upload-shell,
+  .upload-copy,
+  .content-panel,
+  .participant-card,
+  .payment-qr-card {
+    gap: 0.64rem;
+  }
+
+  .payment-card-head {
+    text-align: left;
+  }
+
+  .payment-qr-card h3 {
+    font-size: clamp(1.34rem, 7vw, 1.8rem);
+  }
+
+  .wizard-payment-stage .payment-scanner-frame {
+    width: min(100%, 286px);
+    padding: 0.52rem;
+    border-radius: 16px;
+  }
+
+  .upi-pay-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .upload-dropzone {
+    min-height: 170px;
+    padding: 0.82rem;
+    gap: 0.68rem;
+    border-radius: 18px;
+  }
+
+  .upload-state-grid,
+  .confirmation-meta-grid,
+  .acknowledgement-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-card {
+    gap: 0.72rem;
+  }
+
+  .confirmation-code,
+  .confirmation-status-pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-shell {
+    padding-top: 0.75rem;
+  }
+
+  .admin-sidebar {
+    top: auto;
+  }
+
+  .admin-sidebar-panel,
+  .admin-toolbar-card,
+  .dashboard-table-card,
+  .admin-detail-card {
+    gap: 0.7rem;
+  }
+
+  .admin-toolbar-meta {
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .admin-top-toolbar,
+  .admin-table-card-top .table-toolbar {
+    gap: 0.58rem;
+  }
+
+  .admin-inline-button {
+    min-height: 42px;
+    padding: 0.68rem 0.86rem;
+  }
+
+  .admin-detail-overlay {
+    padding: 4.2rem 0.44rem 0.6rem;
+  }
+
+  .admin-detail-modal {
+    max-height: calc(100vh - 4.8rem);
+    border-radius: 18px;
+  }
+
+  .table-shell table {
+    min-width: 620px;
+  }
+
+  th,
+  td {
+    padding: 0.62rem 0.52rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .page-shell-block .heading-as-h2 h2,
+  .technical-events-head .heading-as-h2 h2,
+  .prizes-page-head .heading-as-h2 h2,
+  .contact-page-head .heading-as-h2 h2,
+  .note-page .heading-as-h2 h2,
+  .wizard-heading-wrap .heading-as-h2 h2,
+  .status-check-title {
+    font-size: clamp(1.62rem, 8.8vw, 2.05rem);
+  }
+
+  .technical-events-page .event-card-visual,
+  .non-technical-events-page .event-card-visual {
+    min-height: 94px;
+  }
+
+  .wizard-payment-stage .payment-scanner-frame {
+    width: min(100%, 250px);
+  }
+}
+
 
 
 
@@ -7426,7 +7914,22 @@ textarea {
   }
 
   .hero-countdown-panel .countdown-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.22rem;
+  }
+
+  .hero-countdown-panel .countdown-block {
+    min-height: 3.15rem;
+    padding-inline: 0.12rem;
+  }
+
+  .hero-countdown-panel .countdown-block strong {
+    font-size: clamp(1rem, 5.8vw, 1.34rem);
+  }
+
+  .hero-countdown-panel .countdown-block span {
+    font-size: 0.38rem;
+    letter-spacing: 0.025em;
   }
 }
 
@@ -7469,11 +7972,11 @@ textarea {
   }
 
   .hero {
-    padding: 0.72rem 0 0.9rem;
+    padding: 0.48rem 0 0.78rem;
   }
 
   .hero-layout {
-    gap: 0.85rem;
+    gap: 0.64rem;
   }
 
   .home-hero-frame::before,
@@ -7495,36 +7998,36 @@ textarea {
   }
 
   .hero-title {
-    margin-top: 0.55rem;
-    font-size: clamp(2.58rem, 14.4vw, 3.35rem);
+    margin-top: 0.42rem;
+    font-size: clamp(2.15rem, 12.4vw, 3rem);
     letter-spacing: -0.075em;
   }
 
   .hero-tagline {
-    margin-top: 0.52rem;
-    font-size: 0.9rem;
+    margin-top: 0.42rem;
+    font-size: 0.82rem;
     letter-spacing: 0.13em;
   }
 
   .hero-description {
     max-width: none;
-    margin-top: 0.62rem;
-    font-size: 0.9rem;
-    line-height: 1.4;
+    margin-top: 0.48rem;
+    font-size: 0.86rem;
+    line-height: 1.34;
   }
 
   .hero-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.62rem;
-    margin-top: 0.82rem;
+    margin-top: 0.62rem;
   }
 
   .hero-actions .button {
     width: 100%;
-    min-height: 42px;
-    padding: 0.68rem 0.54rem;
-    font-size: 0.86rem;
+    min-height: 40px;
+    padding: 0.6rem 0.48rem;
+    font-size: 0.82rem;
   }
 
   .hero-countdown-column {
@@ -7532,9 +8035,9 @@ textarea {
   }
 
   .hero-countdown-panel {
-    gap: 0.68rem;
-    padding: 0.82rem;
-    border-radius: 22px;
+    gap: 0.52rem;
+    padding: 0.68rem;
+    border-radius: 20px;
   }
 
   .hero-countdown-header {
@@ -7548,42 +8051,54 @@ textarea {
 
   .hero-countdown-header h2 {
     max-width: 12ch;
-    font-size: clamp(1.9rem, 10.6vw, 2.58rem);
+    font-size: clamp(1.48rem, 8vw, 2.12rem);
     line-height: 0.9;
   }
 
   .hero-countdown-header .card-copy {
-    max-width: none;
-    font-size: 0.84rem;
-    line-height: 1.35;
+    display: none;
   }
 
   .hero-countdown-panel .countdown-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.45rem;
+    gap: 0.34rem;
   }
 
   .hero-countdown-panel .countdown-block {
-    min-height: 4.35rem;
-    gap: 0.22rem;
-    padding: 0.55rem 0.28rem;
-    border-radius: 16px;
+    min-height: 3.65rem;
+    gap: 0.16rem;
+    padding: 0.42rem 0.18rem;
+    border-radius: 14px;
   }
 
   .hero-countdown-panel .countdown-block strong {
-    font-size: clamp(1.5rem, 7.8vw, 2rem);
-    letter-spacing: -0.07em;
+    font-size: clamp(1.24rem, 6.6vw, 1.76rem);
+    letter-spacing: -0.05em;
   }
 
   .hero-countdown-panel .countdown-block span {
-    font-size: 0.5rem;
-    letter-spacing: 0.08em;
+    font-size: 0.43rem;
+    letter-spacing: 0.05em;
   }
 
   .hero-countdown-footer {
     padding-top: 0;
-    font-size: 0.78rem;
-    line-height: 1.35;
+    font-size: 0.7rem;
+    line-height: 1.28;
+  }
+
+  .hero-note-reveal {
+    margin-top: 0;
+  }
+
+  .hero-note-card {
+    padding: 0.72rem 0.82rem;
+    border-radius: 18px;
+  }
+
+  .hero-note-card .card-copy {
+    font-size: 0.8rem;
+    line-height: 1.32;
   }
 
   .hero-facts {
@@ -7614,23 +8129,23 @@ textarea {
 
 @media (max-width: 380px) {
   .hero-title {
-    font-size: clamp(2.34rem, 13.5vw, 2.92rem);
+    font-size: clamp(2rem, 11.8vw, 2.58rem);
   }
 
   .hero-description {
-    font-size: 0.86rem;
+    font-size: 0.82rem;
   }
 
   .hero-countdown-header h2 {
-    font-size: clamp(1.75rem, 10vw, 2.35rem);
+    font-size: clamp(1.38rem, 7.6vw, 1.95rem);
   }
 
   .hero-countdown-panel .countdown-block {
-    min-height: 4.05rem;
+    min-height: 3.4rem;
   }
 
   .hero-countdown-panel .countdown-block strong {
-    font-size: clamp(1.36rem, 7.2vw, 1.82rem);
+    font-size: clamp(1.12rem, 6vw, 1.52rem);
   }
 }
 
@@ -7673,7 +8188,8 @@ textarea {
 
   .page-shell-block .placeholder-card,
   .page-shell-block .content-panel,
-  .page-shell-block .prize-card {
+  .page-shell-block .prize-card,
+  .note-page-card {
     padding: 0.95rem;
     border-radius: 20px;
   }
@@ -8561,8 +9077,8 @@ textarea {
   }
 
   .technical-events-page .event-card-shell {
-    gap: 0.72rem;
-    padding: 0.95rem;
+    gap: 0.64rem;
+    padding: 0.84rem;
     border-radius: 20px;
   }
 
@@ -8580,12 +9096,12 @@ textarea {
 
   .technical-events-page .event-card-description {
     display: block;
-    margin-top: 0.48rem;
-    line-height: 1.42;
+    margin-top: 0.38rem;
+    line-height: 1.36;
   }
 
   .technical-events-page .event-card-visual {
-    min-height: 132px;
+    min-height: 118px;
   }
 
   .technical-events-page .event-card-meta {
@@ -9011,17 +9527,29 @@ body {
     width: min(calc(100% - 0.75rem), var(--container));
   }
 
-  .hero-actions,
   .hero-facts,
-  .hero-countdown-panel .countdown-grid,
   .prizes-page .prize-podium,
   .student-coordinator-groups {
     grid-template-columns: 1fr;
   }
 
+  .hero-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-countdown-panel .countdown-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.28rem;
+  }
+
   .button {
     min-height: 42px;
     padding-inline: 0.78rem;
+  }
+
+  .hero-actions .button {
+    min-height: 38px;
+    padding-inline: 0.36rem;
   }
 
   .status-chip {

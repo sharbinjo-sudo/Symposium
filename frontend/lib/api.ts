@@ -17,9 +17,12 @@ import type {
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
 const EXPLICIT_API_BASE =
   process.env.BACKEND_API_BASE_URL?.trim() || process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const EXPLICIT_FALLBACK_API_BASE =
+  process.env.BACKEND_API_FALLBACK_BASE_URL?.trim() || process.env.NEXT_PUBLIC_FALLBACK_API_BASE_URL?.trim();
 const FALLBACK_EVENTS = siteConfig.technicalEvents;
 const ACCENT_ROTATION: EventConfig["accent"][] = ["blue-violet", "cyan-blue", "violet-teal", "teal-blue"];
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const RETRYABLE_API_STATUS_CODES = new Set([502, 503, 504]);
 
 type CsrfResponse = {
   csrfToken: string;
@@ -56,20 +59,32 @@ function fallbackId() {
   return `cp26-${Date.now()}`;
 }
 
-function resolveApiBase() {
-  if (typeof window !== "undefined") {
-    return "";
-  }
-
-  if (EXPLICIT_API_BASE) {
-    return EXPLICIT_API_BASE.replace(/\/$/, "");
-  }
-
-  return DEFAULT_API_BASE;
+function cleanApiBase(value: string) {
+  return value.trim().replace(/\/$/, "");
 }
 
-function createApiUrl(path: string) {
-  return `${resolveApiBase()}${path}`;
+function resolveApiBases() {
+  if (typeof window !== "undefined") {
+    return [""];
+  }
+
+  const apiBases: string[] = [];
+
+  if (EXPLICIT_API_BASE) {
+    apiBases.push(cleanApiBase(EXPLICIT_API_BASE));
+  } else {
+    apiBases.push(DEFAULT_API_BASE);
+  }
+
+  if (EXPLICIT_FALLBACK_API_BASE) {
+    apiBases.push(cleanApiBase(EXPLICIT_FALLBACK_API_BASE));
+  }
+
+  return apiBases.filter((apiBase, index) => apiBase && apiBases.indexOf(apiBase) === index);
+}
+
+function createApiUrl(path: string, apiBase = resolveApiBases()[0] ?? "") {
+  return `${apiBase}${path}`;
 }
 
 function isUnsafeMethod(method?: string) {
@@ -158,13 +173,33 @@ async function performRequest(path: string, init?: RequestInit, forceFreshCsrf =
     headers.set("X-CSRFToken", await ensureCsrfToken(forceFreshCsrf));
   }
 
-  return fetch(createApiUrl(path), {
-    ...init,
-    method,
-    cache: "no-store",
-    headers,
-    credentials: "include"
-  });
+  const apiBases = resolveApiBases();
+  let lastError: unknown = null;
+
+  for (const [index, apiBase] of apiBases.entries()) {
+    try {
+      const response = await fetch(createApiUrl(path, apiBase), {
+        ...init,
+        method,
+        cache: "no-store",
+        headers,
+        credentials: "include"
+      });
+
+      if (RETRYABLE_API_STATUS_CODES.has(response.status) && index < apiBases.length - 1) {
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (index < apiBases.length - 1) {
+        continue;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Unable to connect to the API.");
 }
 
 function formatErrorFieldLabel(path: string) {
@@ -470,8 +505,8 @@ export async function createAdminRegistration(payload: AdminRegistrationCreatePa
   });
 }
 
-export async function resendAdminRegistrationEmail(registrationCode: string): Promise<{ ok: boolean }> {
-  return requestJson<{ ok: boolean }>(`/api/admin/registrations/${registrationCode}/resend-email/`, {
+export async function resendAdminRegistrationEmail(registrationCode: string): Promise<{ ok: boolean; emailType?: string }> {
+  return requestJson<{ ok: boolean; emailType?: string }>(`/api/admin/registrations/${registrationCode}/resend-email/`, {
     method: "POST"
   });
 }

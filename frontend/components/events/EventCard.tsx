@@ -15,6 +15,7 @@ type EventCardProps = {
   showRegister?: boolean;
   showImportantNotes?: boolean;
   showTags?: boolean;
+  teamSizeLabel?: string;
 };
 
 function renderGraphic(event: EventConfig) {
@@ -134,7 +135,13 @@ function renderGraphic(event: EventConfig) {
   );
 }
 
-export function EventCard({ event, showRegister = true, showImportantNotes = true, showTags = true }: EventCardProps) {
+export function EventCard({
+  event,
+  showRegister = true,
+  showImportantNotes = true,
+  showTags = true,
+  teamSizeLabel
+}: EventCardProps) {
   const [open, setOpen] = useState(false);
   const leadNote = showImportantNotes ? event.importantNotes[0] : undefined;
   const statusLabel = showRegister
@@ -166,7 +173,7 @@ export function EventCard({ event, showRegister = true, showImportantNotes = tru
         <div className="event-card-meta">
           <div className="event-metric">
             <span>Team size</span>
-            <strong>{formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
+            <strong>{teamSizeLabel ?? formatTeamRange(event.minTeamSize, event.maxTeamSize)}</strong>
           </div>
         </div>
 

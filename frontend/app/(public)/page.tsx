@@ -73,17 +73,6 @@ export default function HomePage() {
                 Explore Events
               </ButtonLink>
             </div>
-            <Reveal className="hero-note-reveal" delay={0.06} y={18} scale={0.98}>
-              <GlassPanel className="hero-note-card" tone="strong">
-                <p className="card-copy hero-note-copy">
-                  <strong>Note:</strong>
-                  <span>
-                    The countdown indicates the deadline for online registration. On-site registration will remain
-                    available on campus.
-                  </span>
-                </p>
-              </GlassPanel>
-            </Reveal>
           </Reveal>
 
           <Reveal className="hero-visual-column hero-countdown-column" delay={0.1} y={22} scale={0.98}>
@@ -102,6 +91,18 @@ export default function HomePage() {
               <div className="hero-countdown-footer">
                 <span>Event day: September 11, 2026, 9:30 AM onwards</span>
               </div>
+            </GlassPanel>
+          </Reveal>
+
+          <Reveal className="hero-note-reveal" delay={0.06} y={18} scale={0.98}>
+            <GlassPanel className="hero-note-card" tone="strong">
+              <p className="card-copy hero-note-copy">
+                <strong>Note:</strong>
+                <span>
+                  The countdown indicates the deadline for online registration. On-site registration will remain
+                  available on campus.
+                </span>
+              </p>
             </GlassPanel>
           </Reveal>
         </div>

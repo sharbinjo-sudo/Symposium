@@ -243,7 +243,13 @@ export default function AdminDashboardPage() {
   }
 
   const selectedRegistration = registrations.find((registration) => registration.registrationCode === selectedCode) ?? null
-  const canSendSelectedEmail = selectedRegistration?.paymentStatus === "verified"
+  const emailActionType =
+    selectedRegistration?.paymentStatus === "verified"
+      ? "confirmation"
+      : selectedRegistration?.paymentStatus === "rejected"
+        ? "rejection"
+        : null
+  const canSendSelectedEmail = Boolean(emailActionType)
   const createEvent =
     siteConfig.technicalEvents.find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
 
@@ -571,7 +577,9 @@ export default function AdminDashboardPage() {
       const result = await resendAdminRegistrationEmail(selectedRegistration.registrationCode)
       await refreshDashboard()
       setActionMessage(
-        result.ok ? "Confirmation email was sent to the participant." : "The participant email could not be sent right now."
+        result.ok
+          ? `${emailActionType === "rejection" ? "Rejection" : "Confirmation"} email was sent to the participant.`
+          : "The participant email could not be sent right now."
       )
     } catch (resendError) {
       if (isAdminAuthError(resendError)) {
@@ -801,7 +809,7 @@ export default function AdminDashboardPage() {
             {openingScreenshot ? "Opening..." : "View proof"}
           </Button>
           <Button type="button" variant="secondary" onClick={() => void handleResendEmail()} disabled={resending || !canSendSelectedEmail}>
-            {resending ? "Sending..." : "Send email"}
+            {resending ? "Sending..." : emailActionType ? `Send ${emailActionType} email` : "Send email"}
           </Button>
           <Button type="button" variant="accent" onClick={() => void handleDeleteSelected()} disabled={deleting}>
             {deleting ? "Deleting..." : "Delete registration"}

@@ -26,7 +26,13 @@ export default function NonTechnicalEventsPage() {
         <div className="event-grid non-tech-event-grid">
           {siteConfig.nonTechnicalEvents.map((event) => (
             <Reveal key={event.code} delay={event.order * 0.06}>
-              <EventCard event={event} showRegister={false} showImportantNotes={false} showTags={false} />
+              <EventCard
+                event={event}
+                showRegister={false}
+                showImportantNotes={false}
+                showTags={false}
+                teamSizeLabel="Decided Onsite"
+              />
             </Reveal>
           ))}
         </div>

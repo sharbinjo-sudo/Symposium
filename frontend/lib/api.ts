@@ -384,7 +384,7 @@ function mergeTechnicalEvents(events: Partial<EventConfig>[]) {
         order: configuredEvents.length + index + 1,
         code: eventCode,
         name: eventName,
-        track: "Technical",
+        track: event.track ?? "Technical",
         summary: event.summary ?? `${eventName} registration details.`,
         description: event.description ?? `Registration flow for ${eventName}.`,
         visualTitle: `${eventName} spotlight`,

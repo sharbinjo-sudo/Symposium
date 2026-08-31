@@ -5,16 +5,17 @@ import { Reveal } from "@/components/ui/Reveal";
 import { getEvents } from "@/lib/api";
 
 export default async function PrizesPage() {
-  const events = await getEvents();
+  const allEvents = await getEvents();
+  const events = allEvents.filter((event) => event.track === "Technical");
 
   return (
     <div className="section page-shell-block prizes-page">
       <div className="container">
         <div className="prizes-page-head">
           <AnimatedHeading
-            eyebrow="Prize Section"
-            title={["Premium podium cards", "for every technical event"]}
-            copy="First place receives Rs. 1,000, second place receives Rs. 500, and every registered participant receives a certificate."
+            eyebrow="Rewards"
+            title={["Prizes & Awards"]}
+            copy="Cash prizes for top performers and certificates for all registered participants."
           />
         </div>
         <GlassPanel className="non-tech-note-card" tone="strong">

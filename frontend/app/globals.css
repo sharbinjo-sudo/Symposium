@@ -7110,6 +7110,21 @@ th {
   }
 }
 
+@media (max-width: 768px), (pointer: coarse) {
+  .global-water-ripple-layer,
+  .pointer-fluid-trail,
+  .water-ripple-layer {
+    display: none !important;
+  }
+
+  .water-ripple,
+  .water-ripple *,
+  .pointer-fluid-drop {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Crimson theme overrides */
 .site-header-inner,
 .site-nav-shell,
@@ -10829,6 +10844,16 @@ body {
 .events-page .events-tech-grid .water-ripple-card,
 .events-page .events-tech-grid .event-card {
   height: 100%;
+}
+
+.events-page .events-tech-grid:has(.event-card-expanded) {
+  align-items: start;
+}
+
+.events-page .events-tech-grid:has(.event-card-expanded) .reveal-block,
+.events-page .events-tech-grid:has(.event-card-expanded) .water-ripple-card,
+.events-page .events-tech-grid:has(.event-card-expanded) .event-card {
+  height: auto;
 }
 
 .events-page .event-card {

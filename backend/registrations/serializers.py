@@ -112,7 +112,7 @@ class RegistrationBaseSerializer(serializers.Serializer):
   eventCodes = serializers.ListField(
     child=serializers.CharField(max_length=4),
     min_length=1,
-    max_length=4,
+    max_length=8,
     required=False
   )
   participants = ParticipantInputSerializer(many=True)
@@ -242,7 +242,7 @@ class RegistrationPrecheckSerializer(serializers.Serializer):
   eventCodes = serializers.ListField(
     child=serializers.CharField(max_length=4),
     min_length=1,
-    max_length=4,
+    max_length=8,
     required=False
   )
   transactionId = serializers.CharField(max_length=100, required=False, allow_blank=True)

@@ -18,6 +18,13 @@ type RippleSurfaceProps<T extends ElementType> = {
   disabled?: boolean;
 };
 
+function shouldUseWaterMotion(pointerType: string) {
+  return (
+    pointerType !== "touch" &&
+    (typeof window === "undefined" || !window.matchMedia("(max-width: 768px), (pointer: coarse)").matches)
+  );
+}
+
 export function RippleSurface<T extends ElementType = "div">({
   as,
   children,
@@ -43,7 +50,7 @@ export function RippleSurface<T extends ElementType = "div">({
     <Component
       className={cn("ripple-surface", pressed && pressedClassName, className)}
       onPointerDown={(event: React.PointerEvent<HTMLElement>) => {
-        if (!disabled) {
+        if (!disabled && shouldUseWaterMotion(event.pointerType)) {
           setPressed(true);
           spawnRippleFromEvent(event, event.currentTarget, { variant: rippleVariant });
         }

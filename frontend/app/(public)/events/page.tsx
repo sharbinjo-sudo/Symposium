@@ -25,7 +25,7 @@ export default function EventsPage() {
               <strong>Note:</strong>
               <span>
                 To attend the symposium, registration for at least one primary technical event is mandatory.
-                Non-technical events will be fully handled offline.
+                Non-technical events can also be selected during online registration.
               </span>
             </p>
           </GlassPanel>
@@ -35,7 +35,7 @@ export default function EventsPage() {
           <div className="events-section-head">
             <div className="events-section-header-row">
               <div className="events-section-badge events-section-badge-technical">
-                <span className="events-section-badge-icon">AI</span>
+                <span className="events-section-badge-icon">TE</span>
                 <span>{technicalEvents.length} Events</span>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function EventsPage() {
         <div className="events-tech-grid">
           {nonTechnicalEvents.map((event) => (
             <Reveal key={event.code} delay={event.order * 0.06}>
-              <EventCard event={event} showRegister={false} showImportantNotes={false} showTags={false} />
+              <EventCard event={event} showRegisterButton={false} showImportantNotes={false} showTags={false} />
             </Reveal>
           ))}
         </div>

@@ -13,6 +13,13 @@ type WaterDropButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   showArrow?: boolean;
 };
 
+function shouldUseWaterMotion(pointerType: string) {
+  return (
+    pointerType !== "touch" &&
+    (typeof window === "undefined" || !window.matchMedia("(max-width: 768px), (pointer: coarse)").matches)
+  );
+}
+
 export function WaterDropButton({
   className,
   variant = "primary",
@@ -61,10 +68,12 @@ export function WaterDropButton({
         props.onPointerLeave?.(event);
       }}
       onPointerDown={(event) => {
-        spawnRippleFromEvent(event, event.currentTarget, {
-          variant: "button",
-          size: Math.max(180, event.currentTarget.clientWidth * 0.9)
-        });
+        if (shouldUseWaterMotion(event.pointerType)) {
+          spawnRippleFromEvent(event, event.currentTarget, {
+            variant: "button",
+            size: Math.max(180, event.currentTarget.clientWidth * 0.9)
+          });
+        }
         props.onPointerDown?.(event);
       }}
     >

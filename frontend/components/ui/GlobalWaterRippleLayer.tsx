@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import { WaterRippleLayer } from "@/components/ui/WaterRippleLayer";
 import { useWaterRipple } from "@/components/ui/useWaterRipple";
@@ -11,6 +11,7 @@ const MOVE_DISTANCE_PX = 8;
 const TRAIL_SIZES = [34, 30, 26, 22, 19, 16, 14, 12];
 const TRAIL_HEAD_EASING = 0.34;
 const TRAIL_FOLLOW_EASING = 0.28;
+const LOW_ANIMATION_QUERY = "(max-width: 768px), (pointer: coarse)";
 
 type TrailPoint = {
   x: number;
@@ -32,6 +33,7 @@ function createTrailPoints(): TrailPoint[] {
 
 export function GlobalWaterRippleLayer() {
   const reducedMotion = useReducedMotion();
+  const [disableWaterMotion, setDisableWaterMotion] = useState(false);
   const { ripples, spawnRipple } = useWaterRipple({
     variant: "global",
     maxRipples: 18,
@@ -51,6 +53,24 @@ export function GlobalWaterRippleLayer() {
   const trailRefs = useRef<Array<HTMLSpanElement | null>>([]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia(LOW_ANIMATION_QUERY);
+    const syncWaterMotionPreference = () => {
+      setDisableWaterMotion(mediaQuery.matches);
+    };
+
+    syncWaterMotionPreference();
+    mediaQuery.addEventListener("change", syncWaterMotionPreference);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncWaterMotionPreference);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (disableWaterMotion) {
+      return;
+    }
+
     const stopLoop = () => {
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
@@ -187,7 +207,7 @@ export function GlobalWaterRippleLayer() {
     };
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (event.pointerType === "mouse" || event.pointerType === "touch" || event.pointerType === "pen") {
+      if (event.pointerType === "mouse" || event.pointerType === "pen") {
         if (!trailPointsRef.current[0]?.initialized) {
           setTrailOrigin(event.clientX, event.clientY);
         }
@@ -195,7 +215,7 @@ export function GlobalWaterRippleLayer() {
         targetRef.current = {
           x: event.clientX,
           y: event.clientY,
-          active: event.pointerType !== "touch" && !reducedMotion
+          active: !reducedMotion
         };
         lastMoveRef.current = {
           x: event.clientX,
@@ -235,7 +255,11 @@ export function GlobalWaterRippleLayer() {
       window.removeEventListener("blur", resetMoveState);
       window.removeEventListener("mouseout", handleMouseOut);
     };
-  }, [reducedMotion, spawnRipple]);
+  }, [disableWaterMotion, reducedMotion, spawnRipple]);
+
+  if (disableWaterMotion) {
+    return null;
+  }
 
   return (
     <>

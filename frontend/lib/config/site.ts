@@ -54,7 +54,7 @@ export const siteConfig: SiteConfig = {
         "Each participant must register individually for Paper Presentation.",
         "Participants should prepare a clear slide deck based on a technical idea, project, research concept, or innovation.",
         "The presentation must be concise and should cover the problem statement, proposed solution, methodology, outcome, and practical relevance.",
-        "Participants must carry the final presentation file on a pen drive and should also keep a backup copy in email or cloud storage.",
+        "Bring your final presentation on a pen drive, and keep a PDF backup saved to your email or cloud storage.",
         "Each participant will be given a fixed presentation slot followed by questions from the judging panel.",
         "Judging will be based on originality, technical depth, presentation clarity, confidence, time management, and relevance of the topic.",
         "Content copied directly from online sources without proper understanding may lead to score reduction.",
@@ -221,7 +221,7 @@ export const siteConfig: SiteConfig = {
           description: "Once assigned, the word or emotion cannot be changed during the round."
         }
       ],
-      registrationOpen: false
+      registrationOpen: true
     },
     {
       order: 2,
@@ -257,7 +257,7 @@ export const siteConfig: SiteConfig = {
           description: "Each round is conducted under a fixed time limit."
         }
       ],
-      registrationOpen: false
+      registrationOpen: true
     },
     {
       order: 3,
@@ -299,7 +299,7 @@ export const siteConfig: SiteConfig = {
           description: "Wrong challenger answers carry a larger penalty than direct wrong answers."
         }
       ],
-      registrationOpen: false
+      registrationOpen: true
     },
     {
       order: 4,
@@ -335,7 +335,7 @@ export const siteConfig: SiteConfig = {
           description: "The story must clearly relate to the displayed image."
         }
       ],
-      registrationOpen: false
+      registrationOpen: true
     }
   ]
 };

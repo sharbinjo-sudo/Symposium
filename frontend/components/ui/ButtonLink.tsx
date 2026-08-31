@@ -15,6 +15,13 @@ type ButtonLinkProps = LinkProps & {
   variant?: "primary" | "secondary" | "accent";
 };
 
+function shouldUseWaterMotion(pointerType: string) {
+  return (
+    pointerType !== "touch" &&
+    (typeof window === "undefined" || !window.matchMedia("(max-width: 768px), (pointer: coarse)").matches)
+  );
+}
+
 export function ButtonLink({
   children,
   className,
@@ -56,10 +63,12 @@ export function ButtonLink({
         setOffset({ x: 0, y: 0 });
       }}
       onPointerDown={(event) => {
-        spawnRippleFromEvent(event, event.currentTarget, {
-          variant: "button",
-          size: Math.max(180, event.currentTarget.clientWidth * 0.9)
-        });
+        if (shouldUseWaterMotion(event.pointerType)) {
+          spawnRippleFromEvent(event, event.currentTarget, {
+            variant: "button",
+            size: Math.max(180, event.currentTarget.clientWidth * 0.9)
+          });
+        }
       }}
       {...props}
     >

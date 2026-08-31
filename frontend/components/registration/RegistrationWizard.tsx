@@ -66,10 +66,6 @@ function emptyParticipant(): ParticipantInput {
   };
 }
 
-function selectedEventSummary(events: EventConfig[]) {
-  return events.map((event) => event.name).join(", ");
-}
-
 function normalizeSelectedEventCodes(events: EventConfig[], codes: string[]) {
   const availableCodes = new Set(events.map((event) => event.code));
   return codes
@@ -167,7 +163,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     { title: "Non-Technical Events", events: nonTechnicalRegistrationEvents }
   ].filter((group) => group.events.length > 0);
   const currentEvent = selectedEvents[0] ?? availableEvents[0];
-  const selectedEventNames = selectedEventSummary(selectedEvents);
   const eventCode = currentEvent?.code ?? "";
 
   const totalAmount = currentEvent ? currentEvent.feeAmount : 250;
@@ -202,14 +197,10 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     });
   }
 
-  function syncParticipants(size: number) {
-    setParticipants((current) => {
-      const next = Array.from({ length: 1 }, (_, index) => current[index] ?? emptyParticipant());
-      return next.map((participant, index) => ({
-        ...participant,
-
-      }));
-    });
+  function syncParticipants() {
+    setParticipants((current) => [
+      current[0] ?? emptyParticipant()
+    ]);
   }
 
   function resetPaymentState() {
@@ -246,7 +237,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     }
 
     setEventCodes(normalizedCodes);
-    syncParticipants(1);
+    syncParticipants();
     resetPaymentState();
     setErrors((current) => {
       const next = { ...current };
@@ -1099,7 +1090,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     <li>The countdown shows the deadline for online registration. On-site registration will remain available on campus.</li>
                     <li>To attend the symposium, registration for at least one primary technical event is mandatory.</li>
                     <li>If time permits during the event, participants may also attend other registered technical events and non-technical events.</li>
-                    <li>Non-technical events will be fully handled offline.</li>
+                    <li>Non-technical events can also be selected during online registration.</li>
                     <li>Participants may choose either Web Craft or Visualytics, but not both, due to the event schedule.</li>
                     <li>Paper Presentation participants may leave the hall after completing their presentation so they can attend other events. Late arrival to Paper Presentation may be permitted when it is due to participation in another scheduled event.</li>
                     <li>If your payment is rejected, you will receive an email notification. You may register again using the same details, with corrected payment proof and a valid UPI transaction ID.</li>

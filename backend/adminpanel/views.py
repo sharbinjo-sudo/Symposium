@@ -1,5 +1,4 @@
 import csv
-import os
 import posixpath
 from urllib.parse import quote
 from uuid import uuid4
@@ -115,6 +114,19 @@ def get_admin_registration_queryset(request):
     )
 
   return queryset.distinct()
+
+
+def _registration_event_names_by_track(registration):
+  technical_names = []
+  non_technical_names = []
+
+  for event in selected_events_for_registration(registration):
+    if event.track == "Non-Technical":
+      non_technical_names.append(event.event_name)
+    else:
+      technical_names.append(event.event_name)
+
+  return technical_names, non_technical_names
 
 
 class AdminLoginView(APIView):
@@ -420,6 +432,8 @@ class AdminRegistrationExportView(APIView):
     writer.writerow([
       "Registration Code",
       "Event",
+      "Technical Events",
+      "Non-Technical Events",
       "Lead Participant",
       "Lead Email",
       "Food Preferences",
@@ -433,10 +447,14 @@ class AdminRegistrationExportView(APIView):
 
     for registration in get_admin_registration_queryset(request):
       lead_participant = registration.participants.order_by("participant_number").first()
+      selected_event_names = [event.event_name for event in selected_events_for_registration(registration)]
+      technical_event_names, non_technical_event_names = _registration_event_names_by_track(registration)
       writer.writerow(
         [
           registration.registration_code,
-          ", ".join(event.event_name for event in selected_events_for_registration(registration)),
+          ", ".join(selected_event_names),
+          ", ".join(technical_event_names),
+          ", ".join(non_technical_event_names),
           lead_participant.full_name if lead_participant else "",
           lead_participant.email if lead_participant else "",
           ", ".join(participant.get_food_preference_display() for participant in registration.participants.all()),

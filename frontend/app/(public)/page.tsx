@@ -45,7 +45,7 @@ const homeFacts = [
     value: "₹250 per member"
   },
   {
-    label: "Registration deadline",
+    label: "Online registration deadline",
     value: "September 11, 2026, 12:30 AM"
   },
   {

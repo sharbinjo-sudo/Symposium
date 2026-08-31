@@ -11,6 +11,13 @@ type WaterRippleCardProps = ComponentPropsWithoutRef<"article"> & {
   accent?: string;
 };
 
+function shouldUseWaterMotion(pointerType: string) {
+  return (
+    pointerType !== "touch" &&
+    (typeof window === "undefined" || !window.matchMedia("(max-width: 768px), (pointer: coarse)").matches)
+  );
+}
+
 export function WaterRippleCard({ className, children, accent, ...props }: WaterRippleCardProps) {
   const [pressed, setPressed] = useState(false);
   const { ripples, spawnRippleFromEvent } = useWaterRipple({
@@ -24,11 +31,13 @@ export function WaterRippleCard({ className, children, accent, ...props }: Water
     <article
       className={cn("water-ripple-card", accent && `water-ripple-card-${accent}`, pressed && "is-pressed", className)}
       onPointerDown={(event) => {
-        setPressed(true);
-        spawnRippleFromEvent(event, event.currentTarget, {
-          variant: "card",
-          size: Math.max(event.currentTarget.clientWidth, 280)
-        });
+        if (shouldUseWaterMotion(event.pointerType)) {
+          setPressed(true);
+          spawnRippleFromEvent(event, event.currentTarget, {
+            variant: "card",
+            size: Math.max(event.currentTarget.clientWidth, 280)
+          });
+        }
         props.onPointerDown?.(event);
       }}
       onPointerUp={(event) => {

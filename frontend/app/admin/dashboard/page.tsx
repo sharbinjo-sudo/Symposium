@@ -46,10 +46,6 @@ const paymentOptions = [
   { value: "needs_clarification", label: "Needs clarification" }
 ]
 
-const providerOptions = [
-  { value: "manual", label: "Manual" }
-]
-
 const yearOptions = [
   { value: "1", label: "1st year" },
   { value: "2", label: "2nd year" },
@@ -209,7 +205,6 @@ export default function AdminDashboardPage() {
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
   const [createEventCode, setCreateEventCode] = useState(defaultEvent?.code ?? "")
   const [createTransactionId, setCreateTransactionId] = useState("")
-  const [createPaymentProvider, setCreatePaymentProvider] = useState("manual")
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
   const [createPaymentDate, setCreatePaymentDate] = useState(todayDateValue())
 
@@ -371,7 +366,6 @@ export default function AdminDashboardPage() {
     setCreateErrors({})
     setCreateEventCode(nextEvent.code)
     setCreateTransactionId("")
-    setCreatePaymentProvider("manual")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
     setCreateSendEmail(false)
@@ -481,7 +475,7 @@ export default function AdminDashboardPage() {
     const payload: AdminRegistrationCreatePayload = {
       eventCode: createEventCode,
       transactionId: createTransactionId.trim(),
-      paymentProvider: createPaymentProvider,
+      paymentProvider: "manual",
       paymentStatus: createPaymentStatus,
       paymentDate: createPaymentDate,
       adminNote: createAdminNote.trim(),
@@ -1055,22 +1049,7 @@ export default function AdminDashboardPage() {
                       {createErrors.paymentDate ? <div className="error">{createErrors.paymentDate}</div> : null}
                     </div>
 
-                    <div className="field">
-                      <label htmlFor="create-provider">Payment provider</label>
-                      <select
-                        id="create-provider"
-                        value={createPaymentProvider}
-                        onChange={(event) => setCreatePaymentProvider(event.target.value)}
-                        disabled
-                      >
-                        {providerOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="helper">Organizer-created records are marked manual.</div>
-                    </div>
+
 
                     <div className="field">
                       <label htmlFor="create-payment-status">Payment status</label>

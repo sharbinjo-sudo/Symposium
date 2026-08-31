@@ -30,19 +30,6 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "SD" || event.code === "MQ") {
-    return (
-      <div className="event-graphic event-graphic-spot" aria-hidden="true">
-        <span className="spot-frame spot-frame-left" />
-        <span className="spot-frame spot-frame-right" />
-        <span className="spot-circle spot-circle-one" />
-        <span className="spot-circle spot-circle-two" />
-        <span className="spot-circle spot-circle-three" />
-        <span className="spot-magnifier" />
-      </div>
-    );
-  }
-
   if (event.code === "CC") {
     return (
       <div className="event-graphic event-graphic-connect" aria-hidden="true">
@@ -55,7 +42,7 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "HAI" || event.code === "VI") {
+  if (event.code === "VI") {
     return (
       <div className="event-graphic event-graphic-humanai" aria-hidden="true">
         <span className="hai-panel hai-panel-left" />

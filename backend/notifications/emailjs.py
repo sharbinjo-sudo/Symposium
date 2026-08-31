@@ -13,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 def _provider_missing_fields(provider: dict[str, str]) -> list[str]:
   missing: list[str] = []
-  for field in ("service_id", "template_id", "public_key", "private_key"):
+  for field in ("service_id", "template_id", "public_key"):
     if not provider.get(field):
       missing.append(field)
   return missing
+
 def _build_emailjs_providers(
   primary_template_id: str,
   fallback_template_id: str,
@@ -68,6 +69,7 @@ def _build_emailjs_providers(
     ready_providers.append(provider)
 
   return ready_providers
+
 def _send_emailjs_message(
   recipient_email: str,
   provider: dict[str, str],
@@ -162,6 +164,7 @@ def _send_emailjs_message(
       exc
     )
     return False
+
 def _send_emailjs_message_with_fallback(
   recipient_email: str,
   primary_template_id: str,
@@ -204,6 +207,7 @@ def _send_emailjs_message_with_fallback(
 
   logger.warning("EMAILJS exhausted providers [%s]: recipient=%s", purpose, recipient_email)
   return False
+
 def _get_admin_template_id() -> str:
   """Return the admin template ID. No fallback to participant template."""
   admin_id = getattr(settings, "EMAILJS_ADMIN_TEMPLATE_ID", "").strip()
@@ -213,11 +217,13 @@ def _get_admin_template_id() -> str:
       "Set this in your environment variables."
     )
   return admin_id
+
 def _event_date_label() -> str:
   event_date = getattr(settings, "EVENT_DATE", "")
   if event_date:
     return str(event_date)
   return "11 September 2026"
+
 def _build_participant_1_params(participant) -> dict[str, str]:
   return {
     "participant_1_name": participant.full_name,
@@ -228,6 +234,7 @@ def _build_participant_1_params(participant) -> dict[str, str]:
     "participant_1_year": participant.year_of_study,
     "participant_1_food_preference": participant.get_food_preference_display()
   }
+
 def _build_registration_template_params(registration, participant, recipient_email: str, audience: str) -> dict[str, str]:
   participant_email = participant.email.strip().lower()
   selected_event_names = ", ".join(event.event_name for event in selected_events_for_registration(registration))
@@ -264,6 +271,7 @@ def _build_registration_template_params(registration, participant, recipient_ema
   }
   template_params.update(_build_participant_1_params(participant))
   return template_params
+
 def send_admin_registration_notification(registration) -> bool:
   admin_template_id = _get_admin_template_id()
   fallback_admin_template_id = getattr(settings, "EMAILJS_FALLBACK_ADMIN_TEMPLATE_ID", "").strip()
@@ -303,6 +311,7 @@ def send_admin_registration_notification(registration) -> bool:
     sent
   )
   return sent
+
 def send_participant_registration_confirmation(registration) -> bool:
   participant_template_id = settings.EMAILJS_TEMPLATE_ID.strip()
   fallback_participant_template_id = getattr(settings, "EMAILJS_FALLBACK_TEMPLATE_ID", "").strip()
@@ -386,6 +395,7 @@ def send_participant_registration_confirmation(registration) -> bool:
       "PARTICIPANT EMAIL STATUS for %s: %s",
       registration.registration_code, registration.email_status
     )
+
 def send_participant_payment_rejection(registration) -> bool:
   rejection_template_id = getattr(settings, "EMAILJS_REJECTION_TEMPLATE_ID", "").strip()
   fallback_rejection_template_id = getattr(settings, "EMAILJS_FALLBACK_REJECTION_TEMPLATE_ID", "").strip()

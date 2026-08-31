@@ -1,10 +1,10 @@
 "use client";
-
 import { startTransition, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedHeading } from "@/components/ui/AnimatedHeading";
 import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
+import { StatusChip } from "@/components/ui/StatusChip";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { UploadDropzone } from "@/components/ui/UploadDropzone";
 import { ApiError, createIdempotencyKey, precheckRegistration, submitRegistration, uploadScreenshot } from "@/lib/api";
@@ -551,11 +551,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                   <div className="ack-document-body">
                     <section className="ack-document-title">
-                      <span className="section-eyebrow">CYBERPUNK'26</span>
+                      <span className="section-eyebrow">CYBERPUNK&apos;26</span>
                       <h2 id="acknowledgement-modal-title">Registration Acknowledgement</h2>
                       <p>
                         This document confirms that the participant details and payment reference have been received
-                        for CYBERPUNK'26, a national-level technical symposium.
+                        for CYBERPUNK&apos;26, a national-level technical symposium.
                       </p>
                     </section>
 
@@ -678,7 +678,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                       <div className="ack-signature">
                         <span />
                         <strong>Organizing Committee</strong>
-                        <small>CYBERPUNK'26</small>
+                        <small>CYBERPUNK&apos;26</small>
                       </div>
                     </footer>
                   </div>
@@ -1031,52 +1031,115 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
               <section className="wizard-stage wizard-review-stage">
                 <div className="wizard-stage-heading">
-                  <h3>Review and submit</h3>
+                  <h3>Review &amp; Confirm</h3>
+                  <p className="helper">Verify your registration details before submitting. Once submitted, changes require contacting the organizer.</p>
                 </div>
-                <GlassPanel className="review-panel" tone="soft">
-                  <div className="review-grid">
-                    <div className="review-row">
-                      <span>Technical events</span>
-                      <strong>
-                        {selectedEvents.filter((e) => e.track === "Technical").map((e) => e.name).join(", ") || "None selected"}
-                      </strong>
-                    </div>
-                    <div className="review-row">
-                      <span>Non-technical events</span>
-                      <strong>
-                        {selectedEvents.filter((e) => e.track === "Non-Technical").map((e) => e.name).join(", ") || "None selected"}
-                      </strong>
-                    </div>
-                    <div className="review-row">
-                      <span>Amount</span>
-                      <strong>Rs. {totalAmount}</strong>
-                    </div>
-                    <div className="review-row">
-                      <span>Payment</span>
-                      <strong>{paymentUploadToken ? "Manual proof uploaded" : "Proof pending"}</strong>
-                    </div>
-                    <div className="review-row">
-                      <span>Reference ID</span>
-                      <strong className="review-break-all">{paymentReference || "Not entered"}</strong>
-                    </div>
-                    <div className="review-row">
-                      <span>Payment status</span>
-                      <strong>Pending manual verification</strong>
-                    </div>
-                  </div>
-                </GlassPanel>
 
-                <GlassPanel className="review-participants-panel" tone="soft">
-                  <div className="review-section-head">
-                    <span>Participant</span>
-                  </div>
-                  {soloParticipants.map((participant, index) => (
-                    <div key={index} className="review-participant">
-                      <span className="review-participant-name">{participant.fullName || "Participant"}</span>
-                      <span className="review-participant-detail">{participant.email || "Email not entered"}</span>
-                      <span className="review-participant-detail">{participant.collegeName || "College not entered"}</span>
+                <GlassPanel className="review-unified-card" tone="soft">
+                  {/* Participant Details */}
+                  <div className="review-section">
+                    <div className="review-card-header">
+                      <span className="section-eyebrow">Participant Details</span>
                     </div>
-                  ))}
+                    <div className="review-detail-grid review-detail-grid-3">
+                      <div className="review-detail-item">
+                        <span>Full Name</span>
+                        <strong>{leadParticipant.fullName || "Not provided"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Email Address</span>
+                        <strong>{leadParticipant.email || "Not provided"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Mobile Number</span>
+                        <strong>{leadParticipant.mobileNumber || "Not provided"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>College</span>
+                        <strong>{leadParticipant.collegeName || "Not provided"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Department</span>
+                        <strong>{leadParticipant.department || "Not provided"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Year of Study</span>
+                        <strong>{formatYearOfStudy(leadParticipant.yearOfStudy)}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Food Preference</span>
+                        <strong>{formatFoodPreference(leadParticipant.foodPreference)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="review-divider" />
+
+                  {/* Registration Summary */}
+                  <div className="review-section">
+                    <div className="review-card-header">
+                      <span className="section-eyebrow">Registration Summary</span>
+                    </div>
+                    <div className="review-detail-grid review-detail-grid-3">
+                      <div className="review-detail-item">
+                        <span>Registration Type</span>
+                        <strong>Individual Entry</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Technical Events</span>
+                        <strong>
+                          {selectedEvents.filter((e) => e.track === "Technical").map((e) => e.name).join(", ") || "None selected"}
+                        </strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Non-Technical Events</span>
+                        <strong>
+                          {selectedEvents.filter((e) => e.track === "Non-Technical").map((e) => e.name).join(", ") || "None selected"}
+                        </strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Fee Per Participant</span>
+                        <strong>{registrationFeeLabel}</strong>
+                      </div>
+                      <div className="review-detail-item review-detail-highlight">
+                        <span>Total Payable</span>
+                        <strong>Rs. {totalAmount}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="review-divider" />
+
+                  {/* Payment Details */}
+                  <div className="review-section">
+                    <div className="review-card-header">
+                      <span className="section-eyebrow">Payment Details</span>
+                    </div>
+                    <div className="review-detail-grid review-detail-grid-2">
+                      <div className="review-detail-item">
+                        <span>Transaction ID</span>
+                        <strong className="review-break-all">{paymentReference || "Not entered"}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Payment Date</span>
+                        <strong>{formatDisplayDate(paymentDate)}</strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Payment Status</span>
+                        <strong>
+                          <StatusChip tone={paymentUploadToken ? "verified" : "pending"}>
+                            {paymentUploadToken ? "Proof Uploaded" : "Pending Upload"}
+                          </StatusChip>
+                        </strong>
+                      </div>
+                      <div className="review-detail-item">
+                        <span>Verification</span>
+                        <strong>
+                          <StatusChip tone="pending">Pending Organizer Review</StatusChip>
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
                 </GlassPanel>
               </section>
 
@@ -1139,4 +1202,3 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     </div>
   );
 }
-

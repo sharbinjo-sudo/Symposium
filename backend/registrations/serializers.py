@@ -8,9 +8,26 @@ from events.models import Event
 
 from .models import Participant, Registration
 from .services import normalize_transaction_id, resolve_upload_token, selected_events_for_registration
+from events.serializers import EVENT_CONTENT
 
 FULL_NAME_ERROR = "Enter a valid name without numbers, phone numbers, or email addresses."
 INDIAN_MOBILE_ERROR = "Enter a valid Indian mobile number, like +91XXXXXXXXXX."
+
+
+def _split_events_by_track(events):
+  """Split a list of Event objects into technical and non-technical lists."""
+  technical = []
+  non_technical = []
+  for event in events:
+    track = getattr(event, "track", None)
+    if not track:
+      content = EVENT_CONTENT.get(event.event_code, {})
+      track = content.get("track", "Technical")
+    if track == "Non-Technical":
+      non_technical.append(event)
+    else:
+      technical.append(event)
+  return technical, non_technical
 
 
 class ParticipantInputSerializer(serializers.Serializer):
@@ -307,6 +324,10 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
   eventName = serializers.SerializerMethodField()
   eventCodes = serializers.SerializerMethodField()
   eventNames = serializers.SerializerMethodField()
+  technicalEventCodes = serializers.SerializerMethodField()
+  technicalEventNames = serializers.SerializerMethodField()
+  nonTechnicalEventCodes = serializers.SerializerMethodField()
+  nonTechnicalEventNames = serializers.SerializerMethodField()
   paymentStatus = serializers.CharField(source="payment_status")
   emailStatus = serializers.CharField(source="email_status")
   paymentReference = serializers.CharField(source="transaction_id")
@@ -321,6 +342,10 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
       "eventName",
       "eventCodes",
       "eventNames",
+      "technicalEventCodes",
+      "technicalEventNames",
+      "nonTechnicalEventCodes",
+      "nonTechnicalEventNames",
       "paymentStatus",
       "emailStatus",
       "paymentReference",
@@ -337,6 +362,36 @@ class RegistrationResponseSerializer(serializers.ModelSerializer):
   def get_eventNames(self, obj):
     return [event.event_name for event in selected_events_for_registration(obj)]
 
+  def get_technicalEventCodes(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      return codes
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in tech]
+
+  def get_technicalEventNames(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in tech]
+
+  def get_nonTechnicalEventCodes(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      return codes
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in non_tech]
+
+  def get_nonTechnicalEventNames(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in non_tech]
+
 
 class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   registrationCode = serializers.CharField(source="registration_code")
@@ -344,6 +399,10 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   eventName = serializers.SerializerMethodField()
   eventCodes = serializers.SerializerMethodField()
   eventNames = serializers.SerializerMethodField()
+  technicalEventCodes = serializers.SerializerMethodField()
+  technicalEventNames = serializers.SerializerMethodField()
+  nonTechnicalEventCodes = serializers.SerializerMethodField()
+  nonTechnicalEventNames = serializers.SerializerMethodField()
   participantNames = serializers.SerializerMethodField()
   participantFoodPreferences = serializers.SerializerMethodField()
   leadParticipantName = serializers.SerializerMethodField()
@@ -371,6 +430,36 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
   def get_eventNames(self, obj):
     return [event.event_name for event in selected_events_for_registration(obj)]
 
+  def get_technicalEventCodes(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      return codes
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in tech]
+
+  def get_technicalEventNames(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in tech]
+
+  def get_nonTechnicalEventCodes(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      return codes
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in non_tech]
+
+  def get_nonTechnicalEventNames(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in non_tech]
+
   def get_participantNames(self, obj):
     return [participant.full_name for participant in obj.participants.all()]
 
@@ -393,6 +482,10 @@ class RegistrationStatusResponseSerializer(serializers.ModelSerializer):
       "eventName",
       "eventCodes",
       "eventNames",
+      "technicalEventCodes",
+      "technicalEventNames",
+      "nonTechnicalEventCodes",
+      "nonTechnicalEventNames",
       "participantNames",
       "participantFoodPreferences",
       "leadParticipantName",
@@ -418,6 +511,10 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   eventName = serializers.SerializerMethodField()
   eventCodes = serializers.SerializerMethodField()
   eventNames = serializers.SerializerMethodField()
+  technicalEventCodes = serializers.SerializerMethodField()
+  technicalEventNames = serializers.SerializerMethodField()
+  nonTechnicalEventCodes = serializers.SerializerMethodField()
+  nonTechnicalEventNames = serializers.SerializerMethodField()
   amountPaid = serializers.DecimalField(source="total_amount", max_digits=8, decimal_places=2)
   transactionId = serializers.CharField(source="transaction_id")
   paymentStatus = serializers.CharField(source="payment_status")
@@ -459,6 +556,36 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
   def get_eventNames(self, obj):
     return [event.event_name for event in selected_events_for_registration(obj)]
 
+  def get_technicalEventCodes(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      return codes
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in tech]
+
+  def get_technicalEventNames(self, obj):
+    codes = getattr(obj, "technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    tech, _ = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in tech]
+
+  def get_nonTechnicalEventCodes(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      return codes
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_code for e in non_tech]
+
+  def get_nonTechnicalEventNames(self, obj):
+    codes = getattr(obj, "non_technical_event_codes", None)
+    if codes:
+      events_by_code = {e.event_code: e for e in selected_events_for_registration(obj)}
+      return [events_by_code[c].event_name for c in codes if c in events_by_code]
+    _, non_tech = _split_events_by_track(selected_events_for_registration(obj))
+    return [e.event_name for e in non_tech]
+
   class Meta:
     model = Registration
     fields = [
@@ -470,6 +597,10 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
       "eventName",
       "eventCodes",
       "eventNames",
+      "technicalEventCodes",
+      "technicalEventNames",
+      "nonTechnicalEventCodes",
+      "nonTechnicalEventNames",
       "amountPaid",
       "transactionId",
       "paymentStatus",

@@ -287,7 +287,7 @@ def _build_registration_template_params(registration, participant, recipient_ema
     "date": _event_date_label(),
     "event_date": _event_date_label(),
     "submitted_at": submitted_at,
-    "venue": "V V College of Engineering, Tisaiyanvillai",
+    "venue": "V V College of Engineering, V.V. Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657",
     "recipient_email": recipient_email
   }
   template_params.update(_build_participant_1_params(participant))

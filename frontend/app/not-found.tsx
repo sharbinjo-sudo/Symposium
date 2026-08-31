@@ -20,7 +20,7 @@ export default function NotFoundPage() {
             <ButtonLink href="/" variant="primary">
               Go home
             </ButtonLink>
-            <ButtonLink href="/technical-events" variant="secondary">
+            <ButtonLink href="/events" variant="secondary">
               Explore events
             </ButtonLink>
           </div>

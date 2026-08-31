@@ -239,7 +239,7 @@ export default function AdminDashboardPage() {
         : null
   const canSendSelectedEmail = Boolean(emailActionType)
   const createEvent =
-    siteConfig.technicalEvents.find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
+    [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents].find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
 
   function redirectToAdminLogin() {
     if (authRedirectingRef.current) {
@@ -411,7 +411,7 @@ export default function AdminDashboardPage() {
   }
 
   function handleCreateEventChange(nextEventCode: string) {
-    const nextEvent = siteConfig.technicalEvents.find((event) => event.code === nextEventCode)
+    const nextEvent = [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents].find((event) => event.code === nextEventCode)
     if (!nextEvent) {
       return
     }
@@ -690,8 +690,12 @@ export default function AdminDashboardPage() {
 
         <div className="admin-detail-grid">
           <div className="admin-detail-item">
-            <span>Event</span>
-            <strong>{registration.eventName}</strong>
+            <span>Technical events</span>
+            <strong>{registration.technicalEventNames?.join(", ") || "-"}</strong>
+          </div>
+          <div className="admin-detail-item">
+            <span>Non-technical events</span>
+            <strong>{registration.nonTechnicalEventNames?.join(", ") || "-"}</strong>
           </div>
           <div className="admin-detail-item">
             <span>Registration type</span>
@@ -839,11 +843,20 @@ export default function AdminDashboardPage() {
                 </select>
                 <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)}>
                   <option value="all">All events</option>
-                  {siteConfig.technicalEvents.map((event) => (
-                    <option key={event.code} value={event.code}>
-                      {event.name}
-                    </option>
-                  ))}
+                  <optgroup label="Technical">
+                    {siteConfig.technicalEvents.map((event) => (
+                      <option key={event.code} value={event.code}>
+                        {event.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Non-Technical">
+                    {siteConfig.nonTechnicalEvents.map((event) => (
+                      <option key={event.code} value={event.code}>
+                        {event.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <button className="admin-inline-button" type="button" onClick={() => void handleExportCsv()} disabled={exporting}>
                   {exporting ? "Exporting..." : "Export CSV"}
@@ -860,11 +873,11 @@ export default function AdminDashboardPage() {
 
               <div className="table-shell">
                 <table>
-                  <thead>
-                    <tr>
+                  <thead>                        <tr>
                       <th>Registration</th>
                       <th>Lead participant</th>
-                      <th>Event</th>
+                      <th>Technical events</th>
+                      <th>Non-technical events</th>
                       <th>Payment</th>
                       <th>Email</th>
 
@@ -874,11 +887,10 @@ export default function AdminDashboardPage() {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={6}>Loading registrations...</td>
-                      </tr>
-                    ) : registrations.length === 0 ? (
+                        <td colSpan={7}>Loading registrations...</td>
+                      </tr>                        ) : registrations.length === 0 ? (
                       <tr>
-                        <td colSpan={6}>No registrations match the current filters.</td>
+                        <td colSpan={7}>No registrations match the current filters.</td>
                       </tr>
                     ) : (
                       registrations.map((registration) => (
@@ -897,8 +909,12 @@ export default function AdminDashboardPage() {
                           <td>
                             <strong>{registration.leadParticipantName || "Participant"}</strong>
                             <div className="table-subtext">{registration.leadParticipantEmail || "No email"}</div>
+                          </td>                          <td>
+                            {registration.technicalEventNames?.join(", ") || "-"}
                           </td>
-                          <td>{registration.eventName}</td>
+                          <td>
+                            {registration.nonTechnicalEventNames?.join(", ") || "-"}
+                          </td>
                           <td>
                             <StatusChip tone={paymentTone(registration.paymentStatus)}>
                               {formatStatusLabel(registration.paymentStatus)}
@@ -989,11 +1005,20 @@ export default function AdminDashboardPage() {
                     <div className="field">
                       <label htmlFor="create-event">Event</label>
                       <select id="create-event" value={createEventCode} onChange={(event) => handleCreateEventChange(event.target.value)}>
-                        {siteConfig.technicalEvents.map((event) => (
-                          <option key={event.code} value={event.code}>
-                            {event.name}
-                          </option>
-                        ))}
+                        <optgroup label="Technical">
+                          {siteConfig.technicalEvents.map((event) => (
+                            <option key={event.code} value={event.code}>
+                              {event.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Non-Technical">
+                          {siteConfig.nonTechnicalEvents.map((event) => (
+                            <option key={event.code} value={event.code}>
+                              {event.name}
+                            </option>
+                          ))}
+                        </optgroup>
                       </select>
                       {createErrors.eventCode ? <div className="error">{createErrors.eventCode}</div> : null}
                     </div>

@@ -191,7 +191,7 @@ export function RegistrationStatusLookup() {
                   type="text"
                   value={registrationCode}
                   onChange={(event) => setRegistrationCode(event.target.value.toUpperCase())}
-                  placeholder="CP26-RN-0001"
+                  placeholder="CP26-RN-0XXX"
                   autoComplete="off"
                 />
                 {fieldErrors.registrationCode ? <div className="error">{fieldErrors.registrationCode}</div> : null}
@@ -328,7 +328,7 @@ export function RegistrationStatusLookup() {
                   <div className="status-check-support-grid">
                     <div className="status-check-hint-card">
                       <span>Need your code?</span>
-                      <strong>Find it on the acknowledgement PDF, like CP26-RN-0001.</strong>
+                      <strong>Find it on the acknowledgement PDF, like CP26-RN-0XXX.</strong>
                     </div>
                     <div className="status-check-hint-card">
                       <span>Need help?</span>

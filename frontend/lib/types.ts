@@ -35,9 +35,6 @@ export type SiteConfig = {
   about: string;
   facilitiesNote: string;
   contacts: Array<{ label: string; value: string }>;
-  community: {
-    whatsappGroup: string;
-  };
   paymentScannerImage: string;
   paymentReceiverName: string;
   highlights: string[];
@@ -59,6 +56,8 @@ export type ParticipantInput = {
 export type RegistrationPayload = {
   eventCode: string;
   eventCodes: string[];
+  technicalEventCodes: string[];
+  nonTechnicalEventCodes: string[];
   transactionId: string;
   paymentDate: string;
   paymentUploadToken: string;
@@ -80,6 +79,10 @@ export type RegistrationResponse = {
   eventName: string;
   eventCodes: string[];
   eventNames: string[];
+  technicalEventCodes: string[];
+  technicalEventNames: string[];
+  nonTechnicalEventCodes: string[];
+  nonTechnicalEventNames: string[];
   paymentStatus: string;
   emailStatus: string;
   paymentReference: string;
@@ -98,6 +101,10 @@ export type RegistrationStatusResponse = {
   eventName: string;
   eventCodes: string[];
   eventNames: string[];
+  technicalEventCodes: string[];
+  technicalEventNames: string[];
+  nonTechnicalEventCodes: string[];
+  nonTechnicalEventNames: string[];
   participantNames: string[];
   participantFoodPreferences: string[];
   leadParticipantName: string;
@@ -136,6 +143,10 @@ export type AdminRegistrationRow = {
   eventName: string;
   eventCodes: string[];
   eventNames: string[];
+  technicalEventCodes: string[];
+  technicalEventNames: string[];
+  nonTechnicalEventCodes: string[];
+  nonTechnicalEventNames: string[];
   amountPaid: string;
   transactionId: string;
   paymentStatus: string;

@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedHeading } from "@/components/ui/AnimatedHeading";
 import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
-import { ProgressStepper } from "@/components/ui/ProgressStepper";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { UploadDropzone } from "@/components/ui/UploadDropzone";
 import { ApiError, createIdempotencyKey, precheckRegistration, submitRegistration, uploadScreenshot } from "@/lib/api";
@@ -15,7 +14,6 @@ import { assignWithLoading } from "@/lib/navigation-transition";
 import { createRegistrationSchema, participantSchema } from "@/lib/validation/registration";
 import type { EventConfig, ParticipantInput, RegistrationResponse } from "@/lib/types";
 
-const steps = ["Event", "Participant", "Payment", "Review", "Confirm"];
 const exclusiveEventPairs = [["WC", "VS"]];
 const eventConflictMessage =
   "Choose either Web Craft or Visualytics, not both, due to the event schedule. Check Timeline page for more details.";
@@ -74,11 +72,9 @@ function selectedEventSummary(events: EventConfig[]) {
 
 function normalizeSelectedEventCodes(events: EventConfig[], codes: string[]) {
   const availableCodes = new Set(events.map((event) => event.code));
-  const normalizedCodes = codes
+  return codes
     .map((code) => code.trim().toUpperCase())
     .filter((code, index, allCodes) => availableCodes.has(code) && allCodes.indexOf(code) === index);
-
-  return normalizedCodes.length > 0 ? normalizedCodes : events[0] ? [events[0].code] : [];
 }
 
 function hasExclusiveEventConflict(codes: string[]) {
@@ -131,15 +127,15 @@ type RegistrationWizardProps = {
 
 function getInitialEvent(events: EventConfig[], initialEventCode?: string) {
   const normalizedCode = initialEventCode?.trim().toUpperCase();
-  return events.find((event) => event.code.toUpperCase() === normalizedCode) ?? events[0];
+  if (!normalizedCode) return null;
+  return events.find((event) => event.code.toUpperCase() === normalizedCode) ?? null;
 }
 
 export function RegistrationWizard({ events = siteConfig.technicalEvents, initialEventCode }: RegistrationWizardProps) {
   const availableEvents = events.length > 0 ? events : siteConfig.technicalEvents;
   const initialEvent = getInitialEvent(availableEvents, initialEventCode);
-  const [step, setStep] = useState(0);
   const [eventCodes, setEventCodes] = useState<string[]>(() =>
-    initialEvent?.code ? [initialEvent.code] : availableEvents[0] ? [availableEvents[0].code] : []
+    initialEvent ? [initialEvent.code] : []
   );
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -158,20 +154,27 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   const [paymentMessage, setPaymentMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isAndroidDevice, setIsAndroidDevice] = useState(false);
+  const [notesAccepted, setNotesAccepted] = useState(false);
   const [idempotencyKey] = useState(() => createIdempotencyKey());
 
   const selectedEvents = eventCodes
     .map((code) => availableEvents.find((item) => item.code === code))
     .filter((event): event is EventConfig => Boolean(event));
+  const technicalRegistrationEvents = availableEvents.filter((event) => event.track === "Technical");
+  const nonTechnicalRegistrationEvents = availableEvents.filter((event) => event.track === "Non-Technical");
+  const eventSelectionGroups = [
+    { title: "Technical Events", events: technicalRegistrationEvents },
+    { title: "Non-Technical Events", events: nonTechnicalRegistrationEvents }
+  ].filter((group) => group.events.length > 0);
   const currentEvent = selectedEvents[0] ?? availableEvents[0];
   const selectedEventNames = selectedEventSummary(selectedEvents);
   const eventCode = currentEvent?.code ?? "";
 
-  const totalAmount = currentEvent.feeAmount;
+  const totalAmount = currentEvent ? currentEvent.feeAmount : 250;
   const paymentQrCard = getPaymentQrCard(totalAmount);
   const upiPaymentUrl = createUpiPaymentUrl(totalAmount);
   const paymentQrLabel = "Payment QR";
-  const registrationFeeLabel = `₹${currentEvent.feeAmount} per participant`;
+  const registrationFeeLabel = `₹${currentEvent?.feeAmount ?? 250} per participant`;
   const soloParticipants = participants.slice(0, 1);
   const leadParticipant = soloParticipants[0] ?? emptyParticipant();
   const coordinatorEmail = siteConfig.contacts.find((contact) => contact.label === "Mail ID")?.value ?? "Organizer email";
@@ -233,9 +236,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     }
 
     const normalizedCodes = normalizeSelectedEventCodes(availableEvents, nextCodes);
-    if (normalizedCodes.length === 0) {
-      return;
-    }
 
     if (hasExclusiveEventConflict(normalizedCodes)) {
       setErrors((current) => ({
@@ -282,100 +282,95 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     });
   }
 
-  function validateStep() {
+  function validateForm() {
     const nextErrors: Record<string, string> = {};
 
-    if (step === 0) {
-      if (eventCodes.length === 0) {
-        nextErrors.eventCodes = "Choose at least one event to continue.";
-      } else if (hasExclusiveEventConflict(eventCodes)) {
-        nextErrors.eventCodes = eventConflictMessage;
-      }
+    if (eventCodes.length === 0) {
+      nextErrors.eventCodes = "Choose at least one event to continue.";
+    } else if (hasExclusiveEventConflict(eventCodes)) {
+      nextErrors.eventCodes = eventConflictMessage;
     }
 
-    if (step === 1) {
-      soloParticipants.forEach((participant, index) => {
-        const result = participantSchema.safeParse(participant);
-
-        if (!result.success) {
-          result.error.issues.forEach((issue) => {
-            const fieldName = issue.path[0];
-            if (typeof fieldName === "string") {
-              nextErrors[`participant-${index}-${fieldName}`] = issue.message;
-            }
-          });
-        }
-
-        const trimmedYear = participant.yearOfStudy.trim();
-        if (!trimmedYear) {
-          nextErrors[`participant-${index}-yearOfStudy`] = "Year of study is required.";
-        }
-
-        if (!participant.foodPreference) {
-          nextErrors[`participant-${index}-foodPreference`] = "Choose Veg or Non-Veg food preference.";
-        }
-
-        const trimmedCollege = participant.collegeName.trim();
-        if (!trimmedCollege) {
-          nextErrors[`participant-${index}-collegeName`] = "College name is required.";
-        }
-
-        const trimmedDepartment = participant.department.trim();
-        if (!trimmedDepartment) {
-          nextErrors[`participant-${index}-department`] = "Department is required.";
-        }
-
-        const trimmedEmail = participant.email.trim();
-        if (!trimmedEmail) {
-          nextErrors[`participant-${index}-email`] = "Email address is required.";
-        }
-
-        const trimmedMobile = participant.mobileNumber.trim();
-        if (!trimmedMobile) {
-          nextErrors[`participant-${index}-mobileNumber`] = "Mobile number is required.";
-        }
-
-        const trimmedName = participant.fullName.trim();
-        if (!trimmedName) {
-          nextErrors[`participant-${index}-fullName`] = "Full name is required.";
-        }
-      });
-    }
-
-    if (step === 2) {
-      if (!paymentReference.trim()) {
-        nextErrors.transactionId = "UPI transaction ID is required.";
-      } else if (!/^\d{12}$/.test(paymentReference.trim())) {
-        nextErrors.transactionId = "Enter the 12-digit UPI transaction ID.";
-      }
-      if (!paymentDate) {
-        nextErrors.paymentDate = "Payment date is required.";
-      }
-      if (!paymentUploadToken) {
-        nextErrors.paymentUploadToken = "Upload the payment screenshot to continue.";
-      }
-      if (!consentGiven) {
-        nextErrors.consentGiven = "Please confirm the privacy note to continue.";
-      }
-    }
-
-    if (step === 3) {
-      const schema = createRegistrationSchema();
-      const result = schema.safeParse({
-        eventCode,
-        eventCodes,
-        transactionId: paymentReference,
-        paymentDate,
-        paymentUploadToken,
-        consentGiven,
-        participants: soloParticipants
-      });
+    soloParticipants.forEach((participant, index) => {
+      const result = participantSchema.safeParse(participant);
 
       if (!result.success) {
         result.error.issues.forEach((issue) => {
-          nextErrors[issue.path.join(".") || "form"] = issue.message;
+          const fieldName = issue.path[0];
+          if (typeof fieldName === "string") {
+            nextErrors[`participant-${index}-${fieldName}`] = issue.message;
+          }
         });
       }
+
+      const trimmedYear = participant.yearOfStudy.trim();
+      if (!trimmedYear) {
+        nextErrors[`participant-${index}-yearOfStudy`] = "Year of study is required.";
+      }
+
+      if (!participant.foodPreference) {
+        nextErrors[`participant-${index}-foodPreference`] = "Choose Veg or Non-Veg food preference.";
+      }
+
+      const trimmedCollege = participant.collegeName.trim();
+      if (!trimmedCollege) {
+        nextErrors[`participant-${index}-collegeName`] = "College name is required.";
+      }
+
+      const trimmedDepartment = participant.department.trim();
+      if (!trimmedDepartment) {
+        nextErrors[`participant-${index}-department`] = "Department is required.";
+      }
+
+      const trimmedEmail = participant.email.trim();
+      if (!trimmedEmail) {
+        nextErrors[`participant-${index}-email`] = "Email address is required.";
+      }
+
+      const trimmedMobile = participant.mobileNumber.trim();
+      if (!trimmedMobile) {
+        nextErrors[`participant-${index}-mobileNumber`] = "Mobile number is required.";
+      }
+
+      const trimmedName = participant.fullName.trim();
+      if (!trimmedName) {
+        nextErrors[`participant-${index}-fullName`] = "Full name is required.";
+      }
+    });
+
+    if (!paymentReference.trim()) {
+      nextErrors.transactionId = "UPI transaction ID is required.";
+    } else if (!/^\d{12}$/.test(paymentReference.trim())) {
+      nextErrors.transactionId = "Enter the 12-digit UPI transaction ID.";
+    }
+    if (!paymentDate) {
+      nextErrors.paymentDate = "Payment date is required.";
+    }
+    if (!paymentUploadToken) {
+      nextErrors.paymentUploadToken = "Upload the payment screenshot to continue.";
+    }
+    if (!notesAccepted) {
+      nextErrors.notesAccepted = "Please read and accept the registration notes to continue.";
+    }
+    if (!consentGiven) {
+      nextErrors.consentGiven = "Please confirm the privacy note to continue.";
+    }
+
+    const schema = createRegistrationSchema();
+    const result = schema.safeParse({
+      eventCode,
+      eventCodes,
+      transactionId: paymentReference,
+      paymentDate,
+      paymentUploadToken,
+      consentGiven,
+      participants: soloParticipants
+    });
+
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        nextErrors[issue.path.join(".") || "form"] = issue.message;
+      });
     }
 
     setErrors(nextErrors);
@@ -384,32 +379,15 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
   async function runDuplicatePrecheck() {
     try {
-      if (step === 1) {
-        await precheckRegistration({
-          participants: soloParticipants.map((participant) => ({
-            email: participant.email,
-            mobileNumber: participant.mobileNumber
-          }))
-        });
-      }
-
-      if (step === 2) {
-        await precheckRegistration({
-          transactionId: paymentReference.trim()
-        });
-      }
-
-      if (step === 3) {
-        await precheckRegistration({
-          eventCode,
-          eventCodes,
-          transactionId: paymentReference.trim(),
-          participants: soloParticipants.map((participant) => ({
-            email: participant.email,
-            mobileNumber: participant.mobileNumber
-          }))
-        });
-      }
+      await precheckRegistration({
+        eventCode,
+        eventCodes,
+        transactionId: paymentReference.trim(),
+        participants: soloParticipants.map((participant) => ({
+          email: participant.email,
+          mobileNumber: participant.mobileNumber
+        }))
+      });
 
       return true;
     } catch (error) {
@@ -422,41 +400,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
       return false;
     }
-  }
-
-  async function nextStep() {
-    if (!validateStep()) {
-      return;
-    }
-
-    setCheckingDuplicates(true);
-    setSubmitError("");
-    try {
-      if (!(await runDuplicatePrecheck())) {
-        return;
-      }
-    } finally {
-      setCheckingDuplicates(false);
-    }
-
-    setStep((current) => Math.min(current + 1, steps.length - 1));
-  }
-
-  function previousStep() {
-    const previous = Math.max(step - 1, 0);
-    if (paymentLocked && previous < 2) {
-      setSubmitError(paymentLockedMessage);
-      return;
-    }
-    setStep(previous);
-  }
-
-  function handleStepClick(nextStepIndex: number) {
-    if (paymentLocked && nextStepIndex < 2) {
-      setSubmitError(paymentLockedMessage);
-      return;
-    }
-    setStep(nextStepIndex);
   }
 
   async function handlePaymentScreenshotChange(file: File | null) {
@@ -503,7 +446,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   function handleSubmit() {
-    if (!validateStep()) {
+    if (!validateForm()) {
       return;
     }
 
@@ -516,13 +459,29 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
             throw new Error("Upload the payment screenshot before submitting.");
           }
 
-          if (!(await runDuplicatePrecheck())) {
-            return;
+          setCheckingDuplicates(true);
+          try {
+            if (!(await runDuplicatePrecheck())) {
+              return;
+            }
+          } finally {
+            setCheckingDuplicates(false);
           }
+
+          const technicalCodes = eventCodes.filter((code) => {
+            const event = availableEvents.find((e) => e.code === code);
+            return event?.track === "Technical";
+          });
+          const nonTechnicalCodes = eventCodes.filter((code) => {
+            const event = availableEvents.find((e) => e.code === code);
+            return event?.track === "Non-Technical";
+          });
 
           const response = await submitRegistration({
             eventCode,
             eventCodes,
+            technicalEventCodes: technicalCodes,
+            nonTechnicalEventCodes: nonTechnicalCodes,
             transactionId: paymentReference.trim(),
             paymentDate,
             paymentUploadToken,
@@ -532,7 +491,6 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
           });
           setConfirmation(response);
           setAcknowledgementOpen(true);
-          setStep(4);
         } catch (error) {
           if (error instanceof ApiError) {
             setErrors((current) => ({ ...current, ...error.fieldErrors }));
@@ -590,7 +548,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     <div className="ack-college-title">
                       <strong>V V College of Engineering</strong>
                       <span>Department of Artificial Intelligence and Data Science</span>
-                      <span>V V Nagar, Tisaiyanvillai - 627657</span>
+                      <span>V.V. Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657</span>
                     </div>
 
                     <div className="ack-document-meta">
@@ -620,8 +578,12 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
 
                     <section className="ack-detail-grid" aria-label="Registration summary">
                       <div>
-                        <span>Selected events</span>
-                        <strong>{selectedEventNames}</strong>
+                        <span>Technical events</span>
+                        <strong>{selectedEvents.filter((e) => e.track === "Technical").map((e) => e.name).join(", ") || "None"}</strong>
+                      </div>
+                      <div>
+                        <span>Non-technical events</span>
+                        <strong>{selectedEvents.filter((e) => e.track === "Non-Technical").map((e) => e.name).join(", ") || "None"}</strong>
                       </div>
                       <div>
                         <span>Registration type</span>
@@ -752,447 +714,435 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       <div className="container">
         <div className="wizard-heading-wrap">
           <AnimatedHeading
-            eyebrow="Registration Flow"
-            title="A secure, guided registration experience"
-            copy="Move through event selection, participants, payment, and review in a readable timeline for mobile and desktop."
+            eyebrow="Registration"
+            title="Complete your symposium registration"
+            copy="Choose your events, enter participant details, upload payment proof, and submit everything from one page."
           />
         </div>
 
         <GlassPanel className="wizard-card wizard-main-card" tone="strong">
-          <ProgressStepper steps={steps} activeStep={step} onStepClick={handleStepClick} />
+          {confirmation ? (
+            <section className="wizard-stage wizard-confirm-stage">
+              <div className="confirmation-panel">
+                <SuccessAnimation registrationCode={confirmation.registrationCode} />
+                <h3>Registration submitted!</h3>
+                <p>
+                  Your registration code is <strong>{confirmation.registrationCode}</strong>.
+                </p>
+                <p>
+                  Payment status: <strong>{formatStatusLabel(confirmation.paymentStatus)}</strong>. The confirmation
+                  email will be sent after organizer verification.
+                </p>
+                <div className="confirmation-actions">
+                  <Button type="button" variant="primary" onClick={handleDownloadPdf}>
+                    Download PDF
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => assignWithLoading("/status")}>
+                    Check status
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <div className="single-registration-form">
+              <section className="wizard-stage wizard-participants-stage">
+                <div className="wizard-stage-heading">
+                  <h3>Personal details</h3>
+                </div>
+                <div className={`participants-grid${participants.length === 1 ? " is-single" : ""}`}>
+                  {soloParticipants.map((participant, index) => (
+                    <GlassPanel key={index} className="participant-card" tone="soft">
+                      <div className="form-grid two">
+                        <div className="field">
+                          <label htmlFor={`fullName-${index}`}>Full name</label>
+                          <input
+                            id={`fullName-${index}`}
+                            placeholder="Example: S. Kavin"
+                            value={participant.fullName}
+                            onChange={(event) => handleParticipantChange(index, "fullName", event.target.value)}
+                          />
+                          {errors[`participant-${index}-fullName`] ? (
+                            <div className="error">{errors[`participant-${index}-fullName`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`college-${index}`}>College name</label>
+                          <input
+                            id={`college-${index}`}
+                            placeholder="Example: V V College of Engineering"
+                            value={participant.collegeName}
+                            onChange={(event) => handleParticipantChange(index, "collegeName", event.target.value)}
+                          />
+                          {errors[`participant-${index}-collegeName`] ? (
+                            <div className="error">{errors[`participant-${index}-collegeName`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`mobile-${index}`}>Mobile number</label>
+                          <input
+                            id={`mobile-${index}`}
+                            inputMode="tel"
+                            placeholder="Example: +91 98XXX XX210"
+                            value={participant.mobileNumber}
+                            onChange={(event) => handleParticipantChange(index, "mobileNumber", event.target.value)}
+                          />
+                          {errors[`participant-${index}-mobileNumber`] ? (
+                            <div className="error">{errors[`participant-${index}-mobileNumber`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`email-${index}`}>Email address</label>
+                          <input
+                            id={`email-${index}`}
+                            type="email"
+                            placeholder="participant@example.com"
+                            value={participant.email}
+                            onChange={(event) => handleParticipantChange(index, "email", event.target.value)}
+                          />
+                          {errors[`participant-${index}-email`] ? (
+                            <div className="error">{errors[`participant-${index}-email`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`department-${index}`}>Department</label>
+                          <input
+                            id={`department-${index}`}
+                            placeholder="Example: AI & DS"
+                            value={participant.department}
+                            onChange={(event) => handleParticipantChange(index, "department", event.target.value)}
+                          />
+                          {errors[`participant-${index}-department`] ? (
+                            <div className="error">{errors[`participant-${index}-department`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`year-${index}`}>Year of study</label>
+                          <select
+                            id={`year-${index}`}
+                            value={participant.yearOfStudy}
+                            onChange={(event) => handleParticipantChange(index, "yearOfStudy", event.target.value)}
+                          >
+                            <option value="">Choose year</option>
+                            <option value="1">1st year</option>
+                            <option value="2">2nd year</option>
+                            <option value="3">3rd year</option>
+                            <option value="4">4th year</option>
+                          </select>
+                          {errors[`participant-${index}-yearOfStudy`] ? (
+                            <div className="error">{errors[`participant-${index}-yearOfStudy`]}</div>
+                          ) : null}
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`food-${index}`}>Food preference</label>
+                          <select
+                            id={`food-${index}`}
+                            value={participant.foodPreference}
+                            onChange={(event) => handleParticipantChange(index, "foodPreference", event.target.value)}
+                          >
+                            <option value="">Choose food</option>
+                            <option value="veg">Veg</option>
+                            <option value="non_veg">Non-Veg</option>
+                          </select>
+                          {errors[`participant-${index}-foodPreference`] ? (
+                            <div className="error">{errors[`participant-${index}-foodPreference`]}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </GlassPanel>
+                  ))}
+                </div>
+              </section>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.28 }}
-            >
-              {step === 0 ? (
-                <section className="wizard-stage wizard-event-stage">
-                  <div className="mobile-event-select field">
-                    <label>Choose events</label>
-                    <details className="mobile-event-dropdown">
-                      <summary>
-                        <span>{selectedEventNames || "Choose one or more events"}</span>
-                      </summary>
-                      <div className="mobile-event-option-list">
-                        {availableEvents.map((event) => (
-                          <label key={event.code} className="mobile-event-option">
+              <section className="wizard-stage wizard-event-stage">
+                <div className="wizard-stage-heading">
+                  <h3>Event selection</h3>
+                </div>
+
+                <GlassPanel className="registration-event-note" tone="soft">
+                  <p className="helper">
+                    <span>Note:</span>
+                    <strong>{eventConflictMessage}</strong>
+                  </p>
+                </GlassPanel>
+
+                {errors.eventCodes ? <div className="error registration-event-error">{errors.eventCodes}</div> : null}
+
+                <div className="event-selector-groups">
+                  {eventSelectionGroups.map((group) => (
+                    <div key={group.title} className="event-selector-group">
+                      <h4 className="event-selector-group-title">{group.title}</h4>
+                      <div className="event-selector-grid">
+                        {group.events.map((event) => (
+                          <label
+                            key={event.code}
+                            className={`event-select-card registration-multi-event-card${
+                              eventCodes.includes(event.code) ? " is-selected" : ""
+                            }`}
+                          >
                             <input
                               type="checkbox"
+                              className="registration-event-native-checkbox"
                               checked={eventCodes.includes(event.code)}
                               onChange={() => handleEventToggle(event.code)}
                             />
-                            <span>{event.name}</span>
+                            <span className="registration-event-checkbox" aria-hidden="true" />
+                            <strong>{event.name}</strong>
                           </label>
                         ))}
                       </div>
-                    </details>
-                    <div className="registration-event-chip-list">
-                      {selectedEvents.map((event) => (
-                        <button
-                          key={event.code}
-                          type="button"
-                          className="registration-event-chip"
-                          onClick={() => handleEventToggle(event.code)}
-                        >
-                          {event.name}
-                          <span aria-hidden="true">x</span>
-                        </button>
-                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                <GlassPanel className="summary-panel wizard-intro-summary" tone="soft">
+                  <div className="summary-row">
+                    <span>Selected Technical Events</span>
+                    <strong>
+                      {selectedEvents.filter((e) => e.track === "Technical").map((e) => e.name).join(", ") || "None selected"}
+                    </strong>
+                  </div>
+                  <div className="summary-row">
+                    <span>Selected Non-Technical Events</span>
+                    <strong>
+                      {selectedEvents.filter((e) => e.track === "Non-Technical").map((e) => e.name).join(", ") || "None selected"}
+                    </strong>
+                  </div>
+                  <div className="summary-row">
+                    <span>Registration fee</span>
+                    <strong>{registrationFeeLabel}</strong>
+                  </div>
+                  <div className="summary-row">
+                    <span>Total payable</span>
+                    <strong>Rs. {totalAmount}</strong>
+                  </div>
+                </GlassPanel>
+              </section>
+
+              <section className="wizard-stage wizard-payment-stage">
+                <div className="wizard-stage-heading">
+                  <h3>Payment proof</h3>
+                </div>
+                <div className="payment-stage">
+                  <GlassPanel className="payment-qr-card" tone="soft">
+                    <div className="payment-card-head">
+                      <span className="section-eyebrow">Scan & Pay</span>
+                      <h3>Pay Rs. {totalAmount}</h3>
                     </div>
 
-                  </div>
+                    {paymentQrCard ? (
+                      <div className="payment-scanner-frame">
+                        <img src={paymentQrCard} alt={`${paymentQrLabel} for Rs. ${totalAmount}`} />
+                      </div>
+                    ) : (
+                      <div className="qr-placeholder" aria-label="Default payment scanner placeholder">
+                        <span className="qr-grid-mark" />
+                        <span className="qr-grid-mark" />
+                        <span className="qr-grid-mark" />
+                        <strong>Payment Scanner</strong>
+                        <small>Scan, pay the exact amount, and upload the proof.</small>
+                      </div>
+                    )}
 
-                  {errors.eventCodes ? <div className="error registration-event-error">{errors.eventCodes}</div> : null}
+                    {isAndroidDevice ? (
+                      <a className="upi-pay-button" href={upiPaymentUrl} aria-label={`Pay Rs. ${totalAmount} using a UPI app`}>
+                        <span className="upi-pay-icon" aria-hidden="true">
+                          UPI
+                        </span>
+                        <span>Pay with UPI app</span>
+                      </a>
+                    ) : null}
 
-                  <div className="event-selector-grid">
-                    {availableEvents.map((event) => (
-                      <button
-                        key={event.code}
-                        type="button"
-                        className={`event-select-card registration-multi-event-card${
-                          eventCodes.includes(event.code) ? " is-selected" : ""
-                        }`}
-                        onClick={() => handleEventToggle(event.code)}
-                        aria-pressed={eventCodes.includes(event.code)}
-                      >
-                        <span className="event-select-index">0{event.order}</span>
-                        <span className="registration-event-checkbox" aria-hidden="true" />
-                        <strong>{event.name}</strong>
-                        <span>{event.summary}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="field selected-events-readout">
-                    <label htmlFor="selectedEventsReadout">Selected events</label>
-                    <input id="selectedEventsReadout" value={selectedEventNames} readOnly />
-                  </div>
-
-                  <GlassPanel className="summary-panel wizard-intro-summary" tone="soft">
                     <div className="summary-row">
-                      <span>Selected events</span>
-                      <strong>{selectedEventNames}</strong>
+                      <span>Payee</span>
+                      <strong>{siteConfig.paymentReceiverName}</strong>
                     </div>
                     <div className="summary-row">
-                      <span>Registration fee</span>
-                      <strong>{registrationFeeLabel}</strong>
-                    </div>
-                    <div className="summary-row">
-                      <span>Registration type</span>
-                      <strong>Individual</strong>
+                      <span>Verification</span>
+                      <strong>Manual admin check</strong>
                     </div>
                   </GlassPanel>
-                </section>
-              ) : null}
 
-              {step === 1 ? (
-                <section className="wizard-stage wizard-participants-stage">
-                  <div className="wizard-two-column wizard-participants-overview">
-                    <GlassPanel className="content-panel wizard-team-size-card registration-solo-instruction-card" tone="soft">
-                      <p className="helper">
-                        <strong>Separate registration required:</strong> Each participant must complete a separate
-                        registration. If grouping is required for an event, it will be coordinated on campus.
-                      </p>
-                    </GlassPanel>
+                  <GlassPanel className="payment-info-panel" tone="soft">
+                    <div className="summary-row">
+                      <span>Payment method</span>
+                      <strong>Scan the code and upload proof</strong>
+                    </div>
 
-                    <GlassPanel className="summary-panel wizard-participants-summary" tone="soft">
-                      <div className="summary-row">
-                        <span>Total payable</span>
-                        <strong>Rs. {totalAmount}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Participant count</span>
-                        <strong>1 participant</strong>
-                      </div>
-                    </GlassPanel>
-                  </div>
-
-                  <div className={`participants-grid${participants.length === 1 ? " is-single" : ""}`}>
-                    {soloParticipants.map((participant, index) => (
-                      <GlassPanel key={index} className="participant-card" tone="soft">
-
-                        <div className="form-grid two">
-                          <div className="field">
-                            <label htmlFor={`fullName-${index}`}>Full name</label>
-                            <input
-                              id={`fullName-${index}`}
-                              placeholder="Example: S. Kavin"
-                              value={participant.fullName}
-                              onChange={(event) => handleParticipantChange(index, "fullName", event.target.value)}
-                            />
-                            {errors[`participant-${index}-fullName`] ? (
-                              <div className="error">{errors[`participant-${index}-fullName`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`college-${index}`}>College name</label>
-                            <input
-                              id={`college-${index}`}
-                              placeholder="Example: V V College of Engineering"
-                              value={participant.collegeName}
-                              onChange={(event) => handleParticipantChange(index, "collegeName", event.target.value)}
-                            />
-                            {errors[`participant-${index}-collegeName`] ? (
-                              <div className="error">{errors[`participant-${index}-collegeName`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`mobile-${index}`}>Mobile number</label>
-                            <input
-                              id={`mobile-${index}`}
-                              inputMode="tel"
-                              placeholder="Example: +91 98XXX XX210"
-                              value={participant.mobileNumber}
-                              onChange={(event) => handleParticipantChange(index, "mobileNumber", event.target.value)}
-                            />
-                            {errors[`participant-${index}-mobileNumber`] ? (
-                              <div className="error">{errors[`participant-${index}-mobileNumber`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`email-${index}`}>Email address</label>
-                            <input
-                              id={`email-${index}`}
-                              type="email"
-                              placeholder="participant@example.com"
-                              value={participant.email}
-                              onChange={(event) => handleParticipantChange(index, "email", event.target.value)}
-                            />
-                            {errors[`participant-${index}-email`] ? (
-                              <div className="error">{errors[`participant-${index}-email`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`department-${index}`}>Department</label>
-                            <input
-                              id={`department-${index}`}
-                              placeholder="Example: AI & DS"
-                              value={participant.department}
-                              onChange={(event) => handleParticipantChange(index, "department", event.target.value)}
-                            />
-                            {errors[`participant-${index}-department`] ? (
-                              <div className="error">{errors[`participant-${index}-department`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`year-${index}`}>Year of study</label>
-                            <select
-                              id={`year-${index}`}
-                              value={participant.yearOfStudy}
-                              onChange={(event) => handleParticipantChange(index, "yearOfStudy", event.target.value)}
-                            >
-                              <option value="">Choose year</option>
-                              <option value="1">1st year</option>
-                              <option value="2">2nd year</option>
-                              <option value="3">3rd year</option>
-                              <option value="4">4th year</option>
-                            </select>
-                            {errors[`participant-${index}-yearOfStudy`] ? (
-                              <div className="error">{errors[`participant-${index}-yearOfStudy`]}</div>
-                            ) : null}
-                          </div>
-                          <div className="field">
-                            <label htmlFor={`food-${index}`}>Food preference</label>
-                            <select
-                              id={`food-${index}`}
-                              value={participant.foodPreference}
-                              onChange={(event) => handleParticipantChange(index, "foodPreference", event.target.value)}
-                            >
-                              <option value="">Choose food</option>
-                              <option value="veg">Veg</option>
-                              <option value="non_veg">Non-Veg</option>
-                            </select>
-                            {errors[`participant-${index}-foodPreference`] ? (
-                              <div className="error">{errors[`participant-${index}-foodPreference`]}</div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </GlassPanel>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {step === 2 ? (
-                <section className="wizard-stage wizard-payment-stage">
-                  <div className="payment-stage">
-                    <GlassPanel className="payment-qr-card" tone="soft">
-                      <div className="payment-card-head">
-                        <span className="section-eyebrow">Scan & Pay</span>
-                        <h3>Pay Rs. {totalAmount}</h3>
-                      </div>
-
-                      {paymentQrCard ? (
-                        <div className="payment-scanner-frame">
-                          <img src={paymentQrCard} alt={`${paymentQrLabel} for Rs. ${totalAmount}`} />
-                        </div>
-                      ) : (
-                        <div className="qr-placeholder" aria-label="Default payment scanner placeholder">
-                          <span className="qr-grid-mark" />
-                          <span className="qr-grid-mark" />
-                          <span className="qr-grid-mark" />
-                          <strong>Payment Scanner</strong>
-                          <small>Scan, pay the exact amount, and upload the proof.</small>
-                        </div>
-                      )}
-
-                      {isAndroidDevice ? (
-                        <a className="upi-pay-button" href={upiPaymentUrl} aria-label={`Pay Rs. ${totalAmount} using a UPI app`}>
-                          <span className="upi-pay-icon" aria-hidden="true">
-                            UPI
-                          </span>
-                          <span>Pay with UPI app</span>
-                        </a>
-                      ) : null}
-
-                      <div className="summary-row">
-                        <span>Payee</span>
-                        <strong>{siteConfig.paymentReceiverName}</strong>
-                      </div>
-                      <div className="summary-row">
-                        <span>Verification</span>
-                        <strong>Manual admin check</strong>
-                      </div>
-                    </GlassPanel>
-
-                    <GlassPanel className="payment-info-panel" tone="soft">
-                      <div className="summary-row">
-                        <span>Payment method</span>
-                        <strong>Scan the code and upload proof</strong>
-                      </div>
-
-                      <div className="form-grid two">
-                        <div className="field">
-                          <label htmlFor="paymentReference">UPI transaction ID</label>
-                          <input
-                            id="paymentReference"
-                            value={paymentReference}
-                            onChange={(event) => {
-                              setPaymentReference(event.target.value.replace(/\D/g, "").slice(0, 12));
-                              setErrors((current) => ({ ...current, transactionId: "" }));
-                            }}
-                            placeholder="Enter 12-digit ID"
-                            inputMode="numeric"
-                            pattern="\d{12}"
-                            autoComplete="off"
-                            maxLength={12}
-                          />
-                          {errors.transactionId ? <div className="error">{errors.transactionId}</div> : null}
-                        </div>
-
-                        <div className="field">
-                          <label htmlFor="paymentDate">Payment date</label>
-                          <input
-                            id="paymentDate"
-                            type="date"
-                            value={paymentDate}
-                            max={new Date().toISOString().slice(0, 10)}
-                            onChange={(event) => {
-                              setPaymentDate(event.target.value);
-                              setErrors((current) => ({ ...current, paymentDate: "" }));
-                            }}
-                          />
-                          {errors.paymentDate ? <div className="error">{errors.paymentDate}</div> : null}
-                        </div>
-                      </div>
-
-                      <UploadDropzone
-                        file={paymentScreenshot}
-                        onFileChange={(file) => void handlePaymentScreenshotChange(file)}
-                        error={errors.paymentUploadToken}
-                      />
-
-                      <label className="consent-row">
+                    <div className="form-grid two">
+                      <div className="field">
+                        <label htmlFor="paymentReference">UPI transaction ID</label>
                         <input
-                          type="checkbox"
-                          checked={consentGiven}
+                          id="paymentReference"
+                          value={paymentReference}
                           onChange={(event) => {
-                            setConsentGiven(event.target.checked);
-                            setErrors((current) => ({ ...current, consentGiven: "" }));
+                            setPaymentReference(event.target.value.replace(/\D/g, "").slice(0, 12));
+                            setErrors((current) => ({ ...current, transactionId: "" }));
+                          }}
+                          placeholder="Enter 12-digit ID"
+                          inputMode="numeric"
+                          pattern="\d{12}"
+                          autoComplete="off"
+                          maxLength={12}
+                        />
+                        {errors.transactionId ? <div className="error">{errors.transactionId}</div> : null}
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor="paymentDate">Payment date</label>
+                        <input
+                          id="paymentDate"
+                          type="date"
+                          value={paymentDate}
+                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(event) => {
+                            setPaymentDate(event.target.value);
+                            setErrors((current) => ({ ...current, paymentDate: "" }));
                           }}
                         />
-                        <span>
-                          I confirm my details are correct and I consent to manual verification of my registration.
-                        </span>
-                      </label>
-                      {errors.consentGiven ? <div className="error">{errors.consentGiven}</div> : null}
+                        {errors.paymentDate ? <div className="error">{errors.paymentDate}</div> : null}
+                      </div>
+                    </div>
 
-                      {uploadingScreenshot ? <div className="helper">Uploading payment screenshot...</div> : null}
-                      {paymentUploadToken ? (
-                        <div className="payment-success-area">
-                          <p className="payment-success-text">Payment proof uploaded successfully.</p>
-                          <p className="helper">Submit the registration so the organizers can verify it.</p>
-                        </div>
-                      ) : null}
-                    </GlassPanel>
+                    <UploadDropzone
+                      file={paymentScreenshot}
+                      onFileChange={(file) => void handlePaymentScreenshotChange(file)}
+                      error={errors.paymentUploadToken}
+                    />
+
+                    <label className="consent-row">
+                      <input
+                        type="checkbox"
+                        checked={consentGiven}
+                        onChange={(event) => {
+                          setConsentGiven(event.target.checked);
+                          setErrors((current) => ({ ...current, consentGiven: "" }));
+                        }}
+                      />
+                      <span>
+                        I confirm my details are correct and I consent to manual verification of my registration.
+                      </span>
+                    </label>
+                    {errors.consentGiven ? <div className="error">{errors.consentGiven}</div> : null}
+
+                    {uploadingScreenshot ? <div className="helper">Uploading payment screenshot...</div> : null}
+                    {paymentUploadToken ? (
+                      <div className="payment-success-area">
+                        <p className="payment-success-text">Payment proof uploaded successfully.</p>
+                        <p className="helper">Submit the registration so the organizers can verify it.</p>
+                      </div>
+                    ) : null}
+                  </GlassPanel>
+                </div>
+
+                {errors.payment ? <div className="error">{errors.payment}</div> : null}
+                {paymentMessage ? <div className="helper">{paymentMessage}</div> : null}
+              </section>
+
+              <section className="wizard-stage wizard-review-stage">
+                <div className="wizard-stage-heading">
+                  <h3>Review and submit</h3>
+                </div>
+                <GlassPanel className="review-panel" tone="soft">
+                  <div className="review-grid">
+                    <div className="review-row">
+                      <span>Technical events</span>
+                      <strong>
+                        {selectedEvents.filter((e) => e.track === "Technical").map((e) => e.name).join(", ") || "None selected"}
+                      </strong>
+                    </div>
+                    <div className="review-row">
+                      <span>Non-technical events</span>
+                      <strong>
+                        {selectedEvents.filter((e) => e.track === "Non-Technical").map((e) => e.name).join(", ") || "None selected"}
+                      </strong>
+                    </div>
+                    <div className="review-row">
+                      <span>Amount</span>
+                      <strong>Rs. {totalAmount}</strong>
+                    </div>
+                    <div className="review-row">
+                      <span>Payment</span>
+                      <strong>{paymentUploadToken ? "Manual proof uploaded" : "Proof pending"}</strong>
+                    </div>
+                    <div className="review-row">
+                      <span>Reference ID</span>
+                      <strong className="review-break-all">{paymentReference || "Not entered"}</strong>
+                    </div>
+                    <div className="review-row">
+                      <span>Payment status</span>
+                      <strong>Pending manual verification</strong>
+                    </div>
                   </div>
+                </GlassPanel>
 
-                  {errors.payment ? <div className="error">{errors.payment}</div> : null}
-                  {paymentMessage ? <div className="helper">{paymentMessage}</div> : null}
-                  {submitError ? <div className="error">{submitError}</div> : null}
-                </section>
-              ) : null}
-
-              {step === 3 ? (
-                <section className="wizard-stage wizard-review-stage">
-                  <GlassPanel className="review-panel" tone="soft">
-                    <div className="review-grid">
-                      <div className="review-row">
-                        <span>Event</span>
-                        <strong>{selectedEventNames}</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Registration type</span>
-                        <strong>Individual registration</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Amount</span>
-                        <strong>Rs. {totalAmount}</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Payment</span>
-                        <strong>Manual proof uploaded</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Reference ID</span>
-                        <strong className="review-break-all">{paymentReference}</strong>
-                      </div>
-                      <div className="review-row">
-                        <span>Payment status</span>
-                        <strong>Pending manual verification</strong>
-                      </div>
+                <GlassPanel className="review-participants-panel" tone="soft">
+                  <div className="review-section-head">
+                    <span>Participant</span>
+                  </div>
+                  {soloParticipants.map((participant, index) => (
+                    <div key={index} className="review-participant">
+                      <span className="review-participant-name">{participant.fullName || "Participant"}</span>
+                      <span className="review-participant-detail">{participant.email || "Email not entered"}</span>
+                      <span className="review-participant-detail">{participant.collegeName || "College not entered"}</span>
                     </div>
-                  </GlassPanel>
+                  ))}
+                </GlassPanel>
+              </section>
 
-                  <GlassPanel className="review-participants-panel" tone="soft">
-                    <div className="review-section-head">
-                      <span>Participant</span>
-                    </div>
-                    {soloParticipants.map((participant, index) => (
-                      <div key={index} className="review-participant">
-                        <span className="review-participant-name">
-                          #{index + 1} - {participant.fullName || "Participant"}
-                        </span>
-                        <span className="review-participant-detail">{participant.email}</span>
-                        <span className="review-participant-detail">{participant.collegeName}</span>
-                      </div>
-                    ))}
-                  </GlassPanel>
+              <section className="wizard-stage wizard-notes-stage">
+                <div className="wizard-stage-heading">
+                  <h3>Important Registration Notes</h3>
+                  <p className="helper">Please review these points before completing your symposium registration.</p>
+                </div>
+                <GlassPanel className="registration-notes-card" tone="soft">
+                  <ul className="registration-notes-list">
+                    <li>The countdown shows the deadline for online registration. On-site registration will remain available on campus.</li>
+                    <li>To attend the symposium, registration for at least one primary technical event is mandatory.</li>
+                    <li>If time permits during the event, participants may also attend other registered technical events and non-technical events.</li>
+                    <li>Non-technical events will be fully handled offline.</li>
+                    <li>Participants may choose either Web Craft or Visualytics, but not both, due to the event schedule.</li>
+                    <li>Paper Presentation participants may leave the hall after completing their presentation so they can attend other events. Late arrival to Paper Presentation may be permitted when it is due to participation in another scheduled event.</li>
+                    <li>If your payment is rejected, you will receive an email notification. You may register again using the same details, with corrected payment proof and a valid UPI transaction ID.</li>
+                    <li>Prizes for non-technical events will be announced on campus.</li>
+                    <li>After registration, participants can check their registration status on the Status page.</li>
+                    <li>Each participant must complete a separate registration. If grouping is required for an event, it will be coordinated on campus.</li>
+                  </ul>
+                </GlassPanel>
+                <label className="consent-row">
+                  <input
+                    type="checkbox"
+                    checked={notesAccepted}
+                    onChange={(event) => {
+                      setNotesAccepted(event.target.checked);
+                    }}
+                  />
+                  <span>
+                    I have read and understood all the registration notes above.
+                  </span>
+                </label>
+                {errors.notesAccepted ? <div className="error">{errors.notesAccepted}</div> : null}
+              </section>
 
-                  {submitError ? <div className="error">{submitError}</div> : null}
-                </section>
+              {submitError ? <div className="error">{submitError}</div> : null}
+              {!submitError && Object.keys(errors).length > 0 ? (
+                <div className="error">
+                  Please fix {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "issue" : "issues"} above before submitting.
+                </div>
               ) : null}
 
-              {step === 4 ? (
-                <section className="wizard-stage wizard-confirm-stage">
-                  {confirmation ? (
-                    <div className="confirmation-panel">
-                      <SuccessAnimation registrationCode={confirmation.registrationCode} />
-                      <h3>Registration submitted!</h3>
-                      <p>
-                        Your registration code is <strong>{confirmation.registrationCode}</strong>.
-                      </p>
-                      <p>
-                        Payment status: <strong>{formatStatusLabel(confirmation.paymentStatus)}</strong>. The
-                        confirmation email will be sent after organizer verification.
-                      </p>
-                      <div className="confirmation-actions">
-                        <Button type="button" variant="primary" onClick={handleDownloadPdf}>
-                          Download PDF
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => assignWithLoading("/status")}>
-                          Check status
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
-
-          {step < 4 ? (
-            <div className="step-actions">
-              {step > 0 ? (
-                <Button type="button" variant="secondary" onClick={previousStep}>
-                  Back
+              <div className="step-actions single-submit-actions">
+                <Button type="button" variant="accent" onClick={handleSubmit} disabled={uploadingScreenshot || checkingDuplicates || submitting}>
+                  {uploadingScreenshot
+                    ? "Uploading..."
+                    : checkingDuplicates
+                      ? "Checking..."
+                      : submitting
+                        ? "Submitting..."
+                        : "Submit registration"}
                 </Button>
-              ) : null}
-              {step < 3 ? (
-                <Button type="button" variant="primary" onClick={() => void nextStep()} disabled={uploadingScreenshot || checkingDuplicates}>
-                  {uploadingScreenshot ? "Uploading..." : checkingDuplicates ? "Checking..." : "Continue"}
-                </Button>
-              ) : (
-                <Button type="button" variant="accent" onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit registration"}
-                </Button>
-              )}
+              </div>
             </div>
-          ) : null}
+          )}
         </GlassPanel>
       </div>
     </div>

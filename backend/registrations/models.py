@@ -41,6 +41,8 @@ class Registration(models.Model):
   registration_code = models.CharField(max_length=20, unique=True, db_index=True)
   event = models.ForeignKey(Event, on_delete=models.PROTECT, related_name="registrations")
   selected_events = models.ManyToManyField(Event, related_name="multi_event_registrations", blank=True)
+  technical_event_codes = models.JSONField(default=list, blank=True)
+  non_technical_event_codes = models.JSONField(default=list, blank=True)
   total_amount = models.DecimalField(max_digits=8, decimal_places=2)
   transaction_id = models.CharField(max_length=100, unique=True, db_index=True)
   payment_provider = models.CharField(

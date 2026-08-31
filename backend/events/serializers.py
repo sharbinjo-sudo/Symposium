@@ -78,6 +78,50 @@ EVENT_CONTENT = {
       "Participants may use Python, dashboard tools, or AI-assisted workflows.",
       "The most detailed, accurate, and compelling visual story wins."
     ]
+  },
+  "EC": {
+    "track": "Non-Technical",
+    "summary": "Use body language and expressions to communicate prompts under a time limit.",
+    "description": "A stage-based expression and guessing event focused on creativity, coordination, and quick thinking.",
+    "prizes": [],
+    "rules": [
+      "Participants must follow the event format announced on campus.",
+      "Speaking, mouthing words, spelling, and direct clues are not allowed.",
+      "Points are awarded for correct answers within the time limit."
+    ]
+  },
+  "MQ": {
+    "track": "Non-Technical",
+    "summary": "Decode clues through sketching and one-word hints across timed rounds.",
+    "description": "A mystery clue challenge focused on creativity, communication, and teamwork.",
+    "prizes": [],
+    "rules": [
+      "Participants must follow the sketching and clue-giving restrictions announced on campus.",
+      "Letters, numbers, symbols, spelling, rhyming, and direct clues are not allowed where restricted.",
+      "Scores from all rounds are combined to determine winners."
+    ]
+  },
+  "CC": {
+    "track": "Non-Technical",
+    "summary": "Identify the common word connecting multiple images shown on screen.",
+    "description": "A visual connection challenge focused on observation, logic, and quick interpretation.",
+    "prizes": [],
+    "rules": [
+      "Participants answer image-based connection questions under the announced format.",
+      "Wrong direct and challenge answers may carry penalties.",
+      "Electronic devices and external assistance are not allowed."
+    ]
+  },
+  "VI": {
+    "track": "Non-Technical",
+    "summary": "Create and present an original story based on a displayed picture.",
+    "description": "A creative storytelling event focused on observation, imagination, and presentation.",
+    "prizes": [],
+    "rules": [
+      "Stories must directly relate to the displayed image.",
+      "Participants must follow the preparation and presentation time limits.",
+      "Electronic devices and external assistance are not allowed during preparation."
+    ]
   }
 }
 
@@ -108,8 +152,7 @@ class EventSerializer(serializers.ModelSerializer):
     ]
 
   def get_track(self, event: Event) -> str:
-    content = EVENT_CONTENT.get(event.event_code, {})
-    return content.get("track", "Technical")
+    return getattr(event, "track", "Technical")
 
   def get_summary(self, obj: Event) -> str:
     content = EVENT_CONTENT.get(obj.event_code, {})

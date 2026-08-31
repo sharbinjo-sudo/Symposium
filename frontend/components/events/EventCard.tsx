@@ -12,6 +12,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 type EventCardProps = {
   event: EventConfig;
   showRegister?: boolean;
+  showRegisterButton?: boolean;
   showImportantNotes?: boolean;
   showTags?: boolean;
 };
@@ -29,7 +30,7 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "SD") {
+  if (event.code === "SD" || event.code === "MQ") {
     return (
       <div className="event-graphic event-graphic-spot" aria-hidden="true">
         <span className="spot-frame spot-frame-left" />
@@ -54,7 +55,7 @@ function renderGraphic(event: EventConfig) {
     );
   }
 
-  if (event.code === "HAI") {
+  if (event.code === "HAI" || event.code === "VI") {
     return (
       <div className="event-graphic event-graphic-humanai" aria-hidden="true">
         <span className="hai-panel hai-panel-left" />
@@ -136,6 +137,7 @@ function renderGraphic(event: EventConfig) {
 export function EventCard({
   event,
   showRegister = true,
+  showRegisterButton = showRegister,
   showImportantNotes = true,
   showTags = true
 }: EventCardProps) {
@@ -185,7 +187,7 @@ export function EventCard({
           </div>
         ) : null}
 
-        <div className={cn("card-actions", showRegister ? "card-actions-split" : "card-actions-single")}>
+        <div className={cn("card-actions", showRegisterButton ? "card-actions-split" : "card-actions-single")}>
           <Button
             type="button"
             variant="secondary"
@@ -195,7 +197,7 @@ export function EventCard({
           >
             {open ? "Hide Rules" : "View Rules"}
           </Button>
-          {showRegister ? (
+          {showRegisterButton ? (
             <ButtonLink href={`/registration?event=${encodeURIComponent(event.code)}`} variant="primary" magnetic>
               Register
             </ButtonLink>

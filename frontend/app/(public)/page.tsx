@@ -6,14 +6,9 @@ import { siteConfig } from "@/lib/config/site";
 
 const homePageLinks = [
   {
-    href: "/technical-events",
-    label: "Technical Events",
-    copy: "Paper Presentation, Visualytics, Code Busters, and Web Craft."
-  },
-  {
-    href: "/non-technical-events",
-    label: "Non-Tech Events",
-    copy: "Expression Challenge, Spot the Difference, Connection Challenge, and Human vs AI."
+    href: "/events",
+    label: "All Events",
+    copy: "Browse technical and non-technical events, view rules, and plan your participation."
   },
   {
     href: "/prizes",
@@ -24,11 +19,6 @@ const homePageLinks = [
     href: "/timeline",
     label: "Timeline",
     copy: "Event-day schedule, session flow, breaks, and closing ceremony."
-  },
-  {
-    href: "/note",
-    label: "Notes",
-    copy: "Registration rules, offline event notes, and payment verification guidance."
   },
   {
     href: "/contact",
@@ -79,7 +69,7 @@ export default function HomePage() {
               <ButtonLink href="/registration" variant="primary" magnetic>
                 Register Now
               </ButtonLink>
-              <ButtonLink href="/technical-events" variant="secondary">
+              <ButtonLink href="/events" variant="secondary">
                 Explore Events
               </ButtonLink>
             </div>

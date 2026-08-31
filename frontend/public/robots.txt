@@ -10,7 +10,6 @@ Allow: /technical-events
 Allow: /non-technical-events
 Allow: /prizes
 Allow: /timeline
-Allow: /note
 Allow: /contact
 Allow: /registration
 Allow: /status

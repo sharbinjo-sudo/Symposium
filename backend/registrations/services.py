@@ -103,10 +103,26 @@ def create_registration(validated_data: dict) -> Registration:
     except ValueError:
       next_number = latest.id + 1
 
+  # Split selected events into technical and non-technical
+  technical_codes = []
+  non_technical_codes = []
+  for evt in selected_events:
+    track = getattr(evt, "track", None)
+    if not track:
+      from events.serializers import EVENT_CONTENT
+      content = EVENT_CONTENT.get(evt.event_code, {})
+      track = content.get("track", "Technical")
+    if track == "Non-Technical":
+      non_technical_codes.append(evt.event_code)
+    else:
+      technical_codes.append(evt.event_code)
+
   try:
     registration = Registration.objects.create(
       registration_code=f"CP26-RN-{next_number:04d}",
       event=event,
+      technical_event_codes=technical_codes,
+      non_technical_event_codes=non_technical_codes,
       total_amount=validated_data["total_amount"],
       transaction_id=validated_data["normalized_transaction_id"],
       payment_provider=validated_data.get("payment_provider", Registration.PAYMENT_PROVIDER_MANUAL),

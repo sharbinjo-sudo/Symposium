@@ -31,6 +31,32 @@ services:
         sync: false
       - key: EMAILJS_PRIVATE_KEY
         sync: false
+      - key: EMAILJS_FALLBACK_SERVICE_ID
+        sync: false
+      - key: EMAILJS_FALLBACK_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_FALLBACK_ADMIN_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_FALLBACK_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_FALLBACK_PRIVATE_KEY
+        sync: false
+      - key: EMAILJS_REJECTION_SERVICE_ID
+        sync: false
+      - key: EMAILJS_REJECTION_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_REJECTION_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_REJECTION_PRIVATE_KEY
+        sync: false
+      - key: EMAILJS_FALLBACK_REJECTION_SERVICE_ID
+        sync: false
+      - key: EMAILJS_FALLBACK_REJECTION_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_FALLBACK_REJECTION_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_FALLBACK_REJECTION_PRIVATE_KEY
+        sync: false
       - key: ADMIN_NOTIFICATION_EMAIL
         sync: false
       - key: BACKBLAZE_B2_ENABLED

@@ -7,7 +7,7 @@ export const siteConfig: SiteConfig = {
   eventDate: process.env.NEXT_PUBLIC_EVENT_DATE ?? "2026-09-11T09:30:00+05:30",
   registrationDeadline: process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:30:00+05:30",
   venue: "V V College of Engineering",
-  venueDetail: "V V Nagar, Tisaiyanvillai - 627657",
+  venueDetail: "V.V. Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657",
   heroCopy:
     "A national-level technical symposium featuring technical and non-technical events for individually registered participants. Registration fee: ₹250 per participant.",
   about:
@@ -20,11 +20,8 @@ export const siteConfig: SiteConfig = {
     { label: "Student Co-ordinator", value: "Vanni Venkatesh. R" },
     { label: "Student Co-ordinator", value: "Chendur Priya. B" },
     { label: "Event Contact", value: "8056591486" },
-    { label: "Mail ID", value: "cyberpunk26aids@gmail.com" }
+    { label: "Mail ID", value: "cyberpunkaidsvvcoe@gmail.com" }
   ],
-  community: {
-    whatsappGroup: "https://chat.whatsapp.com/BDgammW6Hma5zsKvd2dzBX?s=sw&p=a&mlu=4"
-  },
   paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
   paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "Suriya L",
   highlights: [
@@ -198,7 +195,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Stage gestures and quick guesses",
       accent: "blue-violet",
       visualTags: ["Silent acting", "Fast guesses", "Stage coordination"],
-      feeAmount: 0,
+      feeAmount: 250,
       prizes: [],
       rules: [
         "Each participant will receive a random word, emotion, or situation.",
@@ -228,39 +225,36 @@ export const siteConfig: SiteConfig = {
     },
     {
       order: 2,
-      code: "SD",
-      name: "Spot the Difference",
+      code: "MQ",
+      name: "Mystery Quest",
       track: "Non-Technical",
-      summary: "Find as many differences as possible between two similar images within a time limit.",
+      summary: "Decode words through sketching and one-word clues across timed rounds.",
       description:
-        "Participants will be shown two similar images side-by-side and must identify as many differences as possible within the given time.",
-      visualTitle: "Twin images and hidden differences",
+        "Teams decode clues through visual drawings and smart verbal hints under time pressure across two dynamic rounds.",
+      visualTitle: "Sketches, clues, and mystery words",
       accent: "cyan-blue",
-      visualTags: ["Sharp eyes", "Speed observation", "Detail spotting"],
-      feeAmount: 0,
+      visualTags: ["Sketch Sprint", "Clue Cascade", "Quick teamwork"],
+      feeAmount: 250,
       prizes: [],
       rules: [
-        "Two similar images will be displayed side-by-side.",
-        "Participants must carefully observe and identify the differences.",
-        "A fixed time limit will be given for each round.",
-        "Participants must mention the location or description of each difference.",
-        "Each correctly identified difference earns points.",
-        "No mobile phones, internet, AI tools, or outside assistance are allowed.",
-        "Participants cannot zoom, edit, or manipulate the images.",
-        "Answers must be submitted before the timer ends.",
-        "Once submitted, answers cannot be changed.",
-        "Winners are decided by the highest correct answers."
+        "Round 1, Sketch Sprint: one participant draws the given word while the teammate guesses.",
+        "Drawing rounds have a 60-second limit per word, with multiple attempts allowed.",
+        "Only drawing is allowed; speaking, writing letters, numbers, or symbols is prohibited.",
+        "Round 2, Clue Cascade: one participant gives one-word verbal clues for the secret word.",
+        "Gestures, spelling, rhyming, direct translations, and using parts of the answer are prohibited.",
+        "Each correct guess earns points, and there is no negative marking.",
+        "Scores from both rounds are combined to determine winners."
       ],
       importantNotes: [
         {
           tone: "prohibited",
-          title: "No devices or outside help",
-          description: "Mobile phones, internet, AI tools, and outside assistance are strictly prohibited."
+          title: "Follow clue limits",
+          description: "Invalid drawings or verbal clues may be skipped without points."
         },
         {
           tone: "warning",
-          title: "No image manipulation",
-          description: "Participants cannot zoom, edit, or manipulate the images in any way."
+          title: "Timed rounds",
+          description: "Each round is conducted under a fixed time limit."
         }
       ],
       registrationOpen: false
@@ -276,7 +270,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Linked image tiles and answer paths",
       accent: "violet-teal",
       visualTags: ["Visual puzzles", "Rapid Connect", "Challenge Connect"],
-      feeAmount: 0,
+      feeAmount: 250,
       prizes: [],
       rules: [
         "This is an individual event.",
@@ -309,38 +303,36 @@ export const siteConfig: SiteConfig = {
     },
     {
       order: 4,
-      code: "HAI",
-      name: "Human vs AI",
+      code: "VI",
+      name: "Visual Insight",
       track: "Non-Technical",
-      summary: "Identify whether displayed content is Human-made or AI-generated.",
+      summary: "Create and present an original story based on a displayed picture.",
       description:
-        "Participants must identify whether the displayed content is human-made or AI-generated.",
-      visualTitle: "Pixel blur and human hand",
+        "Participants observe a picture, build a short story, and present it with creativity, imagination, and clarity.",
+      visualTitle: "Picture-based storytelling",
       accent: "teal-blue",
-      visualTags: ["Spot the source", "AI detection", "Sharp judgment"],
-      feeAmount: 0,
+      visualTags: ["Observation", "Storytelling", "Stage presentation"],
+      feeAmount: 250,
       prizes: [],
       rules: [
-        "Each round will display one image or content sample.",
-        "Participants must decide: Human-made or AI-generated.",
-        "Each sample will have a limited time for identification.",
-        "Participants must submit their answer before the timer ends.",
-        "No internet, mobile phones, AI tools, or outside assistance are allowed.",
-        "Once an answer is submitted, it cannot be changed.",
-        "The content may include images, posters, artwork, photographs, or creative designs.",
-        "Some samples may be intentionally difficult to distinguish.",
-        "Judges' decisions will be final and binding."
+        "A random image is displayed for observation.",
+        "Participants receive limited preparation time to construct a short story.",
+        "Each participant or team presents the story within the allotted time.",
+        "Stories must directly relate to the displayed image.",
+        "Each presentation must follow the assigned narrative style or genre.",
+        "Electronic devices and external help are prohibited during preparation.",
+        "Creativity, imagination, presentation, and connection to the picture are considered during evaluation."
       ],
       importantNotes: [
         {
           tone: "prohibited",
           title: "No external help",
-          description: "Internet, mobile phones, AI tools, and outside assistance are strictly prohibited."
+          description: "Electronic devices and outside assistance are prohibited during preparation."
         },
         {
           tone: "required",
-          title: "Final decision",
-          description: "Judges' decisions will be final and binding in all cases."
+          title: "Image connection",
+          description: "The story must clearly relate to the displayed image."
         }
       ],
       registrationOpen: false

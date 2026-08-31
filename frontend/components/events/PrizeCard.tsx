@@ -5,7 +5,7 @@ import { WaterRippleCard } from "@/components/ui/WaterRippleCard";
 type PrizeCardProps = {
   title: string;
   prizes: string[];
-  details: string;
+  details?: string;
 };
 
 export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
@@ -16,7 +16,7 @@ export function PrizeCard({ title, prizes, details }: PrizeCardProps) {
           <span className="section-eyebrow">Podium format</span>
           <h4>{title}</h4>
         </div>
-        <p className="card-copy">{details}</p>
+        {details ? <p className="card-copy">{details}</p> : null}
       </div>
       <div className="prize-podium">
         <div className="prize-podium-slot prize-podium-slot-main">

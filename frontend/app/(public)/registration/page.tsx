@@ -1,5 +1,6 @@
 import { getEvents } from "@/lib/api";
 import { RegistrationWizard } from "@/components/registration/RegistrationWizard";
+import { siteConfig } from "@/lib/config/site";
 
 type RegistrationPageProps = {
   searchParams?: Promise<{
@@ -8,7 +9,19 @@ type RegistrationPageProps = {
 };
 
 export default async function RegistrationPage({ searchParams }: RegistrationPageProps) {
-  const events = await getEvents();
+  const backendEvents = await getEvents();
+  const backendEventsByCode = new Map(backendEvents.map((event) => [event.code, event]));
+  const events = [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents].map((event) => {
+    const backendEvent = backendEventsByCode.get(event.code);
+
+    return backendEvent
+      ? {
+          ...event,
+          feeAmount: backendEvent.feeAmount,
+          registrationOpen: backendEvent.registrationOpen
+        }
+      : event;
+  });
   const params = searchParams ? await searchParams : {};
   const eventCode = Array.isArray(params.event) ? params.event[0] : params.event;
 

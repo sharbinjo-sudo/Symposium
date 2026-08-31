@@ -50,8 +50,8 @@ const timelineItems = [
   },
   {
     time: "3:45 PM - 4:15 PM",
-    title: "Prize Distribution and Symposium Conclusion",
-    detail: "Prize distribution, certificates, closing remarks, and formal conclusion."
+    title: "Valedictory Function",
+    detail: "Prize distribution, certificates, closing remarks, and formal valedictory ceremony."
   }
 ];
 

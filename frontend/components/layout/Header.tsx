@@ -21,7 +21,11 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isHomePage = pathname === "/";
-  const showRegisterButton = !isHomePage && pathname !== "/registration";
+  const isAdminPage =
+    pathname.startsWith("/admin") ||
+    pathname === "/aidsadmin" ||
+    pathname === "/adminlogin";
+  const showRegisterButton = !isHomePage && pathname !== "/registration" && !isAdminPage;
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 12);

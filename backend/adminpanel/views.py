@@ -343,7 +343,7 @@ class AdminRegistrationCreateView(APIView):
       entity_id=registration.registration_code,
       metadata={
         "eventCode": data["eventCode"],
-        "eventCodes": data.get("eventCodes", [data["eventCode"]]),
+        "eventCodes": data["eventCodes"],
         "paymentStatus": payment_status
       }
     )

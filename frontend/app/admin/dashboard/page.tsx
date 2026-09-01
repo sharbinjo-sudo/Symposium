@@ -18,13 +18,13 @@ import {
   updateAdminRegistration
 } from "@/lib/api"
 import { siteConfig } from "@/lib/config/site"
+import { cn } from "@/lib/cn"
 import { formatFoodPreference } from "@/lib/format"
 import type {
   AdminRegistrationCreatePayload,
   AdminRegistrationFilters,
   AdminRegistrationRow,
   DashboardSummary,
-  EventConfig,
   ParticipantInput
 } from "@/lib/types"
 import { participantSchema } from "@/lib/validation/registration"
@@ -57,6 +57,14 @@ const foodPreferenceOptions = [
   { value: "veg", label: "Veg" },
   { value: "non_veg", label: "Non-Veg" }
 ]
+
+const exclusiveEventPairs = [["WC", "VS"]]
+const eventConflictMessage =
+  "Choose either Web Craft or Visualytics, not both, due to the event schedule. Check Timeline page for more details."
+
+function hasExclusiveEventConflict(codes: string[]) {
+  return exclusiveEventPairs.some(([firstCode, secondCode]) => codes.includes(firstCode) && codes.includes(secondCode))
+}
 
 function formatAdminDate(value: string) {
   const date = new Date(value)
@@ -179,7 +187,6 @@ async function fetchDashboardData(filters: AdminRegistrationFilters) {
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const defaultEvent = siteConfig.technicalEvents[0]
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary)
   const [registrations, setRegistrations] = useState<AdminRegistrationRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,7 +210,7 @@ export default function AdminDashboardPage() {
   const [isCreateMode, setIsCreateMode] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
-  const [createEventCode, setCreateEventCode] = useState(defaultEvent?.code ?? "")
+  const [createEventCodes, setCreateEventCodes] = useState<string[]>([])
   const [createTransactionId, setCreateTransactionId] = useState("")
   const [createPaymentStatus, setCreatePaymentStatus] = useState("verified")
   const [createPaymentDate, setCreatePaymentDate] = useState(todayDateValue())
@@ -233,9 +240,6 @@ export default function AdminDashboardPage() {
         ? "rejection"
         : null
   const canSendSelectedEmail = Boolean(emailActionType)
-  const createEvent =
-    [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents].find((event) => event.code === createEventCode) ?? siteConfig.technicalEvents[0]
-
   function redirectToAdminLogin() {
     if (authRedirectingRef.current) {
       return
@@ -362,9 +366,9 @@ export default function AdminDashboardPage() {
     }
   }, [deferredSearch, eventFilter, paymentFilter, router])
 
-  function resetCreateForm(nextEvent: EventConfig = defaultEvent) {
+  function resetCreateForm() {
     setCreateErrors({})
-    setCreateEventCode(nextEvent.code)
+    setCreateEventCodes([])
     setCreateTransactionId("")
     setCreatePaymentStatus("verified")
     setCreatePaymentDate(todayDateValue())
@@ -404,17 +408,31 @@ export default function AdminDashboardPage() {
     }
   }
 
-  function handleCreateEventChange(nextEventCode: string) {
-    const nextEvent = [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents].find((event) => event.code === nextEventCode)
-    if (!nextEvent) {
+  function handleCreateEventToggle(nextEventCode: string) {
+    const allEvents = [...siteConfig.technicalEvents, ...siteConfig.nonTechnicalEvents]
+    if (!allEvents.some((event) => event.code === nextEventCode)) {
       return
     }
 
-    setCreateEventCode(nextEvent.code)
+    setCreateEventCodes((current) =>
+      current.includes(nextEventCode)
+        ? current.filter((code) => code !== nextEventCode)
+        : [
+            ...current.filter((code) =>
+              !exclusiveEventPairs.some(
+                ([firstCode, secondCode]) =>
+                  (nextEventCode === firstCode && code === secondCode) ||
+                  (nextEventCode === secondCode && code === firstCode)
+              )
+            ),
+            nextEventCode
+          ]
+    )
     setCreateParticipants([emptyParticipant()])
     setCreateErrors((current) => {
       const next = { ...current }
       delete next.eventCode
+      delete next.eventCodes
       return next
     })
   }
@@ -433,8 +451,10 @@ export default function AdminDashboardPage() {
   function validateCreateForm() {
     const nextErrors: Record<string, string> = {}
 
-    if (!createEventCode) {
-      nextErrors.eventCode = "Choose an event."
+    if (createEventCodes.length === 0) {
+      nextErrors.eventCodes = "Choose at least one event."
+    } else if (hasExclusiveEventConflict(createEventCodes)) {
+      nextErrors.eventCodes = eventConflictMessage
     }
 
     if (!createTransactionId.trim()) {
@@ -473,7 +493,8 @@ export default function AdminDashboardPage() {
     setActionError("")
 
     const payload: AdminRegistrationCreatePayload = {
-      eventCode: createEventCode,
+      eventCode: createEventCodes[0],
+      eventCodes: createEventCodes,
       transactionId: createTransactionId.trim(),
       paymentProvider: "manual",
       paymentStatus: createPaymentStatus,
@@ -867,14 +888,14 @@ export default function AdminDashboardPage() {
 
               <div className="table-shell">
                 <table>
-                  <thead>                        <tr>
+                  <thead>
+                    <tr>
                       <th>Registration</th>
                       <th>Lead participant</th>
                       <th>Technical events</th>
                       <th>Non-technical events</th>
                       <th>Payment</th>
                       <th>Email</th>
-
                       <th>Submitted</th>
                     </tr>
                   </thead>
@@ -882,7 +903,8 @@ export default function AdminDashboardPage() {
                     {loading ? (
                       <tr>
                         <td colSpan={7}>Loading registrations...</td>
-                      </tr>                        ) : registrations.length === 0 ? (
+                      </tr>
+                    ) : registrations.length === 0 ? (
                       <tr>
                         <td colSpan={7}>No registrations match the current filters.</td>
                       </tr>
@@ -903,7 +925,8 @@ export default function AdminDashboardPage() {
                           <td>
                             <strong>{registration.leadParticipantName || "Participant"}</strong>
                             <div className="table-subtext">{registration.leadParticipantEmail || "No email"}</div>
-                          </td>                          <td>
+                          </td>
+                          <td>
                             {registration.technicalEventNames?.join(", ") || "-"}
                           </td>
                           <td>
@@ -922,7 +945,6 @@ export default function AdminDashboardPage() {
                               {formatStatusLabel(registration.emailStatus)}
                             </StatusChip>
                           </td>
-
                           <td>{formatAdminDate(registration.createdAt)}</td>
                         </tr>
                       ))
@@ -996,25 +1018,40 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="admin-create-grid">
-                    <div className="field">
-                      <label htmlFor="create-event">Event</label>
-                      <select id="create-event" value={createEventCode} onChange={(event) => handleCreateEventChange(event.target.value)}>
-                        <optgroup label="Technical">
-                          {siteConfig.technicalEvents.map((event) => (
-                            <option key={event.code} value={event.code}>
-                              {event.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Non-Technical">
-                          {siteConfig.nonTechnicalEvents.map((event) => (
-                            <option key={event.code} value={event.code}>
-                              {event.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      </select>
-                      {createErrors.eventCode ? <div className="error">{createErrors.eventCode}</div> : null}
+                    <div className="field admin-create-grid-span">
+                      <span className="field-label">Events</span>
+                      <div className="helper admin-create-event-note">
+                        Web Craft and Visualytics cannot be selected together because they are scheduled at the same time.
+                      </div>
+                      <div className="admin-create-event-picker">
+                        {[
+                          { title: "Technical", events: siteConfig.technicalEvents },
+                          { title: "Non-Technical", events: siteConfig.nonTechnicalEvents }
+                        ].map((group) => (
+                          <div key={group.title} className="admin-create-event-group">
+                            <strong>{group.title}</strong>
+                            <div className="admin-create-event-options">
+                              {group.events.map((event) => (
+                                <label
+                                  key={event.code}
+                                  className={cn(
+                                    "admin-create-event-option",
+                                    createEventCodes.includes(event.code) && "is-selected"
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={createEventCodes.includes(event.code)}
+                                    onChange={() => handleCreateEventToggle(event.code)}
+                                  />
+                                  <span>{event.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {createErrors.eventCodes ? <div className="error">{createErrors.eventCodes}</div> : null}
                     </div>
 
                     <div className="field">

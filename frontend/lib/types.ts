@@ -178,7 +178,7 @@ export type AdminRegistrationActionPayload = {
 };
 
 export type AdminRegistrationCreatePayload = {
-  eventCode: string;
+  eventCode?: string;
   eventCodes?: string[];
   transactionId: string;
   paymentProvider: string;

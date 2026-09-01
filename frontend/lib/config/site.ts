@@ -20,7 +20,7 @@ export const siteConfig: SiteConfig = {
     { label: "Student Co-ordinator", value: "Vanni Venkatesh. R" },
     { label: "Student Co-ordinator", value: "Chendur Priya. B" },
     { label: "Event Contact", value: "8056591486" },
-    { label: "Mail ID", value: "cyberpunkaidsvvcoe@gmail.com" }
+    { label: "Mail ID", value: "cyberpunkaidsvvcoe26@gmail.com" }
   ],
   paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
   paymentReceiverName: process.env.NEXT_PUBLIC_PAYMENT_RECEIVER_NAME ?? "Suriya L",

@@ -7,7 +7,7 @@ export const siteConfig: SiteConfig = {
   eventDate: process.env.NEXT_PUBLIC_EVENT_DATE ?? "2026-09-11T09:30:00+05:30",
   registrationDeadline: process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:30:00+05:30",
   venue: "V V College of Engineering",
-  venueDetail: "V.V. Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657",
+  venueDetail: "V V Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657",
   heroCopy:
     "A national-level technical symposium featuring technical and non-technical events for individually registered participants. Registration fee: ₹250 per participant.",
   about:

@@ -10811,6 +10811,51 @@ body {
   }
 }
 
+/* Keep navbar images perfectly square on narrow phones. */
+.brand-seal,
+.mobile-nav-seal {
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.brand-logo-image,
+.mobile-nav-seal-image {
+  display: block;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.nba-badge,
+.nba-badge-mobile {
+  flex: 0 0 auto;
+}
+
+.nba-badge-image {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+@media (max-width: 520px) {
+  .brand-seal {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .mobile-nav-seal {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .brand-logo-image,
+  .mobile-nav-seal-image {
+    object-fit: cover;
+  }
+}
+
 @media (max-width: 1140px) {
   :root {
     --site-header-space: clamp(5.1rem, 11vw, 5.8rem);
@@ -12144,6 +12189,64 @@ body {
 
   .consent-row input {
     margin-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .payment-info-panel .upload-dropzone {
+    min-height: auto;
+    padding: 0.92rem;
+    gap: 0.62rem;
+    border-radius: 18px;
+    border-color: rgba(var(--primary-rgb), 0.28);
+    background:
+      linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(255, 255, 255, 0.9)),
+      linear-gradient(45deg, rgba(143, 29, 44, 0.035) 25%, transparent 25%, transparent 50%, rgba(143, 29, 44, 0.035) 50%, rgba(143, 29, 44, 0.035) 75%, transparent 75%, transparent);
+    background-size: auto, 42px 42px;
+  }
+
+  .payment-info-panel .upload-badge {
+    padding: 0.34rem 0.72rem;
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #8f1d2c, #cf4055);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    box-shadow: 0 10px 22px rgba(143, 29, 44, 0.18);
+  }
+
+  .payment-info-panel .upload-copy {
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .payment-info-panel .upload-copy strong {
+    color: var(--ink-strong);
+    font-size: 0.96rem;
+    line-height: 1.24;
+  }
+
+  .payment-info-panel .upload-copy span {
+    color: var(--ink-soft);
+    font-size: 0.84rem;
+    line-height: 1.36;
+  }
+
+  .payment-info-panel .upload-state-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem 0.55rem;
+    margin-top: 0.1rem;
+  }
+
+  .payment-info-panel .upload-state-grid span {
+    color: rgb(var(--primary-rgb));
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .payment-info-panel .upload-meta {
+    font-size: 0.84rem;
+    line-height: 1.35;
   }
 }
 

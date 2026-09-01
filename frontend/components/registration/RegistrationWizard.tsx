@@ -1,5 +1,5 @@
 "use client";
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedHeading } from "@/components/ui/AnimatedHeading";
 import { Button } from "@/components/ui/Button";
@@ -77,6 +77,16 @@ function hasExclusiveEventConflict(codes: string[]) {
   return exclusiveEventPairs.some(([firstCode, secondCode]) => codes.includes(firstCode) && codes.includes(secondCode));
 }
 
+function clearFieldError(errors: Record<string, string>, field: string) {
+  if (!errors[field]) {
+    return errors;
+  }
+
+  const next = { ...errors };
+  delete next[field];
+  return next;
+}
+
 function getPaymentQrCard(totalAmount: number) {
   return paymentQrCards[totalAmount] ?? siteConfig.paymentScannerImage;
 }
@@ -135,12 +145,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   );
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const paymentReferenceRef = useRef("");
+  const paymentDateRef = useRef(new Date().toISOString().slice(0, 10));
+  const [paymentFieldResetKey, setPaymentFieldResetKey] = useState(0);
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [paymentUploadToken, setPaymentUploadToken] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInput[]>(() =>
     [emptyParticipant()]
   );
+  const participantsRef = useRef<ParticipantInput[]>(participants);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
@@ -198,14 +212,29 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   function syncParticipants() {
-    setParticipants((current) => [
-      current[0] ?? emptyParticipant()
-    ]);
+    const nextParticipants = [participantsRef.current[0] ?? emptyParticipant()];
+    participantsRef.current = nextParticipants;
+    setParticipants(nextParticipants);
+  }
+
+  function getSoloParticipantsSnapshot() {
+    return (participantsRef.current.length > 0 ? participantsRef.current : participants).slice(0, 1);
+  }
+
+  function commitParticipantChanges() {
+    const nextParticipants = getSoloParticipantsSnapshot().map((participant) => ({ ...participant }));
+    participantsRef.current = nextParticipants;
+    setParticipants(nextParticipants);
+    return nextParticipants;
   }
 
   function resetPaymentState() {
+    const nextPaymentDate = new Date().toISOString().slice(0, 10);
+    paymentReferenceRef.current = "";
+    paymentDateRef.current = nextPaymentDate;
     setPaymentReference("");
-    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentDate(nextPaymentDate);
+    setPaymentFieldResetKey((current) => current + 1);
     setPaymentScreenshot(null);
     setPaymentUploadToken("");
     setPaymentMessage("");
@@ -218,6 +247,17 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       delete next.paymentUploadToken;
       return next;
     });
+  }
+
+  function commitPaymentFields() {
+    const nextPaymentReference = paymentReferenceRef.current.trim();
+    const nextPaymentDate = paymentDateRef.current;
+    setPaymentReference(nextPaymentReference);
+    setPaymentDate(nextPaymentDate);
+    return {
+      paymentReference: nextPaymentReference,
+      paymentDate: nextPaymentDate
+    };
   }
 
   function updateSelectedEvents(nextCodes: string[]) {
@@ -260,21 +300,18 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       setSubmitError(paymentLockedMessage);
       return;
     }
-    setParticipants((current) =>
-      current.map((participant, participantIndex) =>
-        participantIndex === index ? { ...participant, [field]: value } : participant
-      )
+    participantsRef.current = getSoloParticipantsSnapshot().map((participant, participantIndex) =>
+      participantIndex === index ? { ...participant, [field]: value } : participant
     );
     setSubmitError("");
-    setErrors((current) => {
-      const next = { ...current };
-      delete next[`participant-${index}-${field}`];
-      return next;
-    });
+    setErrors((current) => clearFieldError(current, `participant-${index}-${field}`));
   }
 
   function validateForm() {
     const nextErrors: Record<string, string> = {};
+    const currentSoloParticipants = getSoloParticipantsSnapshot();
+    const currentPaymentReference = paymentReferenceRef.current.trim();
+    const currentPaymentDate = paymentDateRef.current;
 
     if (eventCodes.length === 0) {
       nextErrors.eventCodes = "Choose at least one event to continue.";
@@ -282,7 +319,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       nextErrors.eventCodes = eventConflictMessage;
     }
 
-    soloParticipants.forEach((participant, index) => {
+    currentSoloParticipants.forEach((participant, index) => {
       const result = participantSchema.safeParse(participant);
 
       if (!result.success) {
@@ -329,12 +366,12 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
       }
     });
 
-    if (!paymentReference.trim()) {
+    if (!currentPaymentReference) {
       nextErrors.transactionId = "UPI transaction ID is required.";
-    } else if (!/^\d{12}$/.test(paymentReference.trim())) {
+    } else if (!/^\d{12}$/.test(currentPaymentReference)) {
       nextErrors.transactionId = "Enter the 12-digit UPI transaction ID.";
     }
-    if (!paymentDate) {
+    if (!currentPaymentDate) {
       nextErrors.paymentDate = "Payment date is required.";
     }
     if (!paymentUploadToken) {
@@ -351,11 +388,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
     const result = schema.safeParse({
       eventCode,
       eventCodes,
-      transactionId: paymentReference,
-      paymentDate,
+      transactionId: currentPaymentReference,
+      paymentDate: currentPaymentDate,
       paymentUploadToken,
       consentGiven,
-      participants: soloParticipants
+      participants: currentSoloParticipants
     });
 
     if (!result.success) {
@@ -369,12 +406,15 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   async function runDuplicatePrecheck() {
+    const currentSoloParticipants = getSoloParticipantsSnapshot();
+    const currentPaymentReference = paymentReferenceRef.current.trim();
+
     try {
       await precheckRegistration({
         eventCode,
         eventCodes,
-        transactionId: paymentReference.trim(),
-        participants: soloParticipants.map((participant) => ({
+        transactionId: currentPaymentReference,
+        participants: currentSoloParticipants.map((participant) => ({
           email: participant.email,
           mobileNumber: participant.mobileNumber
         }))
@@ -437,6 +477,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
   }
 
   function handleSubmit() {
+    const currentSoloParticipants = commitParticipantChanges();
+    const currentPayment = commitPaymentFields();
+
     if (!validateForm()) {
       return;
     }
@@ -473,11 +516,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
             eventCodes,
             technicalEventCodes: technicalCodes,
             nonTechnicalEventCodes: nonTechnicalCodes,
-            transactionId: paymentReference.trim(),
-            paymentDate,
+            transactionId: currentPayment.paymentReference,
+            paymentDate: currentPayment.paymentDate,
             paymentUploadToken,
             consentGiven,
-            participants: soloParticipants.map((participant) => ({ ...participant })),
+            participants: currentSoloParticipants.map((participant) => ({ ...participant })),
             idempotencyKey
           });
           setConfirmation(response);
@@ -749,8 +792,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <input
                             id={`fullName-${index}`}
                             placeholder="Example: S. Kavin"
-                            value={participant.fullName}
+                            defaultValue={participant.fullName}
                             onChange={(event) => handleParticipantChange(index, "fullName", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           />
                           {errors[`participant-${index}-fullName`] ? (
                             <div className="error">{errors[`participant-${index}-fullName`]}</div>
@@ -761,8 +805,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <input
                             id={`college-${index}`}
                             placeholder="Example: V V College of Engineering"
-                            value={participant.collegeName}
+                            defaultValue={participant.collegeName}
                             onChange={(event) => handleParticipantChange(index, "collegeName", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           />
                           {errors[`participant-${index}-collegeName`] ? (
                             <div className="error">{errors[`participant-${index}-collegeName`]}</div>
@@ -774,8 +819,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                             id={`mobile-${index}`}
                             inputMode="tel"
                             placeholder="Example: +91 98XXX XX210"
-                            value={participant.mobileNumber}
+                            defaultValue={participant.mobileNumber}
                             onChange={(event) => handleParticipantChange(index, "mobileNumber", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           />
                           {errors[`participant-${index}-mobileNumber`] ? (
                             <div className="error">{errors[`participant-${index}-mobileNumber`]}</div>
@@ -787,8 +833,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                             id={`email-${index}`}
                             type="email"
                             placeholder="participant@example.com"
-                            value={participant.email}
+                            defaultValue={participant.email}
                             onChange={(event) => handleParticipantChange(index, "email", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           />
                           {errors[`participant-${index}-email`] ? (
                             <div className="error">{errors[`participant-${index}-email`]}</div>
@@ -799,8 +846,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <input
                             id={`department-${index}`}
                             placeholder="Example: AI & DS"
-                            value={participant.department}
+                            defaultValue={participant.department}
                             onChange={(event) => handleParticipantChange(index, "department", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           />
                           {errors[`participant-${index}-department`] ? (
                             <div className="error">{errors[`participant-${index}-department`]}</div>
@@ -810,8 +858,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <label htmlFor={`year-${index}`}>Year of study</label>
                           <select
                             id={`year-${index}`}
-                            value={participant.yearOfStudy}
+                            defaultValue={participant.yearOfStudy}
                             onChange={(event) => handleParticipantChange(index, "yearOfStudy", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           >
                             <option value="">Choose year</option>
                             <option value="1">1st year</option>
@@ -827,8 +876,9 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                           <label htmlFor={`food-${index}`}>Food preference</label>
                           <select
                             id={`food-${index}`}
-                            value={participant.foodPreference}
+                            defaultValue={participant.foodPreference}
                             onChange={(event) => handleParticipantChange(index, "foodPreference", event.target.value)}
+                            onBlur={commitParticipantChanges}
                           >
                             <option value="">Choose food</option>
                             <option value="veg">Veg</option>
@@ -963,12 +1013,18 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                       <div className="field">
                         <label htmlFor="paymentReference">UPI transaction ID</label>
                         <input
+                          key={`payment-reference-${paymentFieldResetKey}`}
                           id="paymentReference"
-                          value={paymentReference}
+                          defaultValue={paymentReference}
                           onChange={(event) => {
-                            setPaymentReference(event.target.value.replace(/\D/g, "").slice(0, 12));
-                            setErrors((current) => ({ ...current, transactionId: "" }));
+                            const nextValue = event.target.value.replace(/\D/g, "").slice(0, 12);
+                            if (nextValue !== event.target.value) {
+                              event.target.value = nextValue;
+                            }
+                            paymentReferenceRef.current = nextValue;
+                            setErrors((current) => clearFieldError(current, "transactionId"));
                           }}
+                          onBlur={commitPaymentFields}
                           placeholder="Enter 12-digit ID"
                           inputMode="numeric"
                           pattern="\d{12}"
@@ -981,14 +1037,16 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                       <div className="field">
                         <label htmlFor="paymentDate">Payment date</label>
                         <input
+                          key={`payment-date-${paymentFieldResetKey}`}
                           id="paymentDate"
                           type="date"
-                          value={paymentDate}
+                          defaultValue={paymentDate}
                           max={new Date().toISOString().slice(0, 10)}
                           onChange={(event) => {
-                            setPaymentDate(event.target.value);
-                            setErrors((current) => ({ ...current, paymentDate: "" }));
+                            paymentDateRef.current = event.target.value;
+                            setErrors((current) => clearFieldError(current, "paymentDate"));
                           }}
+                          onBlur={commitPaymentFields}
                         />
                         {errors.paymentDate ? <div className="error">{errors.paymentDate}</div> : null}
                       </div>
@@ -1003,11 +1061,11 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     <label className="consent-row">
                       <input
                         type="checkbox"
-                        checked={consentGiven}
-                        onChange={(event) => {
-                          setConsentGiven(event.target.checked);
-                          setErrors((current) => ({ ...current, consentGiven: "" }));
-                        }}
+                          checked={consentGiven}
+                          onChange={(event) => {
+                            setConsentGiven(event.target.checked);
+                            setErrors((current) => clearFieldError(current, "consentGiven"));
+                          }}
                       />
                       <span>
                         I confirm my details are correct and I consent to manual verification of my registration.

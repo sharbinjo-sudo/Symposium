@@ -17,6 +17,14 @@ type FieldErrors = {
   form?: string;
 };
 
+function clearFieldError(errors: FieldErrors, field: keyof FieldErrors) {
+  if (!errors[field]) {
+    return errors;
+  }
+
+  return { ...errors, [field]: undefined };
+}
+
 function formatStatusLabel(value: string) {
   return value
     .split("_")
@@ -190,7 +198,10 @@ export function RegistrationStatusLookup() {
                 <input
                   type="text"
                   value={registrationCode}
-                  onChange={(event) => setRegistrationCode(event.target.value.toUpperCase())}
+                  onChange={(event) => {
+                    setRegistrationCode(event.target.value.toUpperCase());
+                    setFieldErrors((current) => clearFieldError(clearFieldError(current, "registrationCode"), "form"));
+                  }}
                   placeholder="CP26-RN-0XXX"
                   autoComplete="off"
                 />
@@ -202,7 +213,10 @@ export function RegistrationStatusLookup() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setFieldErrors((current) => clearFieldError(clearFieldError(current, "email"), "form"));
+                  }}
                   placeholder="participant@example.com"
                   autoComplete="email"
                 />

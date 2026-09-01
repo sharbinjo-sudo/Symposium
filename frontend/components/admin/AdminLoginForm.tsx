@@ -11,6 +11,19 @@ import { navigateWithLoading } from "@/lib/navigation-transition";
 const adminEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const defaultAdminRedirect = "/admin/dashboard";
 
+type AdminLoginFieldErrors = {
+  email?: string;
+  password?: string;
+};
+
+function clearFieldError(errors: AdminLoginFieldErrors, field: keyof AdminLoginFieldErrors) {
+  if (!errors[field]) {
+    return errors;
+  }
+
+  return { ...errors, [field]: undefined };
+}
+
 function getSafeAdminRedirect() {
   if (typeof window === "undefined") {
     return defaultAdminRedirect;
@@ -33,7 +46,7 @@ export function AdminLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<AdminLoginFieldErrors>({});
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +74,7 @@ export function AdminLoginForm() {
   }, [router]);
 
   function validateFields() {
-    const nextErrors: { email?: string; password?: string } = {};
+    const nextErrors: AdminLoginFieldErrors = {};
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
@@ -137,7 +150,7 @@ export function AdminLoginForm() {
                 disabled={checkingSession || loading}
                 onChange={(event) => {
                   setEmail(event.target.value);
-                  setFieldErrors((current) => ({ ...current, email: undefined }));
+                  setFieldErrors((current) => clearFieldError(current, "email"));
                 }}
               />
               {fieldErrors.email ? <div className="error">{fieldErrors.email}</div> : null}
@@ -154,7 +167,7 @@ export function AdminLoginForm() {
                 disabled={checkingSession || loading}
                 onChange={(event) => {
                   setPassword(event.target.value);
-                  setFieldErrors((current) => ({ ...current, password: undefined }));
+                  setFieldErrors((current) => clearFieldError(current, "password"));
                 }}
               />
               {fieldErrors.password ? <div className="error">{fieldErrors.password}</div> : null}

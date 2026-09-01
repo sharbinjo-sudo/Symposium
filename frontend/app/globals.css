@@ -10838,10 +10838,47 @@ body {
 }
 
 @media (max-width: 520px) {
+  .site-header-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .brand-lockup {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .brand-copy {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .brand-copy strong {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    min-width: max-content;
+    gap: 0.42rem;
+  }
+
   .brand-seal {
     width: 40px;
     height: 40px;
     min-width: 40px;
+  }
+
+  .nba-badge {
+    width: 42px;
+    min-width: 42px;
+  }
+
+  .nba-badge-image {
+    width: 42px;
+    height: 34px;
   }
 
   .mobile-nav-seal {
@@ -10865,6 +10902,42 @@ body {
 @media (max-width: 520px) {
   :root {
     --site-header-space: 4.9rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-header-inner {
+    padding-inline: 0.56rem;
+  }
+
+  .brand-lockup {
+    gap: 0.45rem;
+  }
+
+  .brand-seal {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .brand-copy strong {
+    font-size: 0.66rem;
+    letter-spacing: 0.045em;
+  }
+
+  .nba-badge {
+    width: 38px;
+    min-width: 38px;
+  }
+
+  .nba-badge-image {
+    width: 38px;
+    height: 31px;
+  }
+
+  .mobile-menu-toggle {
+    width: 40px;
+    height: 40px;
   }
 }
 
@@ -12247,6 +12320,55 @@ body {
   .payment-info-panel .upload-meta {
     font-size: 0.84rem;
     line-height: 1.35;
+  }
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+    transition: none !important;
+    transform: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  select:focus,
+  textarea:focus {
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.16) !important;
+  }
+
+  .wizard-main-card,
+  .payment-info-panel,
+  .payment-qr-card,
+  .participant-card,
+  .status-check-form-card,
+  .status-check-result-card,
+  .admin-login-panel,
+  .admin-detail-modal {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .wizard-main-card,
+  .participant-card,
+  .payment-info-panel,
+  .payment-qr-card,
+  .status-check-form-card,
+  .admin-login-panel {
+    contain: layout paint;
+  }
+
+  .wizard-main-card:focus-within,
+  .payment-info-panel:focus-within,
+  .participant-card:focus-within,
+  .status-check-form-card:focus-within,
+  .admin-login-panel:focus-within,
+  .admin-detail-modal:focus-within {
+    animation: none !important;
+    transition: none !important;
   }
 }
 

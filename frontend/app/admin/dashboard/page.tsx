@@ -66,6 +66,16 @@ function hasExclusiveEventConflict(codes: string[]) {
   return exclusiveEventPairs.some(([firstCode, secondCode]) => codes.includes(firstCode) && codes.includes(secondCode))
 }
 
+function clearFieldError(errors: Record<string, string>, field: string) {
+  if (!errors[field]) {
+    return errors
+  }
+
+  const next = { ...errors }
+  delete next[field]
+  return next
+}
+
 function formatAdminDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
@@ -445,7 +455,7 @@ export default function AdminDashboardPage() {
         participantIndex === index ? { ...participant, [field]: value } : participant
       )
     )
-    setCreateErrors((current) => ({ ...current, [`participant-${index}-${field}`]: "" }))
+    setCreateErrors((current) => clearFieldError(current, `participant-${index}-${field}`))
   }
 
   function validateCreateForm() {
@@ -1061,7 +1071,7 @@ export default function AdminDashboardPage() {
                         value={createTransactionId}
                         onChange={(event) => {
                           setCreateTransactionId(event.target.value.replace(/\D/g, "").slice(0, 12))
-                          setCreateErrors((current) => ({ ...current, transactionId: "" }))
+                          setCreateErrors((current) => clearFieldError(current, "transactionId"))
                         }}
                         placeholder="Enter 12-digit ID"
                         inputMode="numeric"
@@ -1080,7 +1090,7 @@ export default function AdminDashboardPage() {
                         value={createPaymentDate}
                         onChange={(event) => {
                           setCreatePaymentDate(event.target.value)
-                          setCreateErrors((current) => ({ ...current, paymentDate: "" }))
+                          setCreateErrors((current) => clearFieldError(current, "paymentDate"))
                         }}
                       />
                       {createErrors.paymentDate ? <div className="error">{createErrors.paymentDate}</div> : null}

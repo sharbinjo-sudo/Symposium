@@ -971,7 +971,7 @@ input[type="radio"]:focus {
 }
 
 .hero {
-  padding: clamp(0.5rem, 1.2vw, 0.9rem) 0 clamp(0.65rem, 1.4vw, 1rem);
+  padding: clamp(0.3rem, 0.8vw, 0.6rem) 0 clamp(0.4rem, 1vw, 0.7rem);
 }
 
 .home-frame-scene {
@@ -1010,7 +1010,7 @@ input[type="radio"]:focus {
     "copy countdown"
     "note countdown";
   column-gap: clamp(1.4rem, 3.2vw, 2.8rem);
-  row-gap: clamp(0.4rem, 0.8vw, 0.7rem);
+  row-gap: clamp(0.25rem, 0.5vw, 0.45rem);
   align-items: start;
 }
 
@@ -1050,7 +1050,7 @@ input[type="radio"]:focus {
 .hero-copy {
   grid-area: copy;
   max-width: min(100%, 40rem);
-  padding-top: 0.15rem;
+  padding-top: 0;
 }
 
 .hero-visual-column {
@@ -1079,7 +1079,7 @@ input[type="radio"]:focus {
 .hero-title {
   margin: 0.45rem 0 0;
   font-family: var(--font-heading);
-  font-size: clamp(2.6rem, 4.4vw, 4.6rem);
+  font-size: clamp(2.2rem, 3.8vw, 4rem);
   line-height: 0.94;
   letter-spacing: -0.06em;
   max-width: 14ch;
@@ -1097,7 +1097,7 @@ input[type="radio"]:focus {
 
 .hero-description {
   max-width: 42ch;
-  margin: 0.45rem 0 0;
+  margin: 0.3rem 0 0;
   font-size: 0.9rem;
   line-height: 1.42;
   color: var(--ink-soft);
@@ -1110,7 +1110,7 @@ input[type="radio"]:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
-  margin-top: 0.7rem;
+  margin-top: 0.5rem;
 }
 
 .hero-note-reveal {
@@ -1455,16 +1455,17 @@ input[type="radio"]:focus {
 }
 
 .hero-countdown-header h2 {
-  max-width: 10ch;
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-size: clamp(1.6rem, 2.6vw, 2.6rem);
   line-height: 0.94;
   letter-spacing: -0.055em;
+  white-space: nowrap;
 }
 
 .hero-countdown-header h2 span {
-  display: block;
+  display: inline;
+  margin-right: 0.35em;
 }
 
 .hero-countdown-header .card-copy {
@@ -6460,10 +6461,6 @@ th {
     min-height: 420px;
   }
 
-  .hero-countdown-header h2 {
-    max-width: 12ch;
-  }
-
   .hero-countdown-panel .countdown-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -8650,13 +8647,13 @@ textarea {
 
   .hero-title {
     margin-top: 0.42rem;
-    font-size: clamp(2rem, 8vw, 2.6rem);
+    font-size: clamp(1.6rem, 6.5vw, 2.1rem);
     letter-spacing: -0.075em;
   }
 
   .hero-tagline {
     margin-top: 0.42rem;
-    font-size: 0.82rem;
+    font-size: 0.68rem;
     letter-spacing: 0.13em;
   }
 
@@ -8701,7 +8698,6 @@ textarea {
   }
 
   .hero-countdown-header h2 {
-    max-width: 12ch;
     font-size: clamp(1.48rem, 8vw, 2.12rem);
     line-height: 0.9;
   }
@@ -8780,7 +8776,7 @@ textarea {
 
 @media (max-width: 380px) {
   .hero-title {
-    font-size: clamp(1.8rem, 8vw, 2.4rem);
+    font-size: clamp(1.4rem, 6.5vw, 1.9rem);
   }
 
   .hero-description {
@@ -12490,7 +12486,6 @@ body {
   }
 
   .hero-countdown-header h2 {
-    max-width: 11ch;
     font-size: clamp(2.45rem, 3.4vw, 3.45rem);
     line-height: 0.92;
     letter-spacing: 0;
@@ -15088,7 +15083,6 @@ textarea {
   }
 
   .home-frame-scene .hero-countdown-header h2 {
-    max-width: 10.5ch !important;
     font-size: 3.05rem !important;
     line-height: 0.92 !important;
   }
@@ -16259,7 +16253,6 @@ textarea {
   }
 
   .home-frame-scene .hero-countdown-header h2 {
-    max-width: 10ch !important;
     margin: 0.42rem 0 0.45rem !important;
     font-size: clamp(2.75rem, 3.25vw, 3.55rem) !important;
     line-height: 0.92 !important;

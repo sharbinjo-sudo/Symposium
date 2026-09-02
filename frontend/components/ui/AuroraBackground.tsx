@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { PlainBackground } from "@/components/ui/PlainBackground";
 
 const NODES = [
   { top: 12, left: 18, color: "#c9a227", delay: "0s", dur: "3.4s" },
@@ -36,10 +37,24 @@ type BackgroundStyle = React.CSSProperties & {
   "--scroll": number;
 };
 
+const MOBILE_BREAKPOINT = 720;
+
 export function AuroraBackground() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    setIsMobile(mql.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+
     const el = rootRef.current;
     if (!el) return;
 
@@ -78,7 +93,11 @@ export function AuroraBackground() {
       if (rafMouse) cancelAnimationFrame(rafMouse);
       if (rafScroll) cancelAnimationFrame(rafScroll);
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) {
+    return <PlainBackground />;
+  }
 
   return (
     <div
@@ -275,117 +294,6 @@ export function AuroraBackground() {
           }
         }
 
-        @media (max-width: 720px) {
-          .bg-root {
-            background:
-              radial-gradient(circle at 15% 12%, rgba(143, 29, 44, 0.14), transparent 35%),
-              radial-gradient(circle at 92% 36%, rgba(217, 75, 96, 0.16), transparent 38%),
-              radial-gradient(circle at 45% 88%, rgba(201, 162, 39, 0.1), transparent 36%),
-              linear-gradient(135deg, #fff9fa 0%, #fdeef1 54%, #fffafa 100%);
-          }
-
-          .bg-aura {
-            inset: -18%;
-            opacity: 0.96;
-            background: linear-gradient(135deg,
-              rgba(255, 255, 255, 0.42) 0%,
-              rgba(255, 231, 236, 0.7) 38%,
-              rgba(255, 244, 246, 0.82) 68%,
-              rgba(255, 255, 255, 0.48) 100%);
-            animation-duration: 34s;
-          }
-
-          .bg-grid--far {
-            display: block;
-            opacity: 0.42;
-            background-image:
-              repeating-linear-gradient(45deg, rgba(143,29,44,0.045) 0px, rgba(143,29,44,0.045) 1px, transparent 1px, transparent 72px),
-              repeating-linear-gradient(-45deg, rgba(217,75,96,0.035) 0px, rgba(217,75,96,0.035) 1px, transparent 1px, transparent 72px);
-            animation-duration: 96s;
-          }
-
-          .bg-motes--far {
-            display: block;
-            opacity: 0.36;
-            background-size: 112px 132px;
-          }
-
-          .bg-grid--near {
-            display: block;
-            opacity: 0.16;
-            background-image:
-              repeating-linear-gradient(45deg, rgba(143,29,44,0.035) 0px, rgba(143,29,44,0.035) 1px, transparent 1px, transparent 64px),
-              repeating-linear-gradient(-45deg, rgba(217,75,96,0.03) 0px, rgba(217,75,96,0.03) 1px, transparent 1px, transparent 64px);
-            animation-duration: 78s;
-          }
-
-          .bg-motes--near {
-            display: block;
-            opacity: 0.18;
-            background-size: 88px 104px;
-            animation-duration: 52s;
-          }
-
-          .bg-circuit {
-            display: block;
-            opacity: 0.32;
-          }
-
-          .bg-circuit line {
-            stroke: rgba(143, 29, 44, 0.1);
-            stroke-dasharray: 3 7;
-            animation-duration: 4.8s;
-          }
-
-          .bg-node {
-            display: block;
-            width: 4px;
-            height: 4px;
-            opacity: 0.55;
-          }
-
-          .bg-pulse {
-            display: block;
-            width: 6px;
-            height: 6px;
-            box-shadow: 0 0 12px 4px currentColor;
-          }
-
-          .bg-pulse--3 {
-            display: none;
-          }
-
-          .bg-blob {
-            filter: blur(58px);
-            opacity: 0.28;
-          }
-
-          .bg-blob--maroon {
-            width: 260px;
-            height: 260px;
-            top: -70px;
-            left: -80px;
-          }
-
-          .bg-blob--rose {
-            width: 320px;
-            height: 320px;
-            right: -120px;
-            bottom: 18%;
-          }
-
-          .bg-blob--gold {
-            width: 220px;
-            height: 220px;
-            top: 48%;
-            left: 18%;
-            opacity: 0.18;
-          }
-
-          .bg-vignette {
-            background: radial-gradient(circle at 50% 34%, transparent 56%, rgba(42,16,21,0.045) 100%);
-          }
-        }
       `}</style>
 
       <div className="bg-aura" />

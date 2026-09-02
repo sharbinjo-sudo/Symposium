@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
 import { GlassPanel } from "@/components/ui/GlassPanel";
@@ -111,6 +111,17 @@ export function RegistrationStatusLookup() {
   const [result, setResult] = useState<RegistrationStatusResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (result) {
+      const timer = setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [result]);
+
   const organizerContact = siteConfig.contacts.find((item) => item.label === "Mail ID")?.value ?? "Contact the organizers.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -236,6 +247,7 @@ export function RegistrationStatusLookup() {
         </Reveal>
 
         <Reveal className="status-check-result-reveal" delay={0.16} y={30}>
+          <div ref={resultRef} />
           <GlassPanel className="status-check-result-card" tone="soft">
             <AnimatePresence mode="wait" initial={false}>
               {result ? (

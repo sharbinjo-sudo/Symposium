@@ -1204,20 +1204,14 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
               <section className="wizard-stage wizard-notes-stage">
                 <div className="wizard-stage-heading">
                   <h3>Important Registration Notes</h3>
-                  <p className="helper">Please review these points before completing your symposium registration.</p>
+                  <p className="helper">Please review these final registration conditions before submitting.</p>
                 </div>
                 <GlassPanel className="registration-notes-card" tone="soft">
                   <ul className="registration-notes-list">
-                    <li>The countdown shows the deadline for online registration. On-site registration will remain available on campus.</li>
-                    <li>To attend the symposium, registration for at least one primary technical event is mandatory.</li>
-                    <li>If time permits during the event, participants may also attend other registered technical events and non-technical events.</li>
-                    <li>Non-technical events can also be selected during online registration.</li>
-                    <li>Participants may choose either Web Craft or Visualytics, but not both, due to the event schedule.</li>
-                    <li>Paper Presentation participants may leave the hall after completing their presentation so they can attend other events. Late arrival to Paper Presentation may be permitted when it is due to participation in another scheduled event.</li>
-                    <li>If your payment is rejected, you will receive an email notification. You may register again using the same details, with corrected payment proof and a valid UPI transaction ID.</li>
-                    <li>Prizes for non-technical events will be announced on campus.</li>
-                    <li>After registration, participants can check their registration status on the Status page.</li>
-                    <li>Each participant must complete a separate registration. If grouping is required for an event, it will be coordinated on campus.</li>
+                    <li>Select at least one technical event; non-technical events may be added during the same registration.</li>
+                    <li>Choose either Web Craft or Visualytics, not both, because both are scheduled at the same time.</li>
+                    <li>Upload clear payment proof with a valid 12-digit UPI transaction ID. If rejected, you may register again with corrected proof.</li>
+                    <li>All submissions must be original, and participants must follow campus discipline and coordinator instructions.</li>
                   </ul>
                 </GlassPanel>
                 <label className="consent-row">

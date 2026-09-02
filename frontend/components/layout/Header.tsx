@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { cn } from "@/lib/cn";
 
@@ -20,6 +20,7 @@ export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const scrollLockTop = useRef(0);
   const isHomePage = pathname === "/";
   const isAdminPage =
     pathname.startsWith("/admin") ||
@@ -40,9 +41,26 @@ export function Header() {
 
   useEffect(() => {
     if (!open) {
-      document.body.style.overflow = "";
       return;
     }
+
+    scrollLockTop.current = window.scrollY;
+    const bodyStyle = document.body.style;
+    const htmlStyle = document.documentElement.style;
+    const previousBodyStyles = {
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      left: bodyStyle.left,
+      right: bodyStyle.right,
+      width: bodyStyle.width,
+      overflow: bodyStyle.overflow,
+      touchAction: bodyStyle.touchAction,
+      overscrollBehavior: bodyStyle.overscrollBehavior
+    };
+    const previousHtmlStyles = {
+      overflow: htmlStyle.overflow,
+      overscrollBehavior: htmlStyle.overscrollBehavior
+    };
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -50,19 +68,41 @@ export function Header() {
       }
     };
 
-    document.body.style.overflow = "hidden";
+    document.documentElement.classList.add("mobile-nav-scroll-locked");
+    document.body.classList.add("mobile-nav-scroll-locked");
+    htmlStyle.overflow = "hidden";
+    htmlStyle.overscrollBehavior = "none";
+    bodyStyle.position = "fixed";
+    bodyStyle.top = `-${scrollLockTop.current}px`;
+    bodyStyle.left = "0";
+    bodyStyle.right = "0";
+    bodyStyle.width = "100%";
+    bodyStyle.overflow = "hidden";
+    bodyStyle.touchAction = "none";
+    bodyStyle.overscrollBehavior = "none";
     window.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
+      document.documentElement.classList.remove("mobile-nav-scroll-locked");
+      document.body.classList.remove("mobile-nav-scroll-locked");
+      htmlStyle.overflow = previousHtmlStyles.overflow;
+      htmlStyle.overscrollBehavior = previousHtmlStyles.overscrollBehavior;
+      bodyStyle.position = previousBodyStyles.position;
+      bodyStyle.top = previousBodyStyles.top;
+      bodyStyle.left = previousBodyStyles.left;
+      bodyStyle.right = previousBodyStyles.right;
+      bodyStyle.width = previousBodyStyles.width;
+      bodyStyle.overflow = previousBodyStyles.overflow;
+      bodyStyle.touchAction = previousBodyStyles.touchAction;
+      bodyStyle.overscrollBehavior = previousBodyStyles.overscrollBehavior;
+      window.scrollTo(0, scrollLockTop.current);
     };
   }, [open]);
 
   return (
     <header className={cn("site-header", scrolled && "site-header-scrolled")}>
       <div className={cn("site-header-inner", isHomePage && "site-header-inner-home")}>
-        <div className="site-header-tide" aria-hidden="true" />
         <Link href="/" className="brand-lockup" aria-label="V V College of Engineering home">
           <span className="brand-seal">
             <Image

@@ -1,18 +1,9 @@
 User-agent: *
-Disallow: /aidsadmin
-Disallow: /adminlogin
-Disallow: /admin/
-Disallow: /api/
-Disallow: /_next/
-
 Allow: /
-Allow: /technical-events
-Allow: /non-technical-events
-Allow: /prizes
-Allow: /timeline
-Allow: /contact
-Allow: /registration
-Allow: /status
-Allow: /registration-closed
+Disallow: /api/
+Disallow: /admin/
+Disallow: /adminlogin
+Disallow: /aidsadmin
+Disallow: /_next/
 
 Sitemap: https://vvcoe-symposium.netlify.app/sitemap.xml

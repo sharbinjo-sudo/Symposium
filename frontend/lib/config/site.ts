@@ -5,9 +5,9 @@ export const siteConfig: SiteConfig = {
   heroSubtitle: "National Level AI & Data Science Symposium",
   themeTagline: "VV College of Engineering welcomes all engineering students to CYBERPUNK'26.",
   eventDate: process.env.NEXT_PUBLIC_EVENT_DATE ?? "2026-09-11T09:30:00+05:30",
-  registrationDeadline: process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:30:00+05:30",
+  registrationDeadline: process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:00:00+05:30",
   venue: "V V College of Engineering",
-  venueDetail: "V V Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657",
+  venueDetail: "V V Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tuticorin District, Tamil Nadu - 628656",
   heroCopy:
     "A national-level technical symposium featuring technical and non-technical events for individually registered participants. Registration fee: ₹250 per participant.",
   about:
@@ -19,7 +19,7 @@ export const siteConfig: SiteConfig = {
     { label: "Co-ordinator", value: "Mrs. Shanthi. S, AP/AI&DS" },
     { label: "Student Co-ordinator", value: "Vanni Venkatesh. R" },
     { label: "Student Co-ordinator", value: "Chendur Priya. B" },
-    { label: "Event Contact", value: "8056591486" },
+    { label: "Event Contact", value: "+91 87781 85229" },
     { label: "Mail ID", value: "cyberpunkaidsvvcoe26@gmail.com" }
   ],
   paymentScannerImage: process.env.NEXT_PUBLIC_PAYMENT_SCANNER_IMAGE ?? "",
@@ -29,7 +29,7 @@ export const siteConfig: SiteConfig = {
     "Open to all engineering students",
     "Separate registration for each participant",
     "Registration fee: ₹250 per member",
-    "Registration end date: September 11, 2026, 12:30 AM"
+    "Registration end date: September 11, 2026, 12:00 AM"
   ],
   heroStats: [
     { value: "04", label: "Technical events" },
@@ -48,6 +48,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Floating decks and idea layers",
       accent: "blue-violet",
       visualTags: ["Slide narrative", "Idea framing", "Presentation polish"],
+      image: "/events/paper-presentation.png",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
@@ -84,6 +85,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Logic nodes and clean code motion",
       accent: "cyan-blue",
       visualTags: ["Algorithm rounds", "Debug sprints", "Logic trails"],
+      image: "/events/code-busters.png",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
@@ -120,6 +122,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Layered browsers and responsive frames",
       accent: "violet-teal",
       visualTags: ["Responsive UI", "Component systems", "Interface craft"],
+      image: "/events/web-craft.png",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
@@ -156,6 +159,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Data arcs and dashboard motion",
       accent: "teal-blue",
       visualTags: ["Visual stories", "Chart thinking", "Insight design"],
+      image: "/events/visualytics.png",
       feeAmount: 250,
       prizes: ["First Prize: Rs. 1,000", "Second Prize: Rs. 500", "Certificates: All registered participants"],
       rules: [
@@ -195,6 +199,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Stage gestures and quick guesses",
       accent: "blue-violet",
       visualTags: ["Silent acting", "Fast guesses", "Stage coordination"],
+      image: "/events/expression-challenge.png",
       feeAmount: 250,
       prizes: [],
       rules: [
@@ -234,6 +239,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Sketches, clues, and mystery words",
       accent: "cyan-blue",
       visualTags: ["Sketch Sprint", "Clue Cascade", "Quick teamwork"],
+      image: "/events/mystery-quest.png",
       feeAmount: 250,
       prizes: [],
       rules: [
@@ -270,6 +276,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Linked image tiles and answer paths",
       accent: "violet-teal",
       visualTags: ["Visual puzzles", "Rapid Connect", "Challenge Connect"],
+      image: "/events/connection-challenge.png",
       feeAmount: 250,
       prizes: [],
       rules: [
@@ -312,6 +319,7 @@ export const siteConfig: SiteConfig = {
       visualTitle: "Picture-based storytelling",
       accent: "teal-blue",
       visualTags: ["Observation", "Storytelling", "Stage presentation"],
+      image: "/events/visual-insight.png",
       feeAmount: 250,
       prizes: [],
       rules: [

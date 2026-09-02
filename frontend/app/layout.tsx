@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { Inter, Sora } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
@@ -9,16 +8,6 @@ import { ClientRuntimeGuard } from "@/components/ui/ClientRuntimeGuard";
 import { GlobalWaterRippleLayer } from "@/components/ui/GlobalWaterRippleLayer";
 import { PageTransitionOverlay } from "@/components/ui/PageTransitionOverlay";
 import "./globals.css";
-
-const headingFont = Sora({
-  subsets: ["latin"],
-  variable: "--font-heading"
-});
-
-const bodyFont = Inter({
-  subsets: ["latin"],
-  variable: "--font-body"
-});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vvcoe-symposium.netlify.app";
 
@@ -76,7 +65,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${headingFont.variable} ${bodyFont.variable}`}>
+      <body>
         <AuroraBackground />
         <GlobalWaterRippleLayer />
         <ClientRuntimeGuard />

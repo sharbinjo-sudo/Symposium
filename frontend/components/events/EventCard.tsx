@@ -18,92 +18,10 @@ type EventCardProps = {
 };
 
 function renderGraphic(event: EventConfig) {
-  if (event.code === "EC") {
+  if (event.image) {
     return (
-      <div className="event-graphic event-graphic-expression" aria-hidden="true">
-        <span className="expression-stage" />
-        <span className="expression-actor" />
-        <span className="expression-guesser" />
-        <span className="expression-gesture expression-gesture-one" />
-        <span className="expression-gesture expression-gesture-two" />
-      </div>
-    );
-  }
-
-  if (event.code === "CC") {
-    return (
-      <div className="event-graphic event-graphic-connect" aria-hidden="true">
-        <span className="connect-tile connect-tile-one" />
-        <span className="connect-tile connect-tile-two" />
-        <span className="connect-tile connect-tile-three" />
-        <span className="connect-thread connect-thread-one" />
-        <span className="connect-thread connect-thread-two" />
-      </div>
-    );
-  }
-
-  if (event.code === "VI") {
-    return (
-      <div className="event-graphic event-graphic-humanai" aria-hidden="true">
-        <span className="hai-panel hai-panel-left" />
-        <span className="hai-panel hai-panel-right" />
-        <span className="hai-divider" />
-        <span className="hai-icon hai-icon-human">👤</span>
-        <span className="hai-icon hai-icon-ai">🤖</span>
-        <span className="hai-vs">vs</span>
-      </div>
-    );
-  }
-
-  if (event.code === "PP") {
-    return (
-      <div className="event-graphic event-graphic-paper" aria-hidden="true">
-        <span className="paper-sheet paper-sheet-one" />
-        <span className="paper-sheet paper-sheet-two" />
-        <span className="paper-line paper-line-one" />
-        <span className="paper-line paper-line-two" />
-        <span className="paper-line paper-line-three" />
-      </div>
-    );
-  }
-
-  if (event.code === "CB") {
-    return (
-      <div className="event-graphic event-graphic-code" aria-hidden="true">
-        <span className="code-node code-node-one" />
-        <span className="code-node code-node-two" />
-        <span className="code-node code-node-three" />
-        <span className="code-path code-path-one" />
-        <span className="code-path code-path-two" />
-        <span className="code-bracket code-bracket-left">{"{"}</span>
-        <span className="code-bracket code-bracket-right">{"}"}</span>
-      </div>
-    );
-  }
-
-  if (event.code === "WC") {
-    return (
-      <div className="event-graphic event-graphic-web" aria-hidden="true">
-        <span className="web-browser web-browser-main" />
-        <span className="web-browser web-browser-secondary" />
-        <span className="web-frame web-frame-one" />
-        <span className="web-frame web-frame-two" />
-        <span className="web-frame web-frame-three" />
-      </div>
-    );
-  }
-
-  if (event.code === "VS") {
-    return (
-      <div className="event-graphic event-graphic-visualytics" aria-hidden="true">
-        <span className="viz-donut" />
-        <span className="viz-donut-hole" />
-        <span className="viz-slice viz-slice-one" />
-        <span className="viz-slice viz-slice-two" />
-        <span className="viz-trend" />
-        <span className="viz-dot viz-dot-one" />
-        <span className="viz-dot viz-dot-two" />
-        <span className="viz-dot viz-dot-three" />
+      <div className="event-graphic event-graphic-image" aria-hidden="true">
+        <img src={event.image} alt={`${event.name} graphic`} className="event-image" loading="lazy" />
       </div>
     );
   }

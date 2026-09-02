@@ -1,5 +1,8 @@
 import time
 
+from django.conf import settings
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -28,11 +31,28 @@ from .services import (
 )
 
 
+def is_registration_closed() -> bool:
+  deadline = parse_datetime(getattr(settings, "REGISTRATION_DEADLINE", ""))
+  if deadline is None:
+    return False
+  if timezone.is_naive(deadline):
+    deadline = timezone.make_aware(deadline, timezone.get_current_timezone())
+  return timezone.now() > deadline
+
+
 class RegistrationCreateView(APIView):
   throttle_classes = [ScopedRateThrottle]
   throttle_scope = "registration_submit"
 
   def post(self, request):
+    if is_registration_closed():
+      return apply_no_store(
+        Response(
+          {"detail": "Online registration has ended. On-site registration will remain available on campus."},
+          status=status.HTTP_403_FORBIDDEN
+        )
+      )
+
     serializer = RegistrationSubmitSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -59,6 +79,14 @@ class RegistrationPrecheckView(APIView):
   throttle_scope = "registration_precheck"
 
   def post(self, request):
+    if is_registration_closed():
+      return apply_no_store(
+        Response(
+          {"detail": "Online registration has ended. On-site registration will remain available on campus."},
+          status=status.HTTP_403_FORBIDDEN
+        )
+      )
+
     serializer = RegistrationPrecheckSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data

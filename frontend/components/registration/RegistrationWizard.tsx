@@ -582,7 +582,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                     <div className="ack-college-title">
                       <strong>V V College of Engineering</strong>
                       <span>Department of Artificial Intelligence and Data Science</span>
-                      <span>V V Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tirunelveli District, Tamil Nadu - 627657</span>
+                      <span>V V Nagar, Arasoor, Tisaiyanvilai (Via), Sathankulam Taluk, Tuticorin District, Tamil Nadu - 628656</span>
                     </div>
 
                     <div className="ack-document-meta">

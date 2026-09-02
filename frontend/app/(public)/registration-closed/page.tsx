@@ -5,13 +5,17 @@ import { siteConfig } from "@/lib/config/site";
 function formatDeadline(isoDate: string): string {
   try {
     const date = new Date(isoDate);
-    return date.toLocaleDateString("en-IN", {
+    return date.toLocaleString("en-IN", {
+      weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     });
   } catch {
-    return "September 11, 2026";
+    return "Friday, September 11, 2026, 12:00 AM";
   }
 }
 
@@ -19,12 +23,13 @@ function formatEventDate(isoDate: string): string {
   try {
     const date = new Date(isoDate);
     return date.toLocaleDateString("en-IN", {
+      weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
   } catch {
-    return "September 11, 2026";
+    return "Friday, September 11, 2026";
   }
 }
 

@@ -9,10 +9,9 @@ const REGISTRATION_CLOSED_PATH = "/registration-closed";
 
 /**
  * Registration deadline in ISO-8601 (IST).
- * Countdown hits 0 at this time and all public pages redirect to the closed page.
- * Change this to a past date to test the redirect immediately.
+ * Reads from NEXT_PUBLIC_REGISTRATION_DEADLINE env var with a safe fallback.
  */
-const REGISTRATION_DEADLINE = "2026-09-11T00:30:00+05:30";
+const REGISTRATION_DEADLINE = process.env.NEXT_PUBLIC_REGISTRATION_DEADLINE ?? "2026-09-11T00:00:00+05:30";
 
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                   */
@@ -37,6 +36,25 @@ function withSecurityHeaders(response: NextResponse) {
   );
   response.headers.set("Pragma", "no-cache");
   response.headers.set("Expires", "0");
+
+  // Content Security Policy: restricts resource loading to trusted origins.
+  // Relaxes style-src to allow inline styles and Google Fonts.
+  // Allows data: URIs for images used by the UI.
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' https://api.emailjs.com",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ].join('; ')
+  );
+
   return response;
 }
 

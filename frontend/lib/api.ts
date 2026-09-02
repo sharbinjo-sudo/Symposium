@@ -367,6 +367,7 @@ function mergeTechnicalEvents(events: Partial<EventConfig>[]) {
       accent: fallbackEvent.accent,
       visualTitle: fallbackEvent.visualTitle,
       visualTags: fallbackEvent.visualTags,
+      image: fallbackEvent.image,
       prizes: fallbackEvent.prizes,
       rules: fallbackEvent.rules,
       importantNotes: fallbackEvent.importantNotes,

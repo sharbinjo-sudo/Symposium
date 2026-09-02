@@ -12,6 +12,7 @@ export type EventConfig = {
   visualTitle: string;
   accent: "blue-violet" | "cyan-blue" | "violet-teal" | "teal-blue";
   visualTags: string[];
+  image?: string;
   feeAmount: number;
   prizes: string[];
   rules: string[];

@@ -25,7 +25,7 @@ const cardStyle: CSSProperties = {
   boxShadow: "0 28px 90px rgba(44, 17, 21, 0.16)",
   color: "#2c1115",
   textAlign: "center",
-  fontFamily: "Arial, sans-serif"
+  fontFamily: "\"Times New Roman\", Times, serif"
 };
 
 const titleStyle: CSSProperties = {

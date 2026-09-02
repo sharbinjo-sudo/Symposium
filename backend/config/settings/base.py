@@ -83,19 +83,25 @@ ASGI_APPLICATION = "config.asgi.application"
 
 database_url = os.getenv("DATABASE_URL", "").strip()
 
-if not database_url:
-  raise ImproperlyConfigured("DATABASE_URL is required. Configure Supabase Postgres instead of using a local database.")
-
-parsed_database = dj_database_url.parse(
-  database_url,
-  conn_max_age=600
-)
-if parsed_database.get("ENGINE") == "django.db.backends.postgresql":
-  parsed_database.setdefault("OPTIONS", {})
-  parsed_database["OPTIONS"].setdefault("sslmode", "require")
-DATABASES = {
-  "default": parsed_database
-}
+if database_url:
+  parsed_database = dj_database_url.parse(
+    database_url,
+    conn_max_age=600
+  )
+  if parsed_database.get("ENGINE") == "django.db.backends.postgresql":
+    parsed_database.setdefault("OPTIONS", {})
+    parsed_database["OPTIONS"].setdefault("sslmode", "require")
+  DATABASES = {
+    "default": parsed_database
+  }
+else:
+  # Local development: fall back to SQLite when no DATABASE_URL is set.
+  DATABASES = {
+    "default": {
+      "ENGINE": "django.db.backends.sqlite3",
+      "NAME": BASE_DIR / "db.sqlite3",
+    }
+  }
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
@@ -201,6 +207,7 @@ EMAILJS_FALLBACK_REJECTION_PUBLIC_KEY = os.getenv("EMAILJS_FALLBACK_REJECTION_PU
 EMAILJS_FALLBACK_REJECTION_PRIVATE_KEY = os.getenv("EMAILJS_FALLBACK_REJECTION_PRIVATE_KEY", "")
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", os.getenv("EMAILJS_ADMIN_RECEIVER", ""))
 EVENT_DATE = os.getenv("EVENT_DATE", "11 September 2026")
+REGISTRATION_DEADLINE = os.getenv("REGISTRATION_DEADLINE", "2026-09-11T00:00:00+05:30")
 
 BACKBLAZE_B2_BUCKET_NAME = os.getenv("BACKBLAZE_B2_BUCKET_NAME", "").strip().lower()
 BACKBLAZE_B2_KEY_ID = os.getenv("BACKBLAZE_B2_KEY_ID", "")

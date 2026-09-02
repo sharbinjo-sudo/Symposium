@@ -46,11 +46,11 @@ const homeFacts = [
   },
   {
     label: "Online registration deadline",
-    value: "September 11, 2026, 12:30 AM"
+    value: "Friday, September 11, 2026, 12:00 AM"
   },
   {
     label: "Event date",
-    value: "September 11, 2026"
+    value: "Friday, September 11, 2026"
   }
 ];
 
@@ -84,12 +84,12 @@ export default function HomePage() {
                   <span>closes in</span>
                 </h2>
                 <p className="card-copy">
-                  Complete your registration before September 11, 12:30 AM so your event-day entry is ready.
+                  Complete your registration before Friday, September 11, 12:00 AM so your event-day entry is ready.
                 </p>
               </div>
               <Countdown eventDate={siteConfig.registrationDeadline} />
               <div className="hero-countdown-footer">
-                <span>Event day: September 11, 2026, 9:30 AM onwards</span>
+                <span>Event day: Friday, September 11, 2026, 9:30 AM onwards</span>
               </div>
             </GlassPanel>
           </Reveal>

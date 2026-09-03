@@ -19,9 +19,9 @@ export function Reveal({ children, className, delay = 0, y = 28, scale = 1, once
   return (
     <motion.div
       className={cn("reveal-block", className)}
-      initial={reducedMotion ? false : { opacity: 1, y: Math.min(y, 10), scale }}
+      initial={reducedMotion ? false : { opacity: 0, y: Math.min(y, 10), scale }}
       whileInView={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once, amount: 0.2 }}
+      viewport={{ once, amount: 0.15 }}
       transition={{ duration: 0.68, ease: [0.22, 1, 0.36, 1], delay }}
     >
       {children}

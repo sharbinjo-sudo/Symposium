@@ -247,7 +247,7 @@ export function RegistrationStatusLookup() {
         </Reveal>
 
         <Reveal className="status-check-result-reveal" delay={0.16} y={30}>
-          <div ref={resultRef} />
+          <div ref={resultRef} className="status-check-result-anchor" aria-hidden="true" />
           <GlassPanel className="status-check-result-card" tone="soft">
             <AnimatePresence mode="wait" initial={false}>
               {result ? (

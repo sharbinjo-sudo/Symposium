@@ -44,12 +44,12 @@ const timelineItems = [
     detail: "Lunch break for participants, coordinators, judges, and guests."
   },
   {
-    time: "3:00 PM - 3:45 PM",
+    time: "3:00 PM - 3:30 PM",
     title: "Non-Technical Events",
     detail: "Second non-technical activity window and final rounds."
   },
   {
-    time: "3:45 PM - 4:15 PM",
+    time: "3:30 PM - 4:00 PM",
     title: "Valedictory Function",
     detail: "Prize distribution, certificates, closing remarks, and formal valedictory ceremony."
   }

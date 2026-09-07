@@ -1208,6 +1208,7 @@ export function RegistrationWizard({ events = siteConfig.technicalEvents, initia
                 </div>
                 <GlassPanel className="registration-notes-card" tone="soft">
                   <ul className="registration-notes-list">
+                    <li>Participants must complete individual registration in advance; team formation will take place on-site.</li>
                     <li>Select at least one technical event; non-technical events may be added during the same registration.</li>
                     <li>Choose either Web Craft or Visualytics, not both, because both are scheduled at the same time.</li>
                     <li>Upload clear payment proof with a valid 12-digit UPI transaction ID. If rejected, you may register again with corrected proof.</li>

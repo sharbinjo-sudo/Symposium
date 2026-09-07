@@ -61,6 +61,26 @@ export function EventCard({
           <div className="event-card-labels">
             <span className="event-card-number">0{event.order}</span>
             <span className="event-card-track">{event.track} Event</span>
+            {event.teamSize ? (
+              <span className="event-card-team">
+                <svg
+                  className="event-card-team-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                {event.teamSize}
+              </span>
+            ) : null}
           </div>
           <StatusChip tone={event.registrationOpen ? "verified" : "pending"}>{statusLabel}</StatusChip>
         </div>

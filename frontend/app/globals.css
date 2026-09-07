@@ -2065,6 +2065,41 @@ input[type="radio"]:focus {
   text-transform: uppercase;
 }
 
+.event-card-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.34rem 0.78rem;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--primary-rgb), 0.32);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.94), rgba(var(--primary-rgb), 0.96));
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px rgba(var(--primary-rgb), 0.24);
+}
+
+.event-card-team-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .event-card-team {
+    padding: 0.28rem 0.6rem;
+    font-size: 0.68rem;
+  }
+
+  .event-card-team-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+}
+
 .event-card-main {
   grid-template-columns: minmax(0, 1.05fr) minmax(220px, 0.95fr);
   align-items: center;
